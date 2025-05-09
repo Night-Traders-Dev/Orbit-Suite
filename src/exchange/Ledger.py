@@ -3,20 +3,26 @@
     Ledger.py
 '''
 
+import time
+from Order import Order, OrderUtil
+
+
 class Ledger:
     def __init__(self, market):
         self.market = market
-        self.trade_history = []  # Global list of all trades
-        self.order_book = {
-            "buy": [],   # List of buy orders across all stocks
-            "sell": []   # List of sell orders across all stocks
-        }
-        self.stocks = {}  # Format: { "Orbit": { "last_price": float, "supply": int } }
+        self.trade_history = []
+        self.order_book = {}  # { stock_name: { "buy": [], "sell": [] } }
+        self.stocks = {}      # { stock_name: { "last_price": float, "supply": int } }
+        self.order_util = OrderUtil(self)
 
     def initialize_stock(self, stock_name, initial_price, supply):
         self.stocks[stock_name] = {
             "last_price": initial_price,
             "supply": supply
+        }
+        self.order_book[stock_name] = {
+            "buy": [],
+            "sell": []
         }
 
     def update_price(self, stock_name, price):
@@ -38,3 +44,4 @@ class Ledger:
 
     def get_recent_trades(self, stock_name, limit=20):
         return [t for t in self.trade_history if t["stock"] == stock_name][-limit:]
+

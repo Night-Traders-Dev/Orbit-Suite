@@ -29,4 +29,5 @@ class InitToken:
             initial_price = token['initial_price']
             supply = token['supply']
             self.market.stocks[name.upper()] = Stock(name, initial_price, supply, self.ledger)
+            self.ledger.initialize_stock(name, initial_price, supply)
           

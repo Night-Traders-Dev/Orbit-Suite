@@ -60,8 +60,8 @@ class Stock:
         )
 
     def tick(self):
-        if not self.ledger.order_book["buy"] and not self.ledger.order_book["sell"]:
-            return  # No market activity, skip drift
+        if not self.ledger.order_book[self.name]["buy"] and not self.ledger.order_book[self.name]["sell"]:
+            return
 
         base_drift = random.uniform(-0.01, 0.01)  # +/- 1%
         pressure = len(self.ledger.order_book["buy"]) - len(self.ledger.order_book["sell"])

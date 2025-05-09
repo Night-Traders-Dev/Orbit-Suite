@@ -15,16 +15,24 @@ class OrderUtil:
     def __init__(self, ledger):
         self.ledger = ledger
 
-    def add_order(self, order_type, order, name):
-        self.ledger.order_book[order_type].append(order)
-        self.ledger.order_book[order_type].sort(
+    def add_order(self, stock_name, order_type, order, trader_name):
+        # Initialize stock entry if missing
+        if stock_name not in self.ledger.order_book:
+            self.ledger.order_book[stock_name] = {"buy": [], "sell": []}
+
+        self.ledger.order_book[stock_name][order_type].append(order)
+        self.ledger.order_book[stock_name][order_type].sort(
             key=lambda o: o.price, reverse=(order_type == "buy")
         )
-        self.match_orders(name)
+        self.match_orders(stock_name)
 
-    def match_orders(self, name):
-        buy_orders = self.ledger.order_book["buy"]
-        sell_orders = self.ledger.order_book["sell"]
+    def match_orders(self, stock_name):
+        book = self.ledger.order_book.get(stock_name)
+        if not book:
+            return
+
+        buy_orders = book["buy"]
+        sell_orders = book["sell"]
 
         while buy_orders and sell_orders and buy_orders[0].price >= sell_orders[0].price:
             buyer = buy_orders[0]
@@ -37,21 +45,21 @@ class OrderUtil:
                 buy_orders.pop(0)
                 continue
 
-            if seller.player.portfolio.get(name, 0) < quantity:
+            if seller.player.portfolio.get(stock_name, 0) < quantity:
                 sell_orders.pop(0)
                 continue
 
             buyer.player.balance -= total_cost
             seller.player.balance += total_cost
 
-            buyer.player.portfolio[name] = buyer.player.portfolio.get(name, 0) + quantity
-            seller.player.portfolio[name] -= quantity
+            buyer.player.portfolio[stock_name] = buyer.player.portfolio.get(stock_name, 0) + quantity
+            seller.player.portfolio[stock_name] -= quantity
 
-            print(f"Trade executed: {quantity:,} x {name} @ ${trade_price:,.4f}")
+            print(f"Trade executed: {quantity:,} x {stock_name} @ ${trade_price:,.4f}")
 
             trade_record = {
                 "timestamp": time.time(),
-                "stock": name,
+                "stock": stock_name,
                 "quantity": quantity,
                 "price": trade_price,
                 "buyer": buyer.player.name,
@@ -65,7 +73,7 @@ class OrderUtil:
                 seller.player.trade_history.append(trade_record)
 
             # Price adjustment logic
-            stock_info = self.ledger.stocks.get(name, {})
+            stock_info = self.ledger.stocks.get(stock_name, {})
             supply = stock_info.get("supply", 1)
             last_price = stock_info.get("last_price", trade_price)
 
@@ -76,7 +84,7 @@ class OrderUtil:
             new_price = last_price + delta if buyer.quantity > seller.quantity else last_price - delta
             new_price = round(max(0.0001, min(new_price, 100000)), 4)
 
-            self.ledger.stocks[name]["last_price"] = new_price
+            self.ledger.stocks[stock_name]["last_price"] = new_price
 
             buyer.quantity -= quantity
             seller.quantity -= quantity
