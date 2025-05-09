@@ -21,16 +21,15 @@ class AIinit:
             ("Trader", "risky", 80, (2_000, 7_500)),
         ])
         for prefix, role, count, balance_range in self.trader_specs:
-                for i in range(1, count + 1):
-                    starting_balance = random.randint(*balance_range)
-                    agent = AITrader(f"{prefix}{i}", role, starting_balance, market, ledger)
-                    self.ai_traders.append(agent)
-                    for stock in market.stocks.values():
-                        max_airdrop = int(stock.supply * 0.01)
-                        quantity = random.randint(0, max_airdrop)
-                        if quantity > 0:
-                            agent.portfolio[stock.name] = quantity
-
+            for i in range(1, count + 1):
+                starting_balance = random.randint(*balance_range)
+                agent = AITrader(f"{prefix}{i}", role, starting_balance, market, ledger)
+                self.ai_traders.append(agent)
+                for stock in market.stocks.values():
+                    max_airdrop = int(stock.supply * 0.01)
+                    quantity = random.randint(0, max_airdrop)
+                    if quantity > 0:
+                        agent.portfolio[stock.name] = quantity
 
 class AITrader:
     def __init__(self, name: str, role, balance, market, ledger):
@@ -95,7 +94,7 @@ class AITrader:
     def update_memory(self, stock):
         if stock.name not in self.price_memory:
             self.price_memory[stock.name] = deque(maxlen=10)
-        self.price_memory[stock.name].append(self.ledger.last_price)
+        self.price_memory[stock.name].append(self.ledger.stocks[stock.name]["last_price"])
 
     def analyze(self, stock):
         memory = self.price_memory.get(stock.name, [])
@@ -163,7 +162,6 @@ class AITrader:
                 return choice
 
         return "hold"
-
 
     def volatility_factor(self, stock):
         prices = list(self.price_memory.get(stock.name, []))
@@ -253,7 +251,7 @@ class AITrader:
         self.record_trade("sell", stock, quantity, price)
 
     def make_market(self, stock):
-        price = round(self.ledger.last_price, 4)
+        price = round(self.ledger.stocks[stock.name]["last_price"], 4)
         base_spread = 0.01
         spread_multiplier = 1 + self.volatility_factor(stock) * 5 + self.volume_factor(stock) * 2
 
@@ -278,7 +276,7 @@ class AITrader:
     def place_initial_sell_order(self, stock):
         shares_owned = self.portfolio.get(stock.name, 0)
         if shares_owned > 0:
-            sell_price = self.ledger.last_price * 1.10
+            sell_price = self.ledger.stocks[stock.name]["last_price"] * 1.10
             quantity = min(shares_owned, 10)
             self.order_util.add_order("sell", Order(self, quantity, round(sell_price, 4)), self.name)
 

@@ -123,7 +123,7 @@ class AdminPanel:
             print("Stock not found.")
             return
 
-        trades = stock.trade_history
+        trades = [t for t in self.ledger.trade_history if t["stock"] == stock.name]
         if not trades:
             print("No trades yet to chart.")
             return

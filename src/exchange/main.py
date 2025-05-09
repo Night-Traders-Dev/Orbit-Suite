@@ -9,7 +9,7 @@ from Stock import Stock
 from AITrader import AITrader,AIinit
 from InitToken import InitToken
 from Ledger import Ledger
-
+import sys
 
 
 def main():
