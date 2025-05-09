@@ -20,8 +20,8 @@ class Stock:
         }
 
     def get_market_price(self):
-        buy_orders = self.ledger.order_book["buy"]
-        sell_orders = self.ledger.order_book["sell"]
+        buy_orders = self.ledger.order_book[self.name]["buy"]
+        sell_orders = self.ledger.order_book[self.name]["sell"]
         best_buy = buy_orders[0].price if buy_orders else None
         best_sell = sell_orders[0].price if sell_orders else None
         return best_buy, best_sell
@@ -64,7 +64,7 @@ class Stock:
             return
 
         base_drift = random.uniform(-0.01, 0.01)  # +/- 1%
-        pressure = len(self.ledger.order_book["buy"]) - len(self.ledger.order_book["sell"])
+        pressure = len(self.ledger.order_book[self.name]["buy"]) - len(self.ledger.order_book[self.name]["sell"])
 
         pressure_drift = 0
         if pressure > 2:

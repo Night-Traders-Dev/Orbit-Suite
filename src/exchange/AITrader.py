@@ -156,7 +156,7 @@ class AITrader:
         if quantity <= 0: return
 
         price = round(best_bid.price, 4)
-        self.order_util.add_order("sell", Order(self, quantity, price), self.name)
+        self.order_util.add_order(stock.name, "sell", Order(self, quantity, price), self.name)
         self.record_trade("sell", stock, quantity, price)
 
     def big_dump(self, stock):
@@ -181,12 +181,12 @@ class AITrader:
         quantity = random.randint(5, 20)
 
         if self.balance >= buy_price * quantity:
-            self.order_util.add_order("buy", Order(self, quantity, buy_price), self.name)
+            self.order_util.add_order(stock.name, "buy", Order(self, quantity, buy_price), self.name)
 
         shares = self.portfolio.get(stock.name, 0)
         if shares > self.min_holdings_threshold(stock.name):
             sell_q = min(quantity, shares - self.min_holdings_threshold(stock.name))
-            self.order_util.add_order("sell", Order(self, sell_q, sell_price), self.name)
+            self.order_util.add_order(stock.name, "sell", Order(self, sell_q, sell_price), self.name)
 
     def place_initial_sell_order(self, stock):
         shares = self.portfolio.get(stock.name, 0)
