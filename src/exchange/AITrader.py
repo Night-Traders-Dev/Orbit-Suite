@@ -139,7 +139,7 @@ class AITrader:
 
         if self.balance >= cost:
             self.order_util.add_order(stock.name, "buy", Order(self, quantity, price), self.name)
-            self.record_trade("buy", stock, quantity, price)
+            self.ledger.record_trade(stock.name, price, quantity, "buy", self.name, "Market")
             self.update_avg_buy(stock.name, price, quantity)
 
     def sell_market(self, stock):
@@ -157,7 +157,7 @@ class AITrader:
 
         price = round(best_bid.price, 4)
         self.order_util.add_order(stock.name, "sell", Order(self, quantity, price), self.name)
-        self.record_trade("sell", stock, quantity, price)
+        self.ledger.record_trade(stock.name, price, quantity, "sell", self.name, "Market")
 
     def big_dump(self, stock):
         shares = self.portfolio.get(stock.name, 0)
@@ -171,7 +171,7 @@ class AITrader:
 
         price = round(max(0.0001, best_bid.price * random.uniform(0.9, 1.0)), 4)
         self.order_util.add_order("sell", Order(self, quantity, price), self.name)
-        self.record_trade("sell", stock, quantity, price)
+        self.ledger.record_trade(stock.name, price, quantity, "sell", self.name, "Market")
 
     def make_market(self, stock):
         price = round(self.ledger.stocks[stock.name]["last_price"], 4)
@@ -182,11 +182,13 @@ class AITrader:
 
         if self.balance >= buy_price * quantity:
             self.order_util.add_order(stock.name, "buy", Order(self, quantity, buy_price), self.name)
+            self.ledger.record_trade(stock.name, price, quantity, "buy", self.name, "Market")
 
         shares = self.portfolio.get(stock.name, 0)
         if shares > self.min_holdings_threshold(stock.name):
             sell_q = min(quantity, shares - self.min_holdings_threshold(stock.name))
             self.order_util.add_order(stock.name, "sell", Order(self, sell_q, sell_price), self.name)
+            self.ledger.record_trade(stock.name, price, quantity, "sell", self.name, "Market")
 
     def place_initial_sell_order(self, stock):
         shares = self.portfolio.get(stock.name, 0)
@@ -203,25 +205,6 @@ class AITrader:
     def min_holdings_threshold(self, stock_name):
         return max(1, random.randint(1, 5))
 
-    def record_trade(self, action, stock, quantity, price):
-        if action == "buy":
-            self.stats["buys"] += quantity
-            self.stats["buy_total"] += price * quantity
-        elif action == "sell":
-            self.stats["sells"] += quantity
-            self.stats["sell_total"] += price * quantity
-            avg = self.avg_buy_price.get(stock.name, price)
-            self.stats["profit"] += (price - avg) * quantity
-
-        self.trade_history.append({
-            "timestamp": time.time(),
-            "stock": stock.name,
-            "quantity": quantity,
-            "price": round(price, 4),
-            "action": action,
-            "buyer": self.name if action == "buy" else "N/A",
-            "seller": self.name if action == "sell" else "N/A"
-        })
 
     def __str__(self):
         return f"{self.name} ({self.role}) | Balance: ${self.balance:,.4f} | Holdings: {self.portfolio}"
