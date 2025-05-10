@@ -55,8 +55,6 @@ class OrderUtil:
             buyer.player.portfolio[stock_name] = buyer.player.portfolio.get(stock_name, 0) + quantity
             seller.player.portfolio[stock_name] -= quantity
 
-            print(f"Trade executed: {quantity:,} x {stock_name} @ ${trade_price:,.4f}")
-
             trade_record = {
                 "timestamp": time.time(),
                 "stock": stock_name,

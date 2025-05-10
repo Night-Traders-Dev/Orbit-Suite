@@ -1,5 +1,7 @@
-# Orbit Market - AITrader.py
-
+'''
+    Orbit Market
+    AITrader.py
+'''
 import random
 import statistics
 from collections import deque
@@ -141,6 +143,8 @@ class AITrader:
             self.order_util.add_order(stock.name, "buy", Order(self, quantity, price), self.name)
             self.ledger.record_trade(stock.name, price, quantity, "buy", self.name, "Market")
             self.update_avg_buy(stock.name, price, quantity)
+            self.stats["buys"] += 1
+            self.stats["buy_total"] += cost
 
     def sell_market(self, stock):
         shares = self.portfolio.get(stock.name, 0)
@@ -158,6 +162,8 @@ class AITrader:
         price = round(best_bid.price, 4)
         self.order_util.add_order(stock.name, "sell", Order(self, quantity, price), self.name)
         self.ledger.record_trade(stock.name, price, quantity, "sell", self.name, "Market")
+        self.stats["sells"] += 1
+        self.stats["sell_total"] += (quantity * price)        
 
     def big_dump(self, stock):
         shares = self.portfolio.get(stock.name, 0)
@@ -172,6 +178,8 @@ class AITrader:
         price = round(max(0.0001, best_bid.price * random.uniform(0.9, 1.0)), 4)
         self.order_util.add_order("sell", Order(self, quantity, price), self.name)
         self.ledger.record_trade(stock.name, price, quantity, "sell", self.name, "Market")
+        self.stats["sells"] += 1
+        self.stats["sell_total"] += (quantity * price) 
 
     def make_market(self, stock):
         price = round(self.ledger.stocks[stock.name]["last_price"], 4)
@@ -182,7 +190,6 @@ class AITrader:
 
         if self.balance >= buy_price * quantity:
             self.order_util.add_order(stock.name, "buy", Order(self, quantity, buy_price), self.name)
-            self.ledger.record_trade(stock.name, price, quantity, "buy", self.name, "Market")
 
         shares = self.portfolio.get(stock.name, 0)
         if shares > self.min_holdings_threshold(stock.name):
@@ -208,14 +215,3 @@ class AITrader:
 
     def __str__(self):
         return f"{self.name} ({self.role}) | Balance: ${self.balance:,.4f} | Holdings: {self.portfolio}"
-
-    def get_stats(self):
-        buys, sells = self.stats["buys"], self.stats["sells"]
-        return {
-            "role": self.role,
-            "buys": buys,
-            "sells": sells,
-            "avg_buy": self.stats["buy_total"] / buys if buys else 0,
-            "avg_sell": self.stats["sell_total"] / sells if sells else 0,
-            "profit": self.stats["profit"]
-        }
