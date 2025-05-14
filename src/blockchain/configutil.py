@@ -4,9 +4,9 @@ import time
 # ===== Default Constants =====
 DEFAULT_CHAIN_PATH = "data/orbit_chain.json"
 DEFAULT_NODE_DB = "data/nodes.json"
-DEFAULT_PORT = 5001
+DEFAULT_PORT = 5000
 DEFAULT_ADDRESS = "0.0.0.0"
-
+DEFAULT_USER_DB = USERS_FILE = "data/users.json"
 
 # ===== Node Configuration =====
 class NodeConfig:
@@ -14,7 +14,38 @@ class NodeConfig:
         self.port: int = DEFAULT_PORT
         self.address = ipaddress.IPv4Address(DEFAULT_ADDRESS)
         self.nodedb: str = DEFAULT_NODE_DB
+        self.quorum_slice = []
 
+    def to_dict(self):
+        """
+        Convert the NodeConfig object into a dictionary for easy serialization.
+        """
+        return {
+            "port": self.port,
+            "address": str(self.address),
+            "nodedb": self.nodedb,
+            "quorum_slice": self.quorum_slice
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        node_config = cls()
+        addr_port = data.get("address", DEFAULT_ADDRESS)
+
+        if ":" in addr_port:
+            ip_str, port_str = addr_port.split(":")
+            node_config.address = ipaddress.IPv4Address(ip_str)
+            node_config.port = int(port_str)
+        else:
+            node_config.address = ipaddress.IPv4Address(addr_port)
+            node_config.port = data.get("port", DEFAULT_PORT)
+
+        node_config.nodedb = data.get("nodedb", DEFAULT_NODE_DB)
+        node_config.quorum_slice = data.get("quorum_slice", [])
+        return node_config
+
+    def __repr__(self):
+        return f"NodeConfig(port={self.port}, address={self.address}, nodedb={self.nodedb}, quorum_slice={self.quorum_slice})"
 
 # ===== Mining Configuration =====
 class MiningConfig:
@@ -28,6 +59,11 @@ class MiningConfig:
 class LedgerConfig:
     def __init__(self):
         self.blockchaindb: str = DEFAULT_CHAIN_PATH
+
+# ===== User Configuration =====
+class UserConfig:
+    def __init__(self):
+        self.userdb: str = DEFAULT_USER_DB
 
 
 # ===== Transaction and Block Templates =====

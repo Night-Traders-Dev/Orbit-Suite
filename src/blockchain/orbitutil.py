@@ -1,7 +1,6 @@
-# orbitutil.py
-
 import json
 import os
+from configutil import NodeConfig
 
 NODES_FILE = "data/nodes.json"
 
@@ -18,13 +17,14 @@ def save_nodes(nodes):
 def register_node(node_id, quorum_slice, address):
     nodes = load_nodes()
 
-    nodes[node_id] = {
-        "quorum_slice": quorum_slice,
-        "address": address
-    }
+    # Create a NodeConfig instance for structured data
+    node_config = NodeConfig(
+        quorum_slice=quorum_slice,
+        address=address
+    )
 
+    nodes[node_id] = node_config.to_dict()  # Save the node configuration as a dictionary
     save_nodes(nodes)
-
 
 def propose_block(node_id, block_data):
     nodes = load_nodes()
@@ -33,7 +33,9 @@ def propose_block(node_id, block_data):
         print(f"Node {node_id} is not registered.")
         return False
 
-    quorum_slice = nodes[node_id].get("quorum_slice", [])
+    node_config = NodeConfig.from_dict(nodes[node_id])
+
+    quorum_slice = node_config.quorum_slice
     votes = {node_id}
 
     for peer in quorum_slice:
