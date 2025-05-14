@@ -53,22 +53,40 @@ class AITrader:
             decision = self.analyze(stock)
 
             book = self.ledger.order_book[stock.name]
+
             if self.role == "swing" and not book["buy"]:
                 print(f"{self.name} ({self.role}) sees an opportunity to BUY {stock.name} as no buy orders exist.")
-                self.buy_market(stock)
+                quantity = random.randint(1, 3)
+                self.buy_market(stock, quantity)
                 self.place_initial_sell_order(stock)
 
-            if decision == "buy" and book["sell"]:
+            if decision == "buy_small":
+                quantity = random.randint(1, 3)
+                print(f"{self.name} ({self.role}) does a SMALL BUY of {quantity} {stock.name}")
+                self.buy_market(stock, quantity)
+
+            elif decision == "sell_small":
+                owned = self.portfolio.get(stock.name, 0)
+                if owned > 0:
+                    quantity = random.randint(1, min(3, owned))
+                    print(f"{self.name} ({self.role}) does a SMALL SELL of {quantity} {stock.name}")
+                    self.sell_market(stock, quantity)
+
+            elif decision == "buy" and book["sell"]:
                 best_offer = book["sell"][0]
-                print(f"{self.name} ({self.role}) decided to BUY {min(best_offer.quantity, 25)} of {stock.name} @ ${best_offer.price:.4f}")
+                quantity = min(best_offer.quantity, 25)
+                print(f"{self.name} ({self.role}) decided to BUY {quantity} of {stock.name} @ ${best_offer.price:.4f}")
+                self.buy_market(stock, quantity)
+
             elif decision == "sell" and book["buy"]:
                 best_bid = book["buy"][0]
-                print(f"{self.name} ({self.role}) decided to SELL {min(best_bid.quantity, self.portfolio.get(stock.name, 0))} of {stock.name} @ ${best_bid.price:.4f}")
-            else:
-                print(f"{self.name} ({self.role}) decided to {decision.upper()} on {stock.name}")
+                quantity = min(best_bid.quantity, self.portfolio.get(stock.name, 0))
+                print(f"{self.name} ({self.role}) decided to SELL {quantity} of {stock.name} @ ${best_bid.price:.4f}")
+                self.sell_market(stock, quantity)
 
-            getattr(self, f"{decision}_market", lambda s: None)(stock) if decision in {"buy", "sell"} else \
-                getattr(self, decision, lambda s: None)(stock) if hasattr(self, decision) else None
+            elif hasattr(self, decision):
+                print(f"{self.name} ({self.role}) decided to {decision.upper()} on {stock.name}")
+                getattr(self, decision)(stock)
 
     def update_memory(self, stock):
         mem = self.price_memory.setdefault(stock.name, deque(maxlen=10))
@@ -99,10 +117,21 @@ class AITrader:
             return "make_market" if r < 0.85 else "hold"
 
         elif self.role == "whale":
-            if current_price < prev_price and r < 0.6 * (1 - volm): return "buy"
-            if current_price > prev_price and r < 0.3 * volm: return "sell"
-            if current_price < avg_buy * 0.8 and vol > 0.05 and volm > 0.5: return "big_dump"
+            # Frequent small trades
+            if r < 0.1:
+                return "buy_small" if current_price < prev_price else "sell_small"
 
+            # Strategic large buys
+            if current_price < prev_price and r < 0.6 * (1 - volm):
+                return "buy"
+
+            # Strategic large sells
+            if current_price > prev_price and r < 0.3 * volm:
+                return "sell"
+
+            # Panic large sell
+            if current_price < avg_buy * 0.8 and vol > 0.05 and volm > 0.5:
+                return "big_dump"
         elif self.role == "risky":
             if current_price < avg_price * 0.85 and r < 0.6 * vol:
                 print(f"{self.name} is PANICKING and selling {stock.name}!")
@@ -127,7 +156,7 @@ class AITrader:
         avg_volume = sum(t["quantity"] for t in trades if t["stock"] == stock.name) / len(trades)
         return min(avg_volume / self.role_cap, 1.0)
 
-    def buy_market(self, stock):
+    def buy_market(self, stock, quantity):
         sell_orders = self.ledger.order_book[stock.name]["sell"]
         if not sell_orders: return
 
@@ -146,7 +175,7 @@ class AITrader:
             self.stats["buys"] += 1
             self.stats["buy_total"] += cost
 
-    def sell_market(self, stock):
+    def sell_market(self, stock, quantity):
         shares = self.portfolio.get(stock.name, 0)
         if shares <= self.min_holdings_threshold(stock.name): return
 

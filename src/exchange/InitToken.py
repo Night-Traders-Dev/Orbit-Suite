@@ -14,13 +14,13 @@ class InitToken:
             {"name": "Orbit", "initial_price": 0.0021, "supply": 100_000_000_000},
             {"name": "Sheep", "initial_price": 0.045, "supply": 50_000_000_000},
             {"name": "Nova", "initial_price": 0.0083, "supply": 75_000_000_000},
-            {"name": "Zenith", "initial_price": 0.031, "supply": 20_000_000_000},
-            {"name": "Flare", "initial_price": 0.0155, "supply": 60_000_000_000},
-            {"name": "Terra", "initial_price": 0.0042, "supply": 90_000_000_000},
-            {"name": "Pulse", "initial_price": 0.012, "supply": 30_000_000_000},
-            {"name": "Echo", "initial_price": 0.0019, "supply": 120_000_000_000},
-            {"name": "Neon", "initial_price": 0.022, "supply": 40_000_000_000},
-            {"name": "Void", "initial_price": 0.0007, "supply": 150_000_000_000}
+#            {"name": "Zenith", "initial_price": 0.031, "supply": 20_000_000_000},
+#            {"name": "Flare", "initial_price": 0.0155, "supply": 60_000_000_000},
+#            {"name": "Terra", "initial_price": 0.0042, "supply": 90_000_000_000},
+#            {"name": "Pulse", "initial_price": 0.012, "supply": 30_000_000_000},
+#            {"name": "Echo", "initial_price": 0.0019, "supply": 1120_000_000_000},
+#            {"name": "Neon", "initial_price": 0.022, "supply": 40_000_000_000},
+#            {"name": "Void", "initial_price": 0.0007, "supply": 150_000_000_000}
         ])
 
     def create_init_token(self):

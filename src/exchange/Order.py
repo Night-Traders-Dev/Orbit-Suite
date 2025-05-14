@@ -10,6 +10,7 @@ class Order:
         self.player = player
         self.quantity = quantity
         self.price = price
+        self.timestamp = time.time()
 
 class OrderUtil:
     def __init__(self, ledger):

@@ -1,2 +1,7 @@
-__pycache__
-ecp.py
+# Ignore Python bytecode
+__pycache__/
+**/__pycache__/
+
+# Ignore data folder
+data/
+**/data/
