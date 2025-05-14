@@ -78,8 +78,13 @@ def receive_block(block):
     chain = load_chain()
     last_block = chain[-1]
 
+    if block["index"] != last_block["index"] + 1:
+        print("Rejected block: invalid index.")
+        return False
+
     if block["previous_hash"] != last_block["hash"]:
         print("Rejected block: previous hash mismatch.")
+        print(f"Expected: {last_block['hash']}, got: {block['previous_hash']}")
         return False
 
     recalculated_hash = calculate_hash(
@@ -99,7 +104,6 @@ def receive_block(block):
     return True
 
 def send_block(peer_address, block):
-    receive_block(block)
     host, port = peer_address.split(":")
     port = int(port)
 
@@ -118,8 +122,8 @@ def broadcast_block(block, sender_id="Node1"):
         address = info.get("address")
         if address:
             try:
-                send_block(address, block)
                 print(f"Block sent to {node_id} at {address}")
+                send_block(address, block)
             except Exception as e:
                 print(f"Failed to send block to {node_id}: {e}")
 
@@ -144,9 +148,6 @@ def add_block(transactions, node_id="Node1"):
 
     # Check consensus
     if propose_block(node_id, new_block):
-#        chain.append(new_block)
-#        save_chain(chain)
-#        print(f"Block {new_block['index']} added to Orbit chain.")
         broadcast_block(new_block)
     else:
         print("Block rejected due to failed consensus.")
