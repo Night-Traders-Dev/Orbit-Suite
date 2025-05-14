@@ -1,6 +1,7 @@
 import time
 from userutil import load_users, save_users
 from ledgerutil import load_blockchain
+from configutil import TXConfig
 
 def show_balance(username):
     users = load_users()
@@ -11,40 +12,40 @@ def show_balance(username):
     locked_from_ledger = []
 
     for block in blockchain:
-        for tx in block.get("transactions", []):
-            tx_type = tx.get("type")
+        for tx_data in block.get("transactions", []):
+            tx = TXConfig.Transaction.from_dict(tx_data)
+            tx_type = getattr(tx, "type", None)
 
             # Infer transaction type if not explicitly given
             if not tx_type:
-                if tx.get("from") == "mining":
+                if tx.sender == "mining":
                     tx_type = "mining"
-                elif isinstance(tx.get("note"), dict) and "duration_days" in tx["note"]:
+                elif isinstance(tx.note, dict) and "duration_days" in tx.note:
                     tx_type = "lockup"
                 else:
                     tx_type = "transfer"
 
             # Process transfer
             if tx_type == "transfer":
-                if tx.get("from") == username:
-                    balance_from_ledger -= tx.get("amount", 0)
-                if tx.get("to") == username:
-                    balance_from_ledger += tx.get("amount", 0)
+                if tx.sender == username:
+                    balance_from_ledger -= tx.amount
+                if tx.recipient == username:
+                    balance_from_ledger += tx.amount
 
             # Process lockup
-            elif tx_type == "lockup" and tx.get("to") == username:
-                note = tx.get("note", {})
-                duration = note.get("duration_days", 0)
+            elif tx_type == "lockup" and tx.recipient == username:
+                duration = tx.note.get("duration_days", 0) if isinstance(tx.note, dict) else 0
                 lock = {
-                    "amount": tx.get("amount", 0),
+                    "amount": tx.amount,
                     "duration_days": duration,
-                    "start_time": tx.get("timestamp", time.time())
+                    "start_time": tx.timestamp if hasattr(tx, "timestamp") else time.time()
                 }
                 locked_from_ledger.append(lock)
                 balance_from_ledger -= lock["amount"]
 
             # Process mining reward
-            elif tx_type == "mining" and tx.get("to") == username:
-                balance_from_ledger += tx.get("amount", 0)
+            elif tx_type == "mining" and tx.recipient == username:
+                balance_from_ledger += tx.amount
 
     current_time = time.time()
     active_locked = sum(

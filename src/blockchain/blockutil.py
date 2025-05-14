@@ -1,17 +1,19 @@
-# blockutil.py
-
 import hashlib
 import json
 import time
 import os
 import socket
 import threading
+
 from orbitutil import load_nodes, propose_block
+from configutil import NodeConfig, LedgerConfig, TXConfig
 
-CHAIN_FILE = "data/orbit_chain.json"
-HOST = '0.0.0.0'  # Listen on all available interfaces
-PORT = 5000
+node_config = NodeConfig()
+ledger_config = LedgerConfig()
 
+CHAIN_FILE = ledger_config.blockchaindb
+HOST = str(node_config.address)
+PORT = node_config.port
 
 def handle_client(conn, addr):
     try:
@@ -27,7 +29,6 @@ def handle_client(conn, addr):
         print(f"Error handling client {addr}: {e}")
     finally:
         conn.close()
-
 
 def start_listener():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -45,20 +46,20 @@ def calculate_hash(index, previous_hash, timestamp, transactions):
     return hashlib.sha256(block_string.encode()).hexdigest()
 
 def create_genesis_block():
-    genesis_block = {
-        "index": 0,
-        "timestamp": time.time(),
-        "transactions": [],
-        "previous_hash": "0",
-        "hash": "",
-    }
-    genesis_block["hash"] = calculate_hash(
-        genesis_block["index"],
-        genesis_block["previous_hash"],
-        genesis_block["timestamp"],
-        genesis_block["transactions"]
+    genesis_block = TXConfig.Block(
+        index=0,
+        timestamp=time.time(),
+        transactions=[],  # No transactions in the genesis block
+        previous_hash="0",  # No previous hash for the genesis block
+        hash=""
     )
-    return genesis_block
+    genesis_block.hash = calculate_hash(
+        genesis_block.index,
+        genesis_block.previous_hash,
+        genesis_block.timestamp,
+        [tx.to_dict() for tx in genesis_block.transactions]  # Convert transactions to dict
+    )
+    return genesis_block.to_dict()
 
 def load_chain():
     if not os.path.exists(CHAIN_FILE):
@@ -127,28 +128,32 @@ def broadcast_block(block, sender_id="Node1"):
             except Exception as e:
                 print(f"Failed to send block to {node_id}: {e}")
 
-
 def add_block(transactions, node_id="Node1"):
     chain = load_chain()
     last_block = chain[-1]
-    new_block = {
-        "index": len(chain),
-        "timestamp": time.time(),
-        "transactions": transactions,
-        "previous_hash": last_block["hash"],
-        "hash": ""
-    }
-
-    new_block["hash"] = calculate_hash(
-        new_block["index"],
-        new_block["previous_hash"],
-        new_block["timestamp"],
-        new_block["transactions"]
+    
+    # Create a new block from the provided transactions
+    new_block = TXConfig.Block(
+        index=len(chain),  # Index based on the current chain length
+        timestamp=time.time(),
+        transactions=[TXConfig.Transaction(**tx) for tx in transactions],  # Unpack the transactions
+        previous_hash=last_block["hash"],
+        hash=""
     )
 
-    # Check consensus
-    if propose_block(node_id, new_block):
-        broadcast_block(new_block)
+    # Calculate the hash for the new block
+    new_block.hash = calculate_hash(
+        new_block.index,
+        new_block.previous_hash,
+        new_block.timestamp,
+        [tx.to_dict() for tx in new_block.transactions]  # Convert transaction to dict for hashing
+    )
+
+    block_data = new_block.to_dict()  # Convert block to dict for consistency
+
+    # Check consensus and broadcast the block if valid
+    if propose_block(node_id, block_data):
+        broadcast_block(block_data)
     else:
         print("Block rejected due to failed consensus.")
 
@@ -168,5 +173,3 @@ def is_chain_valid():
         if current["previous_hash"] != previous["hash"]:
             return False
     return True
-
-

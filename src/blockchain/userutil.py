@@ -1,4 +1,3 @@
-# userutil.py
 import time
 import json
 import os
@@ -7,6 +6,7 @@ import rsa
 import threading
 from blockutil import add_block, start_listener
 from ledgerutil import load_blockchain
+from configutil import TXConfig  # Import TXConfig for transaction handling
 
 USERS_FILE = "data/users.json"
 
@@ -104,24 +104,20 @@ def remove_from_security_circle(username):
     save_users(users)
     print(f"{remove_user} removed from your Security Circle.")
 
-
 def view_lockups(username):
     blockchain = load_blockchain()
     lockups = []
 
     for block in blockchain:
-        for tx in block.get("transactions", []):
-            if tx.get("to") == username:
-                note = tx.get("note")
-                if isinstance(note, dict) and "duration_days" in note:
-                    amount = tx["amount"]
-                    duration = note["duration_days"]
-                    start_time = tx.get("timestamp", time.time())
-                    lockups.append({
-                        "amount": amount,
-                        "duration": duration,
-                        "start_time": start_time
-                    })
+        for tx_data in block.get("transactions", []):
+            tx = TXConfig.Transaction.from_dict(tx_data)
+            if tx.recipient == username and isinstance(tx.note, dict) and "duration_days" in tx.note:
+                duration = tx.note["duration_days"]
+                lockups.append({
+                    "amount": tx.amount,
+                    "duration": duration,
+                    "start_time": getattr(tx, "timestamp", time.time())
+                })
 
     if not lockups:
         print("No active lockups.")
@@ -134,7 +130,6 @@ def view_lockups(username):
         start = lock["start_time"]
         days_remaining = max(0, int((start + duration * 86400 - time.time()) / 86400))
         print(f" {i+1}. {amount} Orbit locked for {duration} days ({days_remaining} days remaining)")
-
 
 def lock_tokens(username):
     users = load_users()
@@ -157,14 +152,15 @@ def lock_tokens(username):
         users[username] = user_data
         save_users(users)
 
-        lock_tx = {
-            "from": None,
-            "to": username,
-            "amount": amount,
-            "timestamp": time.time(),
-            "note": {"duration_days": duration}
-        }
-        add_block([lock_tx])
+        # Create lock transaction using TXConfig.Transaction with note
+        lock_tx = TXConfig.Transaction(
+            sender="system",  # Explicit sender for clarity
+            recipient=username,
+            amount=amount,
+            note={"duration_days": duration},
+            timestamp=time.time()
+        )
+        add_block([lock_tx.to_dict()])
 
         print(f"Locked {amount} Orbit for {duration} days.")
 

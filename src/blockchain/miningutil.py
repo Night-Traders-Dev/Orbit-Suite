@@ -2,22 +2,21 @@ import math
 import time
 from userutil import load_users, save_users
 from blockutil import add_block
+from configutil import MiningConfig, TXConfig
+
+# Load configuration
+mining_config = MiningConfig()
 
 # Simulation or Mainnet mode toggle
 MODE = "simulation"  # Toggle to "mainnet" when ready
 
-# Global base rate configuration
-INITIAL_BASE_RATE = 0.1  # Orbit per second
-DECAY_CONSTANT = 0.0001  # Rate decay factor over time
-
 def get_base_rate(start_time):
     current_time = time.time()
     t = current_time - start_time
-    return INITIAL_BASE_RATE * math.exp(-DECAY_CONSTANT * t)
+    return mining_config.base * math.exp(-mining_config.decay * t)
 
 def get_security_circle_bonus(user_data):
     return 0.05 * min(len(user_data.get("security_circle", [])), 5)
-
 
 def get_lockup_reward(user_data):
     locked = user_data.get("locked", [])
@@ -71,14 +70,15 @@ def simulate_mining(username, duration=10):
 
     # Blockchain record of mining reward
     if MODE == "simulation":
-        mining_tx = {
-            "from": "mining",
-            "to": username,
-            "amount": mined,
-            "timestamp": time.time(),
-            "note": "Mining Reward"
-        }
-        add_block([mining_tx])
+        # Create a transaction using TXConfig.Transaction
+        mining_tx = TXConfig.Transaction(
+            sender="mining",  # Sender is the mining node
+            recipient=username,  # Recipient is the username
+            amount=mined
+        )
+        
+        # Use the to_dict method to get the transaction as a dictionary
+        add_block([mining_tx.to_dict()])
 
     users[username] = user_data
     save_users(users)

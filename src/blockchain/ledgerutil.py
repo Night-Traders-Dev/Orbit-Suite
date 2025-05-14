@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from configutil import TXConfig  # Import the TXConfig class
 
 BLOCKCHAIN_FILE = "data/orbit_chain.json"
 
@@ -29,7 +30,9 @@ def view_all_transactions():
     print("\n=== Full Orbit Ledger ===")
     for block in blockchain:
         for tx in block.get("transactions", []):
-            print(format_transaction(tx))
+            # Use the TXConfig.Transaction class to handle transactions
+            tx_obj = TXConfig.Transaction.from_dict(tx)  # Convert the dict back to a TXConfig object
+            print(format_transaction(tx_obj.to_dict()))
 
 def view_user_transactions(username):
     blockchain = load_blockchain()
@@ -37,8 +40,9 @@ def view_user_transactions(username):
     found = False
     for block in blockchain:
         for tx in block.get("transactions", []):
-            if tx.get("from") == username or tx.get("to") == username:
-                print(format_transaction(tx))
+            tx_obj = TXConfig.Transaction.from_dict(tx)  # Convert the dict back to a TXConfig object
+            if tx_obj.sender == username or tx_obj.recipient == username:
+                print(format_transaction(tx_obj.to_dict()))
                 found = True
     if not found:
         print("No transactions found for this user.")
@@ -49,8 +53,9 @@ def view_mining_rewards(username):
     found = False
     for block in blockchain:
         for tx in block.get("transactions", []):
-            if tx.get("from") == "mining" and tx.get("to") == username:
-                print(format_transaction(tx))
+            tx_obj = TXConfig.Transaction.from_dict(tx)  # Convert the dict back to a TXConfig object
+            if tx_obj.sender == "mining" and tx_obj.recipient == username:
+                print(format_transaction(tx_obj.to_dict()))
                 found = True
     if not found:
         print("No mining rewards found.")
@@ -61,10 +66,11 @@ def view_transfers(username):
     found = False
     for block in blockchain:
         for tx in block.get("transactions", []):
-            if tx.get("note") != "Mining Reward" and (
-                tx.get("from") == username or tx.get("to") == username
+            tx_obj = TXConfig.Transaction.from_dict(tx)  # Convert the dict back to a TXConfig object
+            if tx_obj.note != "Mining Reward" and (
+                tx_obj.sender == username or tx_obj.recipient == username
             ):
-                print(format_transaction(tx))
+                print(format_transaction(tx_obj.to_dict()))
                 found = True
     if not found:
         print("No transfer records found.")
