@@ -21,7 +21,7 @@ def pre_login_menu():
         print("2. Register")
         print("3. Exit")
         choice = input("Choose an option: ").strip()
-
+        clear_screen()
         if choice == "1":
             user = login()
             if user:
@@ -43,7 +43,7 @@ def quorum_slice_menu(user):
         print("3. Edit Quorum Slice")
         print("4. Back")
         choice = input("Choose an option: ").strip()
-
+        clear_screen()
         if choice == "1":
             nodes = load_nodes()
             if not nodes:
@@ -90,7 +90,7 @@ def lockup_menu(user):
         print("2. View Lockups")
         print("3. Back")
         choice = input("Choose an option: ").strip()
-
+        clear_screen()
         if choice == "1":
             lock_tokens(user)
         elif choice == "2":
@@ -109,6 +109,7 @@ def wallet_menu(user):
         print("3. Staking")
         print("4. Back")
         choice = input("Choose an option: ").strip()
+        clear_screen()
 
         if choice == "1":
             show_balance(user)
@@ -200,4 +201,5 @@ def post_login_menu(user):
             print("Invalid option. Try again.")
 
 if __name__ == "__main__":
+    clear_screen()
     pre_login_menu()

@@ -12,15 +12,6 @@ CHAIN_FILE = "data/orbit_chain.json"
 HOST = '0.0.0.0'  # Listen on all available interfaces
 PORT = 5000       # Default port to listen on
 
-def send_block(peer_address, block):
-    host, port = peer_address.split(":")
-    port = int(port)
-
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((host, port))
-        data = json.dumps({"type": "block", "data": block})
-        s.sendall(data.encode())
-        print(f"Block sent to {peer_address}")
 
 def handle_client(conn, addr):
     try:
@@ -107,10 +98,23 @@ def receive_block(block):
     print(f"Block {block['index']} received and added to Orbit chain.")
     return True
 
-def broadcast_block(block):
+def send_block(peer_address, block):
+    receive_block(block)
+    host, port = peer_address.split(":")
+    port = int(port)
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((host, port))
+        data = json.dumps({"type": "block", "data": block})
+        s.sendall(data.encode())
+        print(f"Block sent to {peer_address}")
+
+def broadcast_block(block, sender_id="Node1"):
     print(f"Broadcasting block {block['index']} to peers...")
     nodes = load_nodes()
     for node_id, info in nodes.items():
+        if node_id == sender_id:
+            continue
         address = info.get("address")
         if address:
             try:
@@ -140,9 +144,9 @@ def add_block(transactions, node_id="Node1"):
 
     # Check consensus
     if propose_block(node_id, new_block):
-        chain.append(new_block)
-        save_chain(chain)
-        print(f"Block {new_block['index']} added to Orbit chain.")
+#        chain.append(new_block)
+#        save_chain(chain)
+#        print(f"Block {new_block['index']} added to Orbit chain.")
         broadcast_block(new_block)
     else:
         print("Block rejected due to failed consensus.")
