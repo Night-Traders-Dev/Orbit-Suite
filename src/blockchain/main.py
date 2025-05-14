@@ -1,6 +1,6 @@
 from userutil import (
     view_security_circle, add_to_security_circle, remove_from_security_circle,
-    view_lockups, lock_tokens, login, register
+    view_lockups, lock_tokens, login, register, claim_lockup_rewards
 )
 from miningutil import simulate_mining
 from tokenutil import send_orbit
@@ -88,7 +88,8 @@ def lockup_menu(user):
         print("\n=== Lockups Menu ===")
         print("1. Lock Orbit")
         print("2. View Lockups")
-        print("3. Back")
+        print("3. Claim")
+        print("4. Back")
         choice = input("Choose an option: ").strip()
         clear_screen()
         if choice == "1":
@@ -96,6 +97,8 @@ def lockup_menu(user):
         elif choice == "2":
             view_lockups(user)
         elif choice == "3":
+            claim_lockup_rewards(user)
+        elif choice == "4":
             break
         else:
             print("Invalid option. Try again.")

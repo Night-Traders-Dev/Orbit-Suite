@@ -4,7 +4,7 @@ import time
 # ===== Default Constants =====
 DEFAULT_CHAIN_PATH = "data/orbit_chain.json"
 DEFAULT_NODE_DB = "data/nodes.json"
-DEFAULT_PORT = 5000
+DEFAULT_PORT = 5001
 DEFAULT_ADDRESS = "0.0.0.0"
 DEFAULT_USER_DB = USERS_FILE = "data/users.json"
 

@@ -6,7 +6,7 @@ import rsa
 import threading
 from blockutil import add_block, start_listener
 from ledgerutil import load_blockchain
-from configutil import TXConfig  # Import TXConfig for transaction handling
+from configutil import TXConfig
 
 USERS_FILE = "data/users.json"
 
@@ -152,7 +152,6 @@ def lock_tokens(username):
         users[username] = user_data
         save_users(users)
 
-        # Create lock transaction using TXConfig.Transaction with note
         lock_tx = TXConfig.Transaction(
             sender="system",  # Explicit sender for clarity
             recipient=username,
@@ -166,3 +165,86 @@ def lock_tokens(username):
 
     except ValueError:
         print("Invalid input.")
+
+
+def claim_lockup_rewards(username):
+    users = load_users()
+    claimed = users[username].get("claimed_rewards", {})
+    blockchain = load_blockchain()
+    total_reward = 0
+    reward_txs = []
+    now = time.time()
+
+    for block in blockchain:
+        for tx_data in block.get("transactions", []):
+            tx = TXConfig.Transaction.from_dict(tx_data)
+
+            if tx.recipient != username:
+                continue
+            if not isinstance(tx.note, dict) or "duration_days" not in tx.note:
+                continue
+
+            lock_start = tx.timestamp
+            duration_secs = tx.note["duration_days"] * 86400
+            lock_end = lock_start + duration_secs
+
+            last_claim = claimed.get(str(lock_start), lock_start)
+            claim_until = min(now, lock_end)
+
+            if last_claim >= claim_until:
+                continue  # Already fully claimed
+
+            seconds_eligible = claim_until - last_claim
+            rate_per_day = 0.05  # 5% daily reward
+            rate_per_sec = (tx.amount * rate_per_day) / 86400
+
+            reward = seconds_eligible * rate_per_sec
+            if reward > 0:
+                total_reward += reward
+                claimed[str(lock_start)] = claim_until
+
+                reward_tx = TXConfig.Transaction(
+                    sender="lockup_reward",
+                    recipient=username,
+                    amount=reward,
+                    note={"lock_start": lock_start, "claim_until": claim_until},
+                    timestamp=now
+                )
+                reward_txs.append(reward_tx.to_dict())
+
+    if reward_txs:
+        add_block(reward_txs)
+
+    users[username]["claimed_rewards"] = claimed
+    save_users(users)
+
+    if total_reward > 0:
+        print(f"Claimed {total_reward:.6f} Orbit in lockup rewards.")
+        choice = input("Would you like to re-lock your claimed rewards (compound)? (y/n): ").lower()
+        if choice == 'y':
+            try:
+                duration = int(input("Enter new lockup duration in days: "))
+                if duration < 1:
+                    print("Duration must be at least 1 day.")
+                    return
+
+                # Create a new lockup transaction for the compounded reward
+                relock_tx = TXConfig.Transaction(
+                    sender="system",
+                    recipient=username,
+                    amount=total_reward,
+                    note={"duration_days": duration},
+                    timestamp=time.time()
+                )
+                add_block([relock_tx.to_dict()])
+                print(f"Re-locked {total_reward:.6f} Orbit for {duration} days.")
+            except ValueError:
+                print("Invalid duration input.")
+        else:
+            # Add reward to balance if not re-locked
+            users = load_users()
+            users[username]["balance"] += total_reward
+            save_users(users)
+            print(f"{total_reward:.6f} Orbit added to your balance.")
+    else:
+        print("No new rewards available to claim.")
