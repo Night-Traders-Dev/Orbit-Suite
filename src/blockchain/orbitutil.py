@@ -1,8 +1,11 @@
 import json
 import os
+import time
+import random
 from configutil import NodeConfig
 
 NODES_FILE = "data/nodes.json"
+PENDING_PROPOSALS_FILE = "data/pending_proposals.json"
 
 def load_nodes():
     if not os.path.exists(NODES_FILE):
@@ -17,35 +20,97 @@ def save_nodes(nodes):
 def register_node(node_id, quorum_slice, address):
     nodes = load_nodes()
 
-    # Create a NodeConfig instance for structured data
-    node_config = NodeConfig(
-        quorum_slice=quorum_slice,
-        address=address
-    )
+    node_config = NodeConfig()
+    node_config.address = address
+    node_config.quorum_slice = quorum_slice
+    node_config.trust_score = 1.0
+    node_config.uptime_score = 1.0
 
-    nodes[node_id] = node_config.to_dict()  # Save the node configuration as a dictionary
+    nodes[node_id] = node_config.to_dict()
     save_nodes(nodes)
 
-def propose_block(node_id, block_data):
+def simulate_peer_vote(peer_id, block_data, trust_score):
+    approval_chance = trust_score * 0.9 + 0.1
+    return random.random() < approval_chance
+
+def sign_vote(node_id, block_data):
+    return f"signed({node_id})"
+
+def relay_pending_proposal(node_id, block_data):
+    if not os.path.exists(PENDING_PROPOSALS_FILE):
+        proposals = []
+    else:
+        with open(PENDING_PROPOSALS_FILE, "r") as f:
+            proposals = json.load(f)
+
+    proposals.append({
+        "node_id": node_id,
+        "block_data": block_data,
+        "timestamp": time.time()
+    })
+
+    with open(PENDING_PROPOSALS_FILE, "w") as f:
+        json.dump(proposals, f, indent=2)
+    print("[Relay] Proposal added to retry queue.")
+
+def propose_block(node_id, block_data, timeout=5):
     nodes = load_nodes()
 
     if node_id not in nodes:
         print(f"Node {node_id} is not registered.")
         return False
 
-    node_config = NodeConfig.from_dict(nodes[node_id])
+    proposer_config = NodeConfig.from_dict(nodes[node_id])
+    quorum_slice = proposer_config.quorum_slice
 
-    quorum_slice = node_config.quorum_slice
+    print(f"[Propose] Node {node_id} proposing block to quorum: {quorum_slice}")
+
     votes = {node_id}
+    signatures = {node_id: sign_vote(node_id, block_data)}
+    start_time = time.time()
 
-    for peer in quorum_slice:
-        if peer in nodes:
-            votes.add(peer)
+    for peer_id in quorum_slice:
+        if time.time() - start_time > timeout:
+            print("[Propose] Timeout during quorum vote collection.")
+            break
+
+        peer_data = nodes.get(peer_id)
+        if not peer_data:
+            print(f"[Propose] Peer {peer_id} not found in registry.")
+            continue
+
+        peer_config = NodeConfig.from_dict(peer_data)
+        trust_score = peer_config.trust_score
+        uptime_score = peer_config.uptime_score
+        online = random.random() < uptime_score
+
+        if online:
+            voted = simulate_peer_vote(peer_id, block_data, trust_score)
+            if voted:
+                votes.add(peer_id)
+                signatures[peer_id] = sign_vote(peer_id, block_data)
+                print(f"[Propose] Vote received from {peer_id} (trust: {trust_score:.2f})")
+                peer_config.trust_score = min(1.0, trust_score + 0.01)
+            else:
+                print(f"[Propose] {peer_id} voted no (trust: {trust_score:.2f})")
+                peer_config.trust_score = max(0.0, trust_score - 0.05)
+        else:
+            print(f"[Propose] {peer_id} unavailable (uptime: {uptime_score:.2f})")
+            peer_config.uptime_score = max(0.0, uptime_score - 0.05)
+            peer_config.trust_score = max(0.0, trust_score - 0.02)
+
+        # Save updated peer state
+        nodes[peer_id] = peer_config.to_dict()
 
     required_votes = (len(quorum_slice) // 2) + 1
+
     if len(votes) >= required_votes:
-        print("Consensus reached. Block accepted.")
+        print(f"[Propose] Consensus achieved: {len(votes)} votes (required {required_votes}).")
+        print(f"[Signatures] {signatures}")
+        save_nodes(nodes)
         return True
     else:
-        print(f"Consensus failed. Required: {required_votes}, Got: {len(votes)}.")
+        print(f"[Propose] Consensus failed: {len(votes)} votes (required {required_votes}).")
+        relay_pending_proposal(node_id, block_data)
+        save_nodes(nodes)
         return False

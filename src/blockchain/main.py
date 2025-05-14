@@ -51,7 +51,10 @@ def quorum_slice_menu(user):
             else:
                 print("Registered Nodes:")
                 for nid, node in nodes.items():
-                    print(f"- {nid} (Quorum Slice: {node.get('quorum_slice', [])})")
+                    quorum = node.get("quorum_slice", [])
+                    trust = round(node.get("trust_score", 0.0), 2)
+                    uptime = round(node.get("uptime_score", 0.0), 2)
+                    print(f"- {nid} (Quorum Slice: {quorum}) | Trust: {trust} | Uptime: {uptime}")
 
         elif choice == "2":
             node_id = input("Enter node ID to register (e.g., Node3): ").strip()

@@ -16,6 +16,8 @@ class NodeConfig:
         self.address = ipaddress.IPv4Address(DEFAULT_ADDRESS)
         self.nodedb: str = DEFAULT_NODE_DB
         self.quorum_slice = []
+        self.trust_score = 0.5  # Initial trust
+        self.uptime_score = 0.5  # Initial uptime
 
     @staticmethod
     def port_is_available(port):
@@ -37,7 +39,9 @@ class NodeConfig:
             "port": self.port,
             "address": str(self.address),
             "nodedb": self.nodedb,
-            "quorum_slice": self.quorum_slice
+            "quorum_slice": self.quorum_slice,
+            "trust_score": self.trust_score,
+            "uptime_score": self.uptime_score
         }
 
     @classmethod
@@ -56,10 +60,15 @@ class NodeConfig:
 
         node_config.nodedb = data.get("nodedb", DEFAULT_NODE_DB)
         node_config.quorum_slice = data.get("quorum_slice", [])
+        node_config.trust_score = data.get("trust_score", 0.5)
+        node_config.uptime_score = data.get("uptime_score", 0.5)
         return node_config
 
     def __repr__(self):
-        return f"NodeConfig(port={self.port}, address={self.address}, nodedb={self.nodedb}, quorum_slice={self.quorum_slice})"
+        return (
+            f"NodeConfig(port={self.port}, address={self.address}, nodedb={self.nodedb}, "
+            f"quorum_slice={self.quorum_slice}, trust_score={self.trust_score:.2f}, uptime_score={self.uptime_score:.2f})"
+        )
 
 # ===== Mining Configuration =====
 class MiningConfig:
