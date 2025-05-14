@@ -6,7 +6,7 @@ import socket
 import threading
 
 from orbitutil import load_nodes, propose_block
-from configutil import NodeConfig, LedgerConfig, TXConfig
+from configutil import NodeConfig, LedgerConfig, TXConfig, get_node_for_user
 
 node_config = NodeConfig()
 ledger_config = LedgerConfig()

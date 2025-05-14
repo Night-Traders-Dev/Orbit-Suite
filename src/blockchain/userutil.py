@@ -6,9 +6,12 @@ import rsa
 import threading
 from blockutil import add_block, start_listener
 from ledgerutil import load_blockchain
-from configutil import TXConfig
+from configutil import TXConfig, assign_node_to_user, load_active_sessions
+from orbitutil import load_nodes
 
 USERS_FILE = "data/users.json"
+NODES_FILE = "data/nodes.json"
+active_sessions = {}
 
 def load_users():
     if os.path.exists(USERS_FILE):
@@ -46,19 +49,32 @@ def register():
     save_users(users)
     print("Registration successful!")
 
+
 def login():
     users = load_users()
     username = input("Username: ").strip()
     password = input("Password: ").strip()
 
     if username in users and users[username]["password"] == hash_password(password):
-        print(f"Welcome, {username}!")
+        sessions = load_active_sessions()
+
+        if username in sessions:
+            print(f"{username} is already logged in on node {sessions[username]}.")
+            return username
+
+        node_id = assign_node_to_user(username)
+        if not node_id:
+            print("No available nodes at the moment. Try again later.")
+            return None
+
+        print(f"Welcome, {username}! Assigned to node: {node_id}")
         listener_thread = threading.Thread(target=start_listener, daemon=True)
         listener_thread.start()
         return username
     else:
         print("Invalid credentials.")
         return None
+
 
 def view_security_circle(username):
     users = load_users()

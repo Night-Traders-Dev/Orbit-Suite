@@ -2,6 +2,8 @@ import ipaddress
 import time
 import socket
 import hashlib
+import os
+import json
 
 # ===== Default Constants =====
 DEFAULT_CHAIN_PATH = "data/orbit_chain.json"
@@ -9,6 +11,48 @@ DEFAULT_NODE_DB = "data/nodes.json"
 DEFAULT_PORT = 5000
 DEFAULT_ADDRESS = "0.0.0.0"
 DEFAULT_USER_DB = USERS_FILE = "data/users.json"
+ACTIVE_SESSIONS_FILE = "data/active_sessions.json"
+
+# ===== Session Assignment (Global Active Sessions) =====
+
+
+def load_active_sessions():
+    if os.path.exists(ACTIVE_SESSIONS_FILE):
+        with open(ACTIVE_SESSIONS_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_active_sessions(sessions):
+    with open(ACTIVE_SESSIONS_FILE, "w") as f:
+        json.dump(sessions, f, indent=4)
+
+def load_nodes():
+    if os.path.exists(DEFAULT_NODE_DB):
+        with open(DEFAULT_NODE_DB, "r") as f:
+            return json.load(f)
+    return []
+
+def assign_node_to_user(username):
+    sessions = load_active_sessions()
+    nodes = load_nodes()
+    assigned_nodes = set(sessions.values())
+
+    for node in nodes:
+        if node not in assigned_nodes:
+            sessions[username] = node
+            save_active_sessions(sessions)
+            return node
+    return None  # No unassigned node available
+
+def revoke_node_from_user(username):
+    sessions = load_active_sessions()
+    if username in sessions:
+        del sessions[username]
+        save_active_sessions(sessions)
+
+def get_node_for_user(username):
+    sessions = load_active_sessions()
+    return sessions.get(username)
 
 # ===== Node Configuration =====
 class NodeConfig:
