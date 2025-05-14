@@ -4,7 +4,8 @@ import json
 import os
 import hashlib
 import rsa
-from blockutil import add_block
+import threading
+from blockutil import add_block, start_listener
 from ledgerutil import load_blockchain
 
 USERS_FILE = "data/users.json"
@@ -52,6 +53,8 @@ def login():
 
     if username in users and users[username]["password"] == hash_password(password):
         print(f"Welcome, {username}!")
+        listener_thread = threading.Thread(target=start_listener, daemon=True)
+        listener_thread.start()
         return username
     else:
         print("Invalid credentials.")

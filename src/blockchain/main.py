@@ -14,21 +14,20 @@ from orbitutil import load_nodes, save_nodes, register_node
 import sys
 
 def pre_login_menu():
+    clear_screen()
     while True:
         print("\n=== Orbit Terminal ===")
-        print("1. Register")
-        print("2. Login")
+        print("1. Login")
+        print("2. Register")
         print("3. Exit")
         choice = input("Choose an option: ").strip()
-        clear_screen()
 
         if choice == "1":
-            register()
-        elif choice == "2":
             user = login()
             if user:
-                clear_screen()
                 post_login_menu(user)
+        elif choice == "2":
+            register()
         elif choice == "3":
             print("Goodbye!")
             break
@@ -36,6 +35,7 @@ def pre_login_menu():
             print("Invalid option. Try again.")
 
 def quorum_slice_menu(user):
+    clear_screen()
     while True:
         print("\n=== Node Manager Menu ===")
         print("1. View All Nodes")
@@ -43,7 +43,6 @@ def quorum_slice_menu(user):
         print("3. Edit Quorum Slice")
         print("4. Back")
         choice = input("Choose an option: ").strip()
-        clear_screen()
 
         if choice == "1":
             nodes = load_nodes()
@@ -84,13 +83,13 @@ def quorum_slice_menu(user):
             print("Invalid option. Try again.")
 
 def lockup_menu(user):
+    clear_screen()
     while True:
         print("\n=== Lockups Menu ===")
         print("1. Lock Orbit")
         print("2. View Lockups")
         print("3. Back")
         choice = input("Choose an option: ").strip()
-        clear_screen()
 
         if choice == "1":
             lock_tokens(user)
@@ -102,6 +101,7 @@ def lockup_menu(user):
             print("Invalid option. Try again.")
 
 def wallet_menu(user):
+    clear_screen()
     while True:
         print("\n=== Wallet Menu ===")
         print("1. Show Balance")
@@ -109,7 +109,6 @@ def wallet_menu(user):
         print("3. Staking")
         print("4. Back")
         choice = input("Choose an option: ").strip()
-        clear_screen()
 
         if choice == "1":
             show_balance(user)
@@ -123,6 +122,7 @@ def wallet_menu(user):
             print("Invalid option. Try again.")
 
 def security_circle_menu(user):
+    clear_screen()
     while True:
         print("\n=== Security Circle Menu ===")
         print("1. View Security Circle")
@@ -145,6 +145,7 @@ def security_circle_menu(user):
 
 
 def ledger_menu(user):
+    clear_screen()
     while True:
         print("\n=== Ledger Menu ===")
         print("1. View All Transactions")
@@ -169,6 +170,7 @@ def ledger_menu(user):
             print("Invalid option. Try again.")
 
 def post_login_menu(user):
+    clear_screen()
     while True:
         print(f"\n=== Welcome to Orbit, {user} ===")
         print("1. Mine Orbit")
