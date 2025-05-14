@@ -136,7 +136,7 @@ def add_block(transactions, node_id="Node1"):
     new_block = TXConfig.Block(
         index=len(chain),  # Index based on the current chain length
         timestamp=time.time(),
-        transactions=[TXConfig.Transaction(**tx) for tx in transactions],  # Unpack the transactions
+        transactions=[TXConfig.Transaction.from_dict(tx) for tx in transactions],
         previous_hash=last_block["hash"],
         hash=""
     )
