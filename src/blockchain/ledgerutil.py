@@ -15,10 +15,11 @@ def format_transaction(tx):
     try:
         if isinstance(tx, dict) and "timestamp" in tx:
             ts = datetime.fromtimestamp(tx["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
-            return (
-                f"[{ts}] {tx.get('from')} -> {tx.get('to')} | "
-                f"{tx['amount']} Orbit | Note: {tx.get('note', 'N/A')}"
-            )
+            sender = tx.get("from", tx.get("sender", "N/A"))
+            recipient = tx.get("to", tx.get("recipient", "N/A"))
+            amount = tx.get("amount", "N/A")
+            note = tx.get("note", tx.get("metadata", {}).get("note", "N/A"))
+            return f"[{ts}] {sender} -> {recipient} | {amount} Orbit | Note: {note}"
         else:
             raise ValueError("Invalid transaction format.")
     except Exception as e:
@@ -30,8 +31,7 @@ def view_all_transactions():
     print("\n=== Full Orbit Ledger ===")
     for block in blockchain:
         for tx in block.get("transactions", []):
-            # Use the TXConfig.Transaction class to handle transactions
-            tx_obj = TXConfig.Transaction.from_dict(tx)  # Convert the dict back to a TXConfig object
+            tx_obj = TXConfig.Transaction.from_dict(tx)
             print(format_transaction(tx_obj.to_dict()))
 
 def view_user_transactions(username):
@@ -40,7 +40,7 @@ def view_user_transactions(username):
     found = False
     for block in blockchain:
         for tx in block.get("transactions", []):
-            tx_obj = TXConfig.Transaction.from_dict(tx)  # Convert the dict back to a TXConfig object
+            tx_obj = TXConfig.Transaction.from_dict(tx)
             if tx_obj.sender == username or tx_obj.recipient == username:
                 print(format_transaction(tx_obj.to_dict()))
                 found = True
@@ -53,7 +53,7 @@ def view_mining_rewards(username):
     found = False
     for block in blockchain:
         for tx in block.get("transactions", []):
-            tx_obj = TXConfig.Transaction.from_dict(tx)  # Convert the dict back to a TXConfig object
+            tx_obj = TXConfig.Transaction.from_dict(tx)
             if tx_obj.sender == "mining" and tx_obj.recipient == username:
                 print(format_transaction(tx_obj.to_dict()))
                 found = True
@@ -66,10 +66,11 @@ def view_transfers(username):
     found = False
     for block in blockchain:
         for tx in block.get("transactions", []):
-            tx_obj = TXConfig.Transaction.from_dict(tx)  # Convert the dict back to a TXConfig object
-            if tx_obj.note != "Mining Reward" and (
+            tx_obj = TXConfig.Transaction.from_dict(tx)
+            is_transfer = tx_obj.note != "Mining Reward" and (
                 tx_obj.sender == username or tx_obj.recipient == username
-            ):
+            )
+            if is_transfer:
                 print(format_transaction(tx_obj.to_dict()))
                 found = True
     if not found:

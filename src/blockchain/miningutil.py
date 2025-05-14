@@ -70,14 +70,13 @@ def simulate_mining(username, duration=10):
 
     # Blockchain record of mining reward
     if MODE == "simulation":
-        # Create a transaction using TXConfig.Transaction
         mining_tx = TXConfig.Transaction(
-            sender="mining",  # Sender is the mining node
-            recipient=username,  # Recipient is the username
-            amount=mined
+            sender="mining",
+            recipient=username,
+            amount=round(mined, 6),
+            note="Mining Reward",
+            timestamp=time.time()
         )
-        
-        # Use the to_dict method to get the transaction as a dictionary
         add_block([mining_tx.to_dict()])
 
     users[username] = user_data

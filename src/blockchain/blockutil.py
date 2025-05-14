@@ -41,23 +41,42 @@ def start_listener():
         thread = threading.Thread(target=handle_client, args=(conn, addr))
         thread.start()
 
-def calculate_hash(index, previous_hash, timestamp, transactions):
-    block_string = f"{index}{previous_hash}{timestamp}{json.dumps(transactions, sort_keys=True)}"
+def calculate_hash(index, previous_hash, timestamp, transactions, validator="", merkle_root="", nonce=0, metadata=None):
+    block_content = {
+        "index": index,
+        "previous_hash": previous_hash,
+        "timestamp": timestamp,
+        "transactions": transactions,
+        "validator": validator,
+        "merkle_root": merkle_root,
+        "nonce": nonce,
+        "metadata": metadata or {}
+    }
+    block_string = json.dumps(block_content, sort_keys=True)
     return hashlib.sha256(block_string.encode()).hexdigest()
 
 def create_genesis_block():
     genesis_block = TXConfig.Block(
         index=0,
         timestamp=time.time(),
-        transactions=[],  # No transactions in the genesis block
-        previous_hash="0",  # No previous hash for the genesis block
-        hash=""
+        transactions=[],
+        previous_hash="0",
+        hash="",
+        validator="genesis",
+        signatures={},
+        merkle_root="",
+        nonce=0,
+        metadata={"note": "genesis block"}
     )
     genesis_block.hash = calculate_hash(
         genesis_block.index,
         genesis_block.previous_hash,
         genesis_block.timestamp,
-        [tx.to_dict() for tx in genesis_block.transactions]  # Convert transactions to dict
+        [],
+        genesis_block.validator,
+        genesis_block.merkle_root,
+        genesis_block.nonce,
+        genesis_block.metadata
     )
     return genesis_block.to_dict()
 
@@ -92,7 +111,11 @@ def receive_block(block):
         block["index"],
         block["previous_hash"],
         block["timestamp"],
-        block["transactions"]
+        block["transactions"],
+        block.get("validator", ""),
+        block.get("merkle_root", ""),
+        block.get("nonce", 0),
+        block.get("metadata", {})
     )
 
     if recalculated_hash != block["hash"]:
@@ -121,37 +144,48 @@ def broadcast_block(block, sender_id="Node1"):
         if node_id == sender_id:
             continue
         address = info.get("address")
-        if address:
+        port = info.get("port")
+        if address and port:
+            full_address = f"{address}:{port}"
             try:
-                print(f"Block sent to {node_id} at {address}")
-                send_block(address, block)
+                print(f"Block sent to {node_id} at {full_address}")
+                send_block(full_address, block)
             except Exception as e:
                 print(f"Failed to send block to {node_id}: {e}")
+
 
 def add_block(transactions, node_id="Node1"):
     chain = load_chain()
     last_block = chain[-1]
-    
-    # Create a new block from the provided transactions
+
+    tx_objs = [TXConfig.Transaction.from_dict(tx) for tx in transactions]
+
     new_block = TXConfig.Block(
-        index=len(chain),  # Index based on the current chain length
+        index=len(chain),
         timestamp=time.time(),
-        transactions=[TXConfig.Transaction.from_dict(tx) for tx in transactions],
+        transactions=tx_objs,
         previous_hash=last_block["hash"],
-        hash=""
+        hash="",
+        validator=node_id,
+        signatures={},
+        merkle_root="",  # Will auto-compute if empty
+        nonce=0,
+        metadata={"lockup_rewards": [], "version": "1.0"}
     )
 
-    # Calculate the hash for the new block
     new_block.hash = calculate_hash(
         new_block.index,
         new_block.previous_hash,
         new_block.timestamp,
-        [tx.to_dict() for tx in new_block.transactions]  # Convert transaction to dict for hashing
+        [tx.to_dict() for tx in new_block.transactions],
+        new_block.validator,
+        new_block.merkle_root,
+        new_block.nonce,
+        new_block.metadata
     )
 
-    block_data = new_block.to_dict()  # Convert block to dict for consistency
+    block_data = new_block.to_dict()
 
-    # Check consensus and broadcast the block if valid
     if propose_block(node_id, block_data):
         broadcast_block(block_data)
     else:
@@ -166,7 +200,11 @@ def is_chain_valid():
             current["index"],
             current["previous_hash"],
             current["timestamp"],
-            current["transactions"]
+            current["transactions"],
+            current.get("validator", ""),
+            current.get("merkle_root", ""),
+            current.get("nonce", 0),
+            current.get("metadata", {})
         )
         if current["hash"] != recalculated_hash:
             return False

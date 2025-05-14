@@ -1,6 +1,7 @@
 import ipaddress
 import time
 import socket
+import hashlib
 
 # ===== Default Constants =====
 DEFAULT_CHAIN_PATH = "data/orbit_chain.json"
@@ -89,6 +90,7 @@ class UserConfig:
         self.userdb: str = DEFAULT_USER_DB
 
 
+
 # ===== Transaction and Block Templates =====
 class TXConfig:
     class Transaction:
@@ -102,14 +104,13 @@ class TXConfig:
             self.timestamp = timestamp if timestamp is not None else time.time()
 
         def to_dict(self):
-            transaction_dict = {
+            return {
                 "sender": self.sender,
                 "recipient": self.recipient,
                 "amount": self.amount,
                 "note": self.note,
                 "timestamp": self.timestamp
             }
-            return transaction_dict
 
         @staticmethod
         def from_dict(data):
@@ -137,13 +138,23 @@ class TXConfig:
             timestamp: float,
             transactions: list["TXConfig.Transaction"],
             previous_hash: str,
-            hash: str
+            hash: str,
+            validator: str = "",
+            signatures: dict = None,
+            merkle_root: str = "",
+            nonce: int = 0,
+            metadata: dict = None
         ):
             self.index = index
             self.timestamp = timestamp
             self.transactions = transactions
             self.previous_hash = previous_hash
             self.hash = hash
+            self.validator = validator
+            self.signatures = signatures if signatures else {}
+            self.merkle_root = merkle_root or self.compute_merkle_root()
+            self.nonce = nonce
+            self.metadata = metadata if metadata else {}
 
         def to_dict(self):
             return {
@@ -151,7 +162,12 @@ class TXConfig:
                 "timestamp": self.timestamp,
                 "transactions": [tx.to_dict() for tx in self.transactions],
                 "previous_hash": self.previous_hash,
-                "hash": self.hash
+                "hash": self.hash,
+                "validator": self.validator,
+                "signatures": self.signatures,
+                "merkle_root": self.merkle_root,
+                "nonce": self.nonce,
+                "metadata": self.metadata
             }
 
         @staticmethod
@@ -164,8 +180,28 @@ class TXConfig:
                     for tx in data["transactions"]
                 ],
                 previous_hash=data["previous_hash"],
-                hash=data["hash"]
+                hash=data["hash"],
+                validator=data.get("validator", ""),
+                signatures=data.get("signatures", {}),
+                merkle_root=data.get("merkle_root", ""),
+                nonce=data.get("nonce", 0),
+                metadata=data.get("metadata", {})
             )
 
+        def compute_merkle_root(self):
+            tx_hashes = [self.hash_transaction(tx) for tx in self.transactions]
+            while len(tx_hashes) > 1:
+                if len(tx_hashes) % 2 != 0:
+                    tx_hashes.append(tx_hashes[-1])  # duplicate last if odd
+                tx_hashes = [
+                    hashlib.sha256((tx_hashes[i] + tx_hashes[i + 1]).encode()).hexdigest()
+                    for i in range(0, len(tx_hashes), 2)
+                ]
+            return tx_hashes[0] if tx_hashes else ""
+
+        def hash_transaction(self, tx):
+            raw = f"{tx.sender}->{tx.recipient}:{tx.amount}:{tx.timestamp}"
+            return hashlib.sha256(raw.encode()).hexdigest()
+
         def __repr__(self):
-            return f"Block(Index: {self.index}, TXs: {len(self.transactions)})"
+            return f"Block(Index: {self.index}, TXs: {len(self.transactions)}, Validator: {self.validator})"
