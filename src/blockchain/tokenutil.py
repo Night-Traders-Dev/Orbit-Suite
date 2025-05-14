@@ -15,12 +15,10 @@ def send_orbit(sender):
     locked_entries = []
     current_time = time.time()
 
-    # Recalculate balance and lockups from the ledger
     for block in blockchain:
         for tx_data in block.get("transactions", []):
             tx = TXConfig.Transaction.from_dict(tx_data)
 
-            # Determine transaction type
             tx_type = tx_data.get("type")
             if not tx_type:
                 if tx.sender == "mining":
@@ -50,7 +48,6 @@ def send_orbit(sender):
             elif tx_type == "mining" and tx.recipient == sender:
                 balance += tx.amount
 
-    # Calculate locked and available balance
     locked_amount = sum(
         l["amount"] for l in locked_entries
         if current_time < l["start_time"] + l["duration_days"] * 86400
@@ -71,16 +68,35 @@ def send_orbit(sender):
             print("Invalid amount.")
             return
 
-        tx = TXConfig.Transaction(
+        # Calculate dynamic burn fee (e.g., 2%)
+        fee_rate = 0.02
+        fee = amount * fee_rate
+        net_amount = amount - fee
+
+        if net_amount <= 0:
+            print("Amount too small after fee deduction.")
+            return
+
+        # Transaction to recipient
+        tx1 = TXConfig.Transaction(
             sender=sender,
             recipient=recipient,
-            amount=amount,
+            amount=net_amount,
             timestamp=current_time
         )
 
-        add_block([tx.to_dict()])
+        # Burn transaction
+        tx2 = TXConfig.Transaction(
+            sender=sender,
+            recipient="burn",
+            amount=fee,
+            note={"type": "burn_fee"},
+            timestamp=current_time
+        )
 
-        print(f"Successfully sent {amount} Orbit to {recipient}.")
+        add_block([tx1.to_dict(), tx2.to_dict()])
+
+        print(f"Sent {net_amount:.4f} Orbit to {recipient} with {fee:.4f} Orbit burned as fee.")
 
     except ValueError:
         print("Invalid input.")

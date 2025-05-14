@@ -1,25 +1,38 @@
 import ipaddress
 import time
+import socket
 
 # ===== Default Constants =====
 DEFAULT_CHAIN_PATH = "data/orbit_chain.json"
 DEFAULT_NODE_DB = "data/nodes.json"
-DEFAULT_PORT = 5001
+DEFAULT_PORT = 5000
 DEFAULT_ADDRESS = "0.0.0.0"
 DEFAULT_USER_DB = USERS_FILE = "data/users.json"
 
 # ===== Node Configuration =====
 class NodeConfig:
     def __init__(self):
-        self.port: int = DEFAULT_PORT
+        self.port: int = self.find_available_port(DEFAULT_PORT)
         self.address = ipaddress.IPv4Address(DEFAULT_ADDRESS)
         self.nodedb: str = DEFAULT_NODE_DB
         self.quorum_slice = []
 
+    @staticmethod
+    def port_is_available(port):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind((DEFAULT_ADDRESS, port))
+                return True
+            except OSError:
+                return False
+
+    def find_available_port(self, start_port):
+        port = start_port
+        while not self.port_is_available(port):
+            port += 1
+        return port
+
     def to_dict(self):
-        """
-        Convert the NodeConfig object into a dictionary for easy serialization.
-        """
         return {
             "port": self.port,
             "address": str(self.address),
@@ -38,7 +51,8 @@ class NodeConfig:
             node_config.port = int(port_str)
         else:
             node_config.address = ipaddress.IPv4Address(addr_port)
-            node_config.port = data.get("port", DEFAULT_PORT)
+            requested_port = data.get("port", DEFAULT_PORT)
+            node_config.port = node_config.find_available_port(requested_port)
 
         node_config.nodedb = data.get("nodedb", DEFAULT_NODE_DB)
         node_config.quorum_slice = data.get("quorum_slice", [])
