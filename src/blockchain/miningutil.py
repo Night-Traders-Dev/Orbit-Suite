@@ -2,7 +2,7 @@ import math
 import time
 from userutil import load_users, save_users
 from blockutil import add_block
-from configutil import MiningConfig, TXConfig
+from configutil import MiningConfig, TXConfig, get_node_for_user
 
 # Load configuration
 mining_config = MiningConfig()
@@ -53,6 +53,7 @@ def calculate_total_rate(user_data, start_time):
 
 def simulate_mining(username, duration=10):
     users = load_users()
+    node_id = get_node_for_user(username)
     if username not in users:
         print("User not found.")
         return
@@ -77,7 +78,7 @@ def simulate_mining(username, duration=10):
             note="Mining Reward",
             timestamp=time.time()
         )
-        add_block([mining_tx.to_dict()])
+        add_block([mining_tx.to_dict()], node_id)
 
     users[username] = user_data
     save_users(users)

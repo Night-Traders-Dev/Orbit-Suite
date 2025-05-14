@@ -11,7 +11,6 @@ from orbitutil import load_nodes
 
 USERS_FILE = "data/users.json"
 NODES_FILE = "data/nodes.json"
-active_sessions = {}
 
 def load_users():
     if os.path.exists(USERS_FILE):
