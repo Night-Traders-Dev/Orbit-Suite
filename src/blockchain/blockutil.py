@@ -10,7 +10,7 @@ from orbitutil import load_nodes, propose_block
 
 CHAIN_FILE = "data/orbit_chain.json"
 HOST = '0.0.0.0'  # Listen on all available interfaces
-PORT = 5000       # Default port to listen on
+PORT = 5000
 
 
 def handle_client(conn, addr):
