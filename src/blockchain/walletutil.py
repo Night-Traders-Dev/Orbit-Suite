@@ -1,13 +1,13 @@
 import time
 from userutil import load_users, save_users
-from ledgerutil import load_blockchain
+from blockutil import load_chain
 from configutil import TXConfig
 
 def show_balance(username):
     users = load_users()
     user_data = users.get(username, {"balance": 0, "locked": []})
 
-    blockchain = load_blockchain()
+    blockchain = load_chain()
     balance_from_ledger = 0
     locked_from_ledger = []
 

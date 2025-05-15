@@ -4,8 +4,7 @@ import os
 import hashlib
 import rsa
 import threading
-from blockutil import add_block, start_listener
-from ledgerutil import load_blockchain
+from blockutil import add_block, start_listener, load_chain
 from configutil import TXConfig, assign_node_to_user, load_active_sessions
 from orbitutil import load_nodes
 
@@ -64,12 +63,9 @@ def login():
         node_id = assign_node_to_user(username)
         if not node_id:
             print("No available nodes at the moment. Try again later.")
-            return None
+            sys.exit()
 
-        print(f"Welcome, {username}! Assigned to node: {node_id}")
-        listener_thread = threading.Thread(target=start_listener, daemon=True)
-        listener_thread.start()
-        return username
+        return username, node_id
     else:
         print("Invalid credentials.")
         return None
@@ -120,7 +116,7 @@ def remove_from_security_circle(username):
     print(f"{remove_user} removed from your Security Circle.")
 
 def view_lockups(username):
-    blockchain = load_blockchain()
+    blockchain = load_chain()
     lockups = []
 
     for block in blockchain:
@@ -185,7 +181,7 @@ def lock_tokens(username):
 def claim_lockup_rewards(username):
     users = load_users()
     claimed = users[username].get("claimed_rewards", {})
-    blockchain = load_blockchain()
+    blockchain = load_chain()
     total_reward = 0
     reward_txs = []
     now = time.time()

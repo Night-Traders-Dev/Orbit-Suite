@@ -12,34 +12,61 @@ node_config = NodeConfig()
 ledger_config = LedgerConfig()
 
 CHAIN_FILE = ledger_config.blockchaindb
-HOST = str(node_config.address)
-PORT = node_config.port
 
-def handle_client(conn, addr):
-    try:
-        data = conn.recv(4096).decode()
-        if not data:
-            return
-        message = json.loads(data)
-        if message.get("type") == "block":
-            block = message.get("data")
-            print(f"Received block from {addr}")
-            receive_block(block)
-    except Exception as e:
-        print(f"Error handling client {addr}: {e}")
-    finally:
-        conn.close()
+def start_listener(node_id):
+    node_data = load_nodes().get(node_id)
+    if not node_data:
+        print(f"No config found for node {node_id}")
+        return
 
-def start_listener():
+    address = node_data["address"]
+    port = node_data["port"]
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind((HOST, PORT))
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind((address, port))
     server.listen()
-    print(f"Listening for incoming blocks on port {PORT}...")
+    print(f"[Listener] {node_id} listening on {address}:{port}...")
 
     while True:
         conn, addr = server.accept()
-        thread = threading.Thread(target=handle_client, args=(conn, addr))
-        thread.start()
+        threading.Thread(target=handle_connection, args=(conn, addr, node_id), daemon=True).start()
+
+def handle_connection(conn, addr, node_id):
+    try:
+        data = conn.recv(4096)
+        if not data:
+            return
+        msg = json.loads(data.decode())
+        print(f"[{node_id}] Received from {addr}: {msg}")
+
+        if msg.get("type") == "block":
+            block_data = msg["data"]
+            chain = load_chain()
+
+            # Skip if block already exists
+            if any(b["hash"] == block_data["hash"] for b in chain):
+                print(f"[{node_id}] Block {block_data['index']} already exists.")
+                return
+
+            # First-time use: accept block if chain is empty and index is 0
+            if not chain and block_data["index"] == 0:
+                save_chain([block_data])
+                print(f"[{node_id}] Genesis block accepted.")
+                return
+
+            # Normal validation
+            if chain and block_data["previous_hash"] == chain[-1]["hash"]:
+                chain.append(block_data)
+                save_chain(chain)
+                print(f"[{node_id}] Block {block_data['index']} added to chain.")
+            else:
+                print(f"[{node_id}] Block {block_data['index']} rejected (invalid previous hash).")
+
+    except Exception as e:
+        print(f"[{node_id}] Error handling connection from {addr}: {e}")
+    finally:
+        conn.close()
+
 
 def calculate_hash(index, previous_hash, timestamp, transactions, validator="", merkle_root="", nonce=0, metadata=None):
     block_content = {
@@ -133,12 +160,12 @@ def send_block(peer_address, block):
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((host, port))
-        data = json.dumps({"type": "block", "data": block})
+        data = json.dumps({"type": "block", "data": block.to_dict()})
         s.sendall(data.encode())
         print(f"Block sent to {peer_address}")
 
-def broadcast_block(block, sender_id="Node1"):
-    print(f"Broadcasting block {block['index']} to peers...")
+def broadcast_block(block, sender_id=None):
+    print(f"Broadcasting block {block.index} to peers...")
     nodes = load_nodes()
     for node_id, info in nodes.items():
         if node_id == sender_id:
@@ -148,11 +175,9 @@ def broadcast_block(block, sender_id="Node1"):
         if address and port:
             full_address = f"{address}:{port}"
             try:
-                print(f"Block sent to {node_id} at {full_address}")
                 send_block(full_address, block)
             except Exception as e:
-                print(f"Failed to send block to {node_id}: {e}")
-
+                print(f"Failed to send block to {node_id} at {full_address}: {e}")
 
 def add_block(transactions, node_id="Node1"):
     chain = load_chain()
@@ -186,8 +211,8 @@ def add_block(transactions, node_id="Node1"):
 
     block_data = new_block.to_dict()
 
-    if propose_block(node_id, block_data):
-        broadcast_block(block_data)
+    if propose_block(node_id, new_block):
+        broadcast_block(new_block)
     else:
         print("Block rejected due to failed consensus.")
 

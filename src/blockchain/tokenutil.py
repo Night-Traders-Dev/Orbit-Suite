@@ -1,7 +1,6 @@
 import time
 from userutil import load_users, save_users
-from ledgerutil import load_blockchain
-from blockutil import add_block
+from blockutil import add_block, load_chain
 from configutil import TXConfig
 
 def send_orbit(sender):
@@ -10,7 +9,7 @@ def send_orbit(sender):
         print("Sender not found.")
         return
 
-    blockchain = load_blockchain()
+    blockchain = load_chain()
     balance = 0
     locked_entries = []
     current_time = time.time()

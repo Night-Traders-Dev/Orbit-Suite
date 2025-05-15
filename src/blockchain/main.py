@@ -11,7 +11,9 @@ from ledgerutil import (
 from termutil import clear_screen
 from walletutil import show_balance
 from orbitutil import load_nodes, save_nodes, register_node
+from blockutil import start_listener
 import sys
+import threading
 
 def pre_login_menu():
     clear_screen()
@@ -23,8 +25,13 @@ def pre_login_menu():
         choice = input("Choose an option: ").strip()
         clear_screen()
         if choice == "1":
-            user = login()
+            user, node_id = login()
             if user:
+                listener_thread = threading.Thread(
+                    target=start_listener, args=(node_id,), daemon=True
+                )
+                listener_thread.start()
+                print(f"[Debug] Listener thread started for {node_id}")
                 post_login_menu(user)
         elif choice == "2":
             register()
