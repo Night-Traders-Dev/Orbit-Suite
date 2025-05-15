@@ -1,8 +1,3 @@
-Here’s a whitepaper draft in Markdown format for the Orbit Blockchain, based on the components and features you've implemented so far:
-
-
----
-
 # Orbit Blockchain Whitepaper
 
 ## Overview
