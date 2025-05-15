@@ -209,8 +209,6 @@ def add_block(transactions, node_id="Node1"):
         new_block.metadata
     )
 
-    block_data = new_block.to_dict()
-
     if propose_block(node_id, new_block):
         broadcast_block(new_block)
     else:

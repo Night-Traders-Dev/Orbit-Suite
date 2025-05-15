@@ -138,7 +138,7 @@ class UserConfig:
 # ===== Transaction and Block Templates =====
 class TXConfig:
     class Transaction:
-        def __init__(self, sender: str, recipient: str, amount: float, note: dict = None, timestamp: float = None):
+        def __init__(self, sender, recipient, amount, note=None, timestamp=None):
             if amount < 0:
                 raise ValueError("Transaction amount must be non-negative")
             self.sender = sender
@@ -158,44 +158,30 @@ class TXConfig:
 
         @staticmethod
         def from_dict(data):
-            sender = data["from"] if "from" in data else data["sender"]
-            recipient = data["to"] if "to" in data else data["recipient"]
+            sender = data.get("from", data.get("sender"))
+            recipient = data.get("to", data.get("recipient"))
             amount = data["amount"]
             note = data.get("note", {})
             timestamp = data.get("timestamp", time.time())
-
-            return TXConfig.Transaction(
-                sender=sender,
-                recipient=recipient,
-                amount=amount,
-                note=note,
-                timestamp=timestamp
-            )
+            return TXConfig.Transaction(sender, recipient, amount, note, timestamp)
 
         def __repr__(self):
             return f"Transaction({self.sender} -> {self.recipient}: {self.amount}, Timestamp: {self.timestamp}, Note: {self.note})"
 
     class Block:
-        def __init__(
-            self,
-            index: int,
-            timestamp: float,
-            transactions: list["TXConfig.Transaction"],
-            previous_hash: str,
-            hash: str,
-            validator: str = "",
-            signatures: dict = None,
-            merkle_root: str = "",
-            nonce: int = 0,
-            metadata: dict = None
-        ):
+        def __init__(self, index, timestamp, transactions, previous_hash, hash,
+                     validator="", signatures=None, merkle_root="", nonce=0, metadata=None):
             self.index = index
             self.timestamp = timestamp
-            self.transactions = transactions
+            self.transactions = transactions  # List of TXConfig.Transaction or dicts
             self.previous_hash = previous_hash
             self.hash = hash
             self.validator = validator
             self.signatures = signatures if signatures else {}
+            self.transactions = [
+                tx if isinstance(tx, TXConfig.Transaction) else TXConfig.Transaction.from_dict(tx)
+                for tx in transactions
+            ]
             self.merkle_root = merkle_root or self.compute_merkle_root()
             self.nonce = nonce
             self.metadata = metadata if metadata else {}
@@ -216,13 +202,11 @@ class TXConfig:
 
         @staticmethod
         def from_dict(data):
+            txs = [TXConfig.Transaction.from_dict(tx) for tx in data["transactions"]]
             return TXConfig.Block(
                 index=data["index"],
                 timestamp=data["timestamp"],
-                transactions=[
-                    TXConfig.Transaction.from_dict(tx)
-                    for tx in data["transactions"]
-                ],
+                transactions=txs,
                 previous_hash=data["previous_hash"],
                 hash=data["hash"],
                 validator=data.get("validator", ""),
