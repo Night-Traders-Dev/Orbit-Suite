@@ -3,6 +3,7 @@ from config.configutil import TXConfig
 from blockchain.blockutil import add_block, load_chain
 from core.termutil import clear_screen
 from core.userutil import load_users, save_users
+from core.walletutil import load_balance
 
 def view_lockups(username):
     blockchain = load_chain()
@@ -34,7 +35,8 @@ def view_lockups(username):
 def lock_tokens(username):
     users = load_users()
     user_data = users[username]
-    balance = user_data.get("balance", 0)
+    balance, active_locked = load_balance(username)
+#    balance = user_data.get("balance", 0)
 
     try:
         amount = float(input(f"Enter amount of Orbit to lock (available: {balance}): "))
