@@ -6,12 +6,11 @@ import socket
 import threading
 
 from blockchain.orbitutil import load_nodes, propose_block
-from config.configutil import NodeConfig, LedgerConfig, TXConfig, get_node_for_user
+from config.configutil import OrbitDB, TXConfig, get_node_for_user
 
-node_config = NodeConfig()
-ledger_config = LedgerConfig()
+orbit_db = OrbitDB()
 
-CHAIN_FILE = ledger_config.blockchaindb
+CHAIN_FILE = orbit_db.blockchaindb
 
 def start_listener(node_id):
     node_data = load_nodes().get(node_id)

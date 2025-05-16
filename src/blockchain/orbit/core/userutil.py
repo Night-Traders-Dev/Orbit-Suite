@@ -5,12 +5,13 @@ import hashlib
 import rsa
 import threading
 from blockchain.blockutil import add_block, start_listener, load_chain
-from config.configutil import TXConfig, assign_node_to_user, load_active_sessions
+from config.configutil import TXConfig, assign_node_to_user, load_active_sessions, OrbitDB
 from blockchain.orbitutil import load_nodes
 from core.termutil import clear_screen
 
-USERS_FILE = "data/users.json"
-NODES_FILE = "data/nodes.json"
+orbit_db = OrbitDB()
+
+USERS_FILE = orbit_db.userdb
 
 def load_users():
     if os.path.exists(USERS_FILE):

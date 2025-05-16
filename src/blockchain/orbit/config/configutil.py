@@ -123,17 +123,12 @@ class MiningConfig:
         self.decay: float = 0.0001
 
 
-# ===== Ledger Configuration =====
-class LedgerConfig:
+class OrbitDB:
     def __init__(self):
+        self.activesessiondb: str = ACTIVE_SESSIONS_FILE
         self.blockchaindb: str = DEFAULT_CHAIN_PATH
-
-# ===== User Configuration =====
-class UserConfig:
-    def __init__(self):
+        self.nodedb: str = DEFAULT_NODE_DB
         self.userdb: str = DEFAULT_USER_DB
-
-
 
 # ===== Transaction and Block Templates =====
 class TXConfig:
