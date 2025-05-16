@@ -1,8 +1,11 @@
 import os
 import json
 import hashlib
+from config.configutil import OrbitDB
 
-GENESIS_PATH = "data/orbit_chain.json"
+orbit_db = OrbitDB()
+
+GENESIS_PATH = orbit_db.blockchaindb
 
 def calculate_genesis_hash(block):
     block_copy = block.copy()

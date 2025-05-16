@@ -2,10 +2,13 @@ from flask import Flask, render_template_string, request
 import json
 import os
 import datetime
+from config.configutil import OrbitDB
+
+orbit_db = OrbitDB()
 
 app = Flask(__name__)
 
-CHAIN_PATH = "data/orbit_chain.json"
+CHAIN_PATH = orbit_db.blockchaindb
 PORT = 7000
 
 # Load the blockchain

@@ -1,10 +1,14 @@
 import os
 import json
+from config.configutil import OrbitDB
+
+orbit_db = OrbitDB()
+sessions = orbit_db.activesessiondb
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-def logout_user(user_id, session_file="data/active_sessions.json"):
+def logout_user(user_id, session_file=sessions):
     if not os.path.exists(session_file):
         return
 

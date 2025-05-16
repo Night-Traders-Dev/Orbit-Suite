@@ -2,10 +2,11 @@ import json
 import os
 import time
 import random
-from config.configutil import NodeConfig
+from config.configutil import NodeConfig, OrbitDB
 
-NODES_FILE = "data/nodes.json"
-PENDING_PROPOSALS_FILE = "data/pending_proposals.json"
+orbit_db = OrbitDB()
+NODES_FILE = orbit_db.nodedb
+PENDING_PROPOSALS_FILE = orbit_db.pendpropdb
 
 def load_nodes():
     if not os.path.exists(NODES_FILE):

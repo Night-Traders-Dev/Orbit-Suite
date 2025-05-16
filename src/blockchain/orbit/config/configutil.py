@@ -12,6 +12,7 @@ DEFAULT_PORT = 5000
 DEFAULT_ADDRESS = "0.0.0.0"
 DEFAULT_USER_DB = USERS_FILE = "data/users.json"
 ACTIVE_SESSIONS_FILE = "data/active_sessions.json"
+PENDING_PROPOSALS_FILE = "data/pending_proposals.json"
 
 # ===== Session Assignment (Global Active Sessions) =====
 
@@ -128,6 +129,7 @@ class OrbitDB:
         self.activesessiondb: str = ACTIVE_SESSIONS_FILE
         self.blockchaindb: str = DEFAULT_CHAIN_PATH
         self.nodedb: str = DEFAULT_NODE_DB
+        self.pendpropdb: str = PENDING_PROPOSALS_FILE
         self.userdb: str = DEFAULT_USER_DB
 
 # ===== Transaction and Block Templates =====
