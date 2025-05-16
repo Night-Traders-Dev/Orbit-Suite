@@ -1,7 +1,6 @@
-from core.userutil import (
-    view_security_circle, add_to_security_circle, remove_from_security_circle,
-    view_lockups, lock_tokens, login, register, claim_lockup_rewards
-)
+from blockchain.orbitutil import load_nodes, save_nodes, register_node
+from blockchain.blockutil import start_listener
+from blockchain.stakeutil import view_lockups, lock_tokens, claim_lockup_rewards
 from blockchain.miningutil import simulate_mining
 from blockchain.tokenutil import send_orbit
 from blockchain.ledgerutil import (
@@ -10,8 +9,10 @@ from blockchain.ledgerutil import (
 )
 from core.termutil import clear_screen, logout_user
 from core.walletutil import show_balance
-from blockchain.orbitutil import load_nodes, save_nodes, register_node
-from blockchain.blockutil import start_listener
+from core.userutil import (
+    view_security_circle, add_to_security_circle, remove_from_security_circle,
+    login, register
+)
 import sys
 import threading
 
