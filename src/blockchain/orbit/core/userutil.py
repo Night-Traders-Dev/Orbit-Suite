@@ -1,12 +1,9 @@
-import time
 import json
 import os
 import hashlib
 import rsa
-import threading
-from blockchain.blockutil import add_block, start_listener, load_chain
-from config.configutil import TXConfig, assign_node_to_user, load_active_sessions, OrbitDB
-from blockchain.orbitutil import load_nodes
+import sys
+from config.configutil import assign_node_to_user, load_active_sessions, OrbitDB
 from core.termutil import clear_screen
 
 orbit_db = OrbitDB()

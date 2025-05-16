@@ -11,7 +11,6 @@ def send_orbit(sender):
 
     blockchain = load_chain()
     balance = 0
-    locked_entries = []
     current_time = time.time()
 
     for block in blockchain:
@@ -33,27 +32,13 @@ def send_orbit(sender):
                 if tx.recipient == sender:
                     balance += tx.amount
 
-            elif tx_type == "lockup" and tx.recipient == sender:
-                duration = tx.note.get("duration_days", 0)
-                start_time = tx.timestamp or current_time
-                amount = tx.amount
-                locked_entries.append({
-                    "amount": amount,
-                    "duration_days": duration,
-                    "start_time": start_time
-                })
-                balance -= amount
-
             elif tx_type == "mining" and tx.recipient == sender:
                 balance += tx.amount
 
-    locked_amount = sum(
-        l["amount"] for l in locked_entries
-        if current_time < l["start_time"] + l["duration_days"] * 86400
-    )
     available = balance
 
     try:
+        print(f"Available Orbit: {available:.4f}")
         recipient = input("Enter recipient username: ").strip()
         if recipient not in users:
             print("Recipient not found.")
@@ -62,17 +47,17 @@ def send_orbit(sender):
             print("You cannot send Orbit to yourself.")
             return
 
-        amount = float(input(f"Enter amount to send (max {available:.4f}): "))
+        amount = round(float(input(f"Enter amount to send (max {available:.4f}): ")), 4)
         if amount <= 0 or amount > available:
             print("Invalid amount.")
             return
 
         # Calculate dynamic burn fee (e.g., 2%)
         fee_rate = 0.02
-        fee = amount * fee_rate
-        net_amount = amount - fee
+        fee = round(amount * fee_rate, 4)
+        net_amount = round(amount - fee, 4)
 
-        if net_amount <= 0:
+        if net_amount <= 0.01:
             print("Amount too small after fee deduction.")
             return
 
