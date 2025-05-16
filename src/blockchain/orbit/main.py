@@ -9,7 +9,7 @@ from blockchain.ledgerutil import (
 )
 from core.circleutil import view_security_circle, add_to_security_circle, remove_from_security_circle
 from core.termutil import clear_screen
-from core.walletutil import show_balance
+from core.walletutil import load_balance
 from core.userutil import login, logout, register
 import sys
 import threading
@@ -126,7 +126,10 @@ def wallet_menu(user):
         clear_screen()
 
         if choice == "1":
-            show_balance(user)
+            available, active_locked = load_balance(user)
+            print(f"Total Balance: {available + active_locked:.4f} Orbit")
+            print(f"Locked: {active_locked:.4f} Orbit")
+            print(f"Available: {available:.4f} Orbit")
         elif choice == "2":
             send_orbit(user)
         elif choice == "3":

@@ -3,7 +3,7 @@ from core.userutil import load_users, save_users
 from blockchain.blockutil import load_chain
 from config.configutil import TXConfig
 
-def show_balance(username):
+def load_balance(username):
     users = load_users()
     user_data = users.get(username, {"balance": 0, "locked": []})
 
@@ -66,6 +66,5 @@ def show_balance(username):
         users[username] = user_data
         save_users(users)
 
-    print(f"Total Balance: {available + active_locked:.4f} Orbit")
-    print(f"Locked: {active_locked:.4f} Orbit")
-    print(f"Available: {available:.4f} Orbit")
+    return available, active_locked
+
