@@ -12,6 +12,7 @@ from core.termutil import clear_screen
 orbit_db = OrbitDB()
 
 USERS_FILE = orbit_db.userdb
+sessions = orbit_db.activesessiondb
 
 def load_users():
     if os.path.exists(USERS_FILE):
@@ -78,48 +79,17 @@ def login():
 
     return username, node_id
 
-def view_security_circle(username):
-    users = load_users()
-    circle = users[username].get("security_circle", [])
-    if not circle:
-        print("Your Security Circle is empty.")
+
+def logout(user_id, session_file=sessions):
+    if not os.path.exists(session_file):
+        return
+
+    with open(session_file, "r") as f:
+        sessions = json.load(f)
+
+    if user_id in sessions:
+        del sessions[user_id]
+        with open(session_file, "w") as f:
+            json.dump(sessions, f, indent=4)
     else:
-        print("Your Security Circle:")
-        for user in circle:
-            print(f" - {user}")
-
-def add_to_security_circle(username):
-    users = load_users()
-    new_trust = input("Enter username to add to Security Circle: ").strip()
-    if new_trust not in users:
-        print("User does not exist.")
-        return
-    if new_trust == username:
-        print("You cannot add yourself.")
-        return
-
-    if new_trust in users[username].get("security_circle", []):
-        print("User already in your Security Circle.")
-        return
-
-    users[username]["security_circle"].append(new_trust)
-    save_users(users)
-    print(f"{new_trust} added to your Security Circle.")
-
-def remove_from_security_circle(username):
-    users = load_users()
-    circle = users[username].get("security_circle", [])
-    if not circle:
-        print("Your Security Circle is already empty.")
-        return
-
-    remove_user = input("Enter username to remove: ").strip()
-    if remove_user not in circle:
-        print("User is not in your Security Circle.")
-        return
-
-    users[username]["security_circle"].remove(remove_user)
-    save_users(users)
-    print(f"{remove_user} removed from your Security Circle.")
-
-
+        print(f"User {user_id} was not in active sessions.")

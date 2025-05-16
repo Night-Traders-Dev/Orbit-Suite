@@ -7,12 +7,10 @@ from blockchain.ledgerutil import (
     view_all_transactions, view_user_transactions,
     view_mining_rewards, view_transfers
 )
-from core.termutil import clear_screen, logout_user
+from core.circleutil import view_security_circle, add_to_security_circle, remove_from_security_circle
+from core.termutil import clear_screen
 from core.walletutil import show_balance
-from core.userutil import (
-    view_security_circle, add_to_security_circle, remove_from_security_circle,
-    login, register
-)
+from core.userutil import login, logout, register
 import sys
 import threading
 
@@ -211,7 +209,7 @@ def post_login_menu(user):
         elif choice == "5":
             quorum_slice_menu(user)
         elif choice == "6":
-            logout_user(user)
+            logout(user)
             print("Logged out.")
             sys.exit()
         else:
