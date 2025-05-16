@@ -11,6 +11,7 @@ def send_orbit(sender):
 
     blockchain = load_chain()
     balance = 0
+    locked_entries = []
     current_time = time.time()
 
     for block in blockchain:
@@ -32,9 +33,24 @@ def send_orbit(sender):
                 if tx.recipient == sender:
                     balance += tx.amount
 
+            elif tx_type == "lockup" and tx.recipient == sender:
+                duration = tx.note.get("duration_days", 0)
+                start_time = tx.timestamp if tx.timestamp is not None else current_time
+                amount = tx.amount
+                locked_entries.append({
+                    "amount": amount,
+                    "duration_days": duration,
+                    "start_time": start_time
+                })
+                balance -= amount
+
             elif tx_type == "mining" and tx.recipient == sender:
                 balance += tx.amount
 
+    locked_amount = sum(
+        l["amount"] for l in locked_entries
+        if current_time < l["start_time"] + l["duration_days"] * 86400
+    )
     available = balance
 
     try:
