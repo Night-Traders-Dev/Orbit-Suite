@@ -1,7 +1,7 @@
 import time
-from userutil import load_users, save_users
-from blockutil import load_chain
-from configutil import TXConfig
+from core.userutil import load_users, save_users
+from blockchain.blockutil import load_chain
+from config.configutil import TXConfig
 
 def show_balance(username):
     users = load_users()

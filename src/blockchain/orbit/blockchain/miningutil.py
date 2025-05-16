@@ -1,8 +1,8 @@
 import math
 import time
-from userutil import load_users, save_users
-from blockutil import add_block
-from configutil import MiningConfig, TXConfig, get_node_for_user
+from core.userutil import load_users, save_users
+from blockchain.blockutil import add_block
+from config.configutil import MiningConfig, TXConfig, get_node_for_user
 
 # Load configuration
 mining_config = MiningConfig()

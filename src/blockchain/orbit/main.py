@@ -1,17 +1,17 @@
-from userutil import (
+from core.userutil import (
     view_security_circle, add_to_security_circle, remove_from_security_circle,
     view_lockups, lock_tokens, login, register, claim_lockup_rewards
 )
-from miningutil import simulate_mining
-from tokenutil import send_orbit
-from ledgerutil import (
+from blockchain.miningutil import simulate_mining
+from blockchain.tokenutil import send_orbit
+from blockchain.ledgerutil import (
     view_all_transactions, view_user_transactions,
     view_mining_rewards, view_transfers
 )
-from termutil import clear_screen
-from walletutil import show_balance
-from orbitutil import load_nodes, save_nodes, register_node
-from blockutil import start_listener
+from core.termutil import clear_screen, logout_user
+from core.walletutil import show_balance
+from blockchain.orbitutil import load_nodes, save_nodes, register_node
+from blockchain.blockutil import start_listener
 import sys
 import threading
 
@@ -25,13 +25,15 @@ def pre_login_menu():
         choice = input("Choose an option: ").strip()
         clear_screen()
         if choice == "1":
-            user, node_id = login()
-            if user:
+            result = login()
+            if result is None:
+                continue
+            else:
+                user, node_id = result
                 listener_thread = threading.Thread(
                     target=start_listener, args=(node_id,), daemon=True
                 )
                 listener_thread.start()
-                print(f"[Debug] Listener thread started for {node_id}")
                 post_login_menu(user)
         elif choice == "2":
             register()
@@ -208,6 +210,7 @@ def post_login_menu(user):
         elif choice == "5":
             quorum_slice_menu(user)
         elif choice == "6":
+            logout_user(user)
             print("Logged out.")
             sys.exit()
         else:

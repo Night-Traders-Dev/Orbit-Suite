@@ -2,7 +2,7 @@ import json
 import os
 import time
 import random
-from configutil import NodeConfig
+from config.configutil import NodeConfig
 
 NODES_FILE = "data/nodes.json"
 PENDING_PROPOSALS_FILE = "data/pending_proposals.json"

@@ -4,9 +4,10 @@ import os
 import hashlib
 import rsa
 import threading
-from blockutil import add_block, start_listener, load_chain
-from configutil import TXConfig, assign_node_to_user, load_active_sessions
-from orbitutil import load_nodes
+from blockchain.blockutil import add_block, start_listener, load_chain
+from config.configutil import TXConfig, assign_node_to_user, load_active_sessions
+from blockchain.orbitutil import load_nodes
+from core.termutil import clear_screen
 
 USERS_FILE = "data/users.json"
 NODES_FILE = "data/nodes.json"
@@ -51,25 +52,30 @@ def register():
 def login():
     users = load_users()
     username = input("Username: ").strip()
-    password = input("Password: ").strip()
 
-    if username in users and users[username]["password"] == hash_password(password):
-        sessions = load_active_sessions()
-
-        if username in sessions:
-            print(f"{username} is already logged in on node {sessions[username]}.")
-            return username
-
-        node_id = assign_node_to_user(username)
-        if not node_id:
-            print("No available nodes at the moment. Try again later.")
-            sys.exit()
-
-        return username, node_id
-    else:
-        print("Invalid credentials.")
+    if username not in users:
+        clear_screen()
+        print("Username not found.")
         return None
 
+    password = input("Password: ").strip()
+    if users[username]["password"] != hash_password(password):
+        clear_screen()
+        print("Incorrect password.")
+        return None
+
+    sessions = load_active_sessions()
+    if username in sessions:
+        clear_screen()
+        print(f"{username} is already logged in on node {sessions[username]}.")
+        return username
+
+    node_id = assign_node_to_user(username)
+    if not node_id:
+        print("No available nodes at the moment. Try again later.")
+        sys.exit()
+
+    return username, node_id
 
 def view_security_circle(username):
     users = load_users()
