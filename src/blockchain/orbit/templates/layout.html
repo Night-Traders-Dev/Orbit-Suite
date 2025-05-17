@@ -86,6 +86,29 @@ code {
     border-radius: 4px;
 }
 
+.header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+/* Hamburger styles */
+.hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    margin-left: auto;
+}
+
+.hamburger span {
+    height: 3px;
+    width: 25px;
+    background: #333;
+    border-radius: 2px;
+}
+
 .main-nav {
     display: flex;
     flex-wrap: wrap;
@@ -106,6 +129,22 @@ code {
 .main-nav a:hover {
     background: rgba(52, 152, 219, 0.1);
 }
+
+.mobile-dropdown {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    background: #fff;
+    padding: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+/* Toggle on open */
+.mobile-dropdown.open {
+    display: flex;
+}
+
+
 
 .summary-grid {
     display: flex;
@@ -166,6 +205,31 @@ code {
     .main-nav a:hover {
         background-color: rgba(52, 152, 219, 0.1);
     }
+
+    .hamburger {
+        display: flex;
+    }
+
+    .mobile-dropdown {
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+        background: #fff;
+        padding: 10px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    .mobile-dropdown.open {
+        display: flex;
+    }
+
+    .mobile-dropdown a {
+        text-decoration: none;
+        color: #3498db;
+        padding: 6px 10px;
+        font-weight: 600;
+    }
+
 
     body {
         margin: 10px;
@@ -243,6 +307,13 @@ code {
 </style>
 
 </head>
+
+<script>
+function toggleMenu() {
+    const menu = document.getElementById("dropdownMenu");
+    menu.classList.toggle("open");
+}
+</script>
 
 <script>
 
@@ -366,18 +437,28 @@ function fetchLatestTransactions() {
 
 
 <body>
-    <h1>Orbit Blockchain Explorer</h1>
+    <div class="header-bar">
+        <h1>Orbit Blockchain Explorer</h1>
+        <div class="hamburger" onclick="toggleMenu()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
 
-    <form method="get" action="/">
-        <input type="text" name="q" placeholder="Search by address, hash, or block..." value="{{ query }}"/>
-        <button type="submit">Search</button>
-    </form>
-    <nav class="main-nav">
-        <a href="/">Home</a>
-        <a href="/validators">Validator Stats</a>
-        <a href="/api/docs">API Docs</a>
-        <a href="/api/chain">API: Full Chain</a>
-    </nav>
+
+<!-- Mobile dropdown (hidden by default) -->
+<nav class="mobile-dropdown" id="dropdownMenu">
+    <a href="/">Home</a>
+    <a href="/validators">Validator Stats</a>
+    <a href="/api/docs">API Docs</a>
+</nav>
+
+<form method="get" action="/">
+    <input type="text" name="q" placeholder="Search by address, hash, or block..." value="{{ query }}"/>
+    <button type="submit">Search</button>
+</form>
+
 
     {% block content %}{% endblock %}
 </body>
