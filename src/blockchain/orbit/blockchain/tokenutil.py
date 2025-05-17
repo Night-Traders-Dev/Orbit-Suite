@@ -4,63 +4,48 @@ from core.userutil import load_users, save_users
 from blockchain.blockutil import add_block, load_chain
 from config.configutil import TXConfig
 
-def send_orbit(sender, recipient, amount, order: list = None):
+MIN_TRANSFER_AMOUNT = 0.0001
+FEE_RATE = 0.02
+
+def send_orbit(sender, recipient, amount, order=None):
     users = load_users()
     if sender not in users:
         print("Sender not found.")
         return
+    if recipient == sender:
+        print("You cannot send Orbit to yourself.")
+        return
+    if recipient not in users:
+        print("Recipient not found.")
+        return
 
-    blockchain = load_chain()
-    balance = 0
-    locked_entries = []
-    current_time = time.time()
-
-    available, active_locked = load_balance(sender)
     try:
-        if recipient not in users:
-            print("Recipient not found.")
-            return
-        if recipient == sender:
-            print("You cannot send Orbit to yourself.")
+        amount = float(amount)
+        if amount < MIN_TRANSFER_AMOUNT:
+            print(f"Minimum transfer is {MIN_TRANSFER_AMOUNT} Orbit.")
             return
 
-        if amount <= 0 or amount > available:
-            print("Invalid amount.")
+        available, _ = load_balance(sender)
+        fee = round(amount * FEE_RATE, 6)
+        total = round(amount + fee, 6)
+
+        if total > available:
+            print(f"Insufficient balance. Required: {total:.6f}, Available: {available:.6f}")
             return
 
-        # Calculate dynamic burn fee (e.g., 2%)
-        fee_rate = 0.02
-        fee = round(amount * fee_rate, 4)
-        net_amount = round(amount + fee, 4)
+        current_time = time.time()
 
-        if net_amount <= 0.01:
-            print("Amount too small after fee deduction.")
-            return
+        # Create main transfer transaction
+        tx_note = order if order else None
+        tx1 = TXConfig.Transaction(
+            sender=sender,
+            recipient=recipient,
+            amount=round(amount, 6),
+            note=tx_note,
+            timestamp=current_time
+        )
 
-        if order is None:
-
-            # Transaction to recipient
-            tx1 = TXConfig.Transaction(
-                sender=sender,
-                recipient=recipient,
-                amount=amount,
-                timestamp=current_time
-            )
-
-        else:
-
-
-            # Transaction to recipient
-            tx1 = TXConfig.Transaction(
-                sender=sender,
-                recipient=recipient,
-                amount=amount,
-                note=order,
-                timestamp=current_time
-            )
-
-
-        # Burn transaction
+        # Create burn fee transaction
         tx2 = TXConfig.Transaction(
             sender=sender,
             recipient="burn",
@@ -69,9 +54,9 @@ def send_orbit(sender, recipient, amount, order: list = None):
             timestamp=current_time
         )
 
+        # Add both to a new block
         add_block([tx1.to_dict(), tx2.to_dict()])
-
-        print(f"Sent {amount:.4f} Orbit to {recipient} with {fee:.4f} Orbit burned as fee.")
+        print(f"Sent {amount:.6f} Orbit to {recipient} | Fee: {fee:.6f} Orbit burned.")
 
     except ValueError:
-        print("Invalid input.")
+        print("Invalid amount input.")
