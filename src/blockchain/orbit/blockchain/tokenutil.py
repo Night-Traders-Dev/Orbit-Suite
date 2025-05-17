@@ -4,7 +4,7 @@ from core.userutil import load_users, save_users
 from blockchain.blockutil import add_block, load_chain
 from config.configutil import TXConfig
 
-def send_orbit(sender, recipient, amount):
+def send_orbit(sender, recipient, amount, order: list = None):
     users = load_users()
     if sender not in users:
         print("Sender not found.")
@@ -37,13 +37,28 @@ def send_orbit(sender, recipient, amount):
             print("Amount too small after fee deduction.")
             return
 
-        # Transaction to recipient
-        tx1 = TXConfig.Transaction(
-            sender=sender,
-            recipient=recipient,
-            amount=amount,
-            timestamp=current_time
-        )
+        if order is None:
+
+            # Transaction to recipient
+            tx1 = TXConfig.Transaction(
+                sender=sender,
+                recipient=recipient,
+                amount=amount,
+                timestamp=current_time
+            )
+
+        else:
+
+
+            # Transaction to recipient
+            tx1 = TXConfig.Transaction(
+                sender=sender,
+                recipient=recipient,
+                amount=amount,
+                note=order,
+                timestamp=current_time
+            )
+
 
         # Burn transaction
         tx2 = TXConfig.Transaction(

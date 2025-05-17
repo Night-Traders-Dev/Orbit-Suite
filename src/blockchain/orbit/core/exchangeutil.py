@@ -37,11 +37,17 @@ def place_order(user, side, amount, price, wallet):
         total_value = (amount * price)
         if wallet < total_value:
             return False, "Insufficient USD"
-        send_orbit(user, recipient, total_value)
+        note = {
+            "type": "order",
+            "order_id": order["id"],
+            "side": side,
+            "amount": amount,
+            "price": price
+        }
+        send_orbit(user, recipient, total_value, order=note)
     elif side == "sell":
         if wallet < amount:
             return False, "Insufficient ORBIT"
- #       update_balance(data, user, delta_orbit=-amount)
     else:
         return False, "Invalid side"
 
