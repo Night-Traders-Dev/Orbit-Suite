@@ -191,6 +191,7 @@ code {
 /* ===== MOBILE FRIENDLY ===== */
 @media only screen and (max-width: 600px) {
     .main-nav {
+        display: flex;
         flex-direction: row;  /* Enforces left-to-right layout */
         justify-content: flex-start;
         gap: 8px;
@@ -437,21 +438,28 @@ function fetchLatestTransactions() {
 
 
 <body>
-    <div class="header-bar">
-        <h1>Orbit Blockchain Explorer</h1>
-        <div class="hamburger" onclick="toggleMenu()">
-            <span></span>
-            <span></span>
-            <span></span>
-        </div>
+
+<div class="header-bar">
+    <h1>Orbit Blockchain Explorer</h1>
+    <div class="hamburger" onclick="toggleMenu()">
+        <span></span>
+        <span></span>
+        <span></span>
     </div>
+</div>
 
-
-<!-- Mobile dropdown (hidden by default) -->
-<nav class="mobile-dropdown" id="dropdownMenu">
+<!-- Always-visible main nav -->
+<nav class="main-nav">
     <a href="/">Home</a>
     <a href="/validators">Validator Stats</a>
     <a href="/api/docs">API Docs</a>
+</nav>
+
+<!-- Dropdown menu triggered by hamburger -->
+<nav class="mobile-dropdown" id="dropdownMenu">
+    <a href="/profile">My Profile</a>
+    <a href="/settings">Settings</a>
+    <a href="/logout">Logout</a>
 </nav>
 
 <form method="get" action="/">
