@@ -1,25 +1,25 @@
 <div class="summary" id="chain-summary">
     <h2>Chain Summary</h2>
-    <div style="display: flex; flex-wrap: wrap; gap: 20px;">
-        <div style="flex: 1; min-width: 200px;">
+    <div class="summary-grid">
+        <div class="summary-item">
             <h3>Total Blocks</h3>
-            <p><strong>{{ "{:,}".format(summary.blocks) }}</strong></p>
+            <p>{{ "{:,}".format(summary.blocks) }}</p>
         </div>
-        <div style="flex: 1; min-width: 200px;">
+        <div class="summary-item">
             <h3>Total Transactions</h3>
-            <p><strong>{{ "{:,}".format(summary.transactions) }}</strong></p>
+            <p>{{ "{:,}".format(summary.transactions) }}</p>
         </div>
-        <div style="flex: 1; min-width: 200px;">
+        <div class="summary-item">
             <h3>Total Accounts</h3>
-            <p><strong>{{ "{:,}".format(summary.accounts) }}</strong></p>
+            <p>{{ "{:,}".format(summary.accounts) }}</p>
         </div>
-        <div style="flex: 1; min-width: 200px;">
+        <div class="summary-item">
             <h3>Total Orbit Supply</h3>
-            <p><strong>{{ "{:,.4f}".format(summary.total_orbit) }}</strong> ORBIT</p>
+            <p>{{ "{:,.4f}".format(summary.total_orbit) }} ORBIT</p>
         </div>
-        <div style="flex: 1 1 100%; min-width: 400px;">
+        <div style="flex: 1 1 100%; min-width: 100%;">
             <h3>Transactions (Last 14 Days)</h3>
-            <canvas id="txChart" height="120" style="width:100%; max-width:600px;"></canvas>
+            <canvas id="txChart" height="360" style="width: 100%; max-width: 1000px;"></canvas>
         </div>
     </div>
 </div>
