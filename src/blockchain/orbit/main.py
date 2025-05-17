@@ -131,7 +131,10 @@ def wallet_menu(user):
             print(f"Locked: {active_locked:.4f} Orbit")
             print(f"Available: {available:.4f} Orbit")
         elif choice == "2":
-            send_orbit(user)
+            print(f"Available Orbit: {available:.4f}")
+            recipient = input("Enter recipient username: ").strip()
+            amount = round(float(input(f"Enter amount to send (max {available:.4f}): ")), 4)
+            send_orbit(user, recipient, amount)
         elif choice == "3":
             lockup_menu(user)
         elif choice == "4":

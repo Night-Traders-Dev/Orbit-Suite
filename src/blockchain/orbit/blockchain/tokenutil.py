@@ -4,7 +4,7 @@ from core.userutil import load_users, save_users
 from blockchain.blockutil import add_block, load_chain
 from config.configutil import TXConfig
 
-def send_orbit(sender):
+def send_orbit(sender, recipient, amount):
     users = load_users()
     if sender not in users:
         print("Sender not found.")
@@ -17,8 +17,6 @@ def send_orbit(sender):
 
     available, active_locked = load_balance(sender)
     try:
-        print(f"Available Orbit: {available:.4f}")
-        recipient = input("Enter recipient username: ").strip()
         if recipient not in users:
             print("Recipient not found.")
             return
@@ -26,7 +24,6 @@ def send_orbit(sender):
             print("You cannot send Orbit to yourself.")
             return
 
-        amount = round(float(input(f"Enter amount to send (max {available:.4f}): ")), 4)
         if amount <= 0 or amount > available:
             print("Invalid amount.")
             return
@@ -34,7 +31,7 @@ def send_orbit(sender):
         # Calculate dynamic burn fee (e.g., 2%)
         fee_rate = 0.02
         fee = round(amount * fee_rate, 4)
-        net_amount = round(amount - fee, 4)
+        net_amount = round(amount + fee, 4)
 
         if net_amount <= 0.01:
             print("Amount too small after fee deduction.")
