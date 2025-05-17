@@ -1,11 +1,10 @@
 import time
 from config.configutil import TXConfig
 from blockchain.blockutil import add_block, load_chain
-from core.termutil import clear_screen
 from core.userutil import load_users, save_users
 from core.walletutil import load_balance
 
-def view_lockups(username):
+def get_user_lockups(username):
     blockchain = load_chain()
     lockups = []
 
@@ -13,13 +12,15 @@ def view_lockups(username):
         for tx_data in block.get("transactions", []):
             tx = TXConfig.Transaction.from_dict(tx_data)
             if tx.recipient == username and isinstance(tx.note, dict) and "duration_days" in tx.note:
-                duration = tx.note["duration_days"]
                 lockups.append({
                     "amount": tx.amount,
-                    "duration": duration,
+                    "duration": tx.note["duration_days"],
                     "start_time": getattr(tx, "timestamp", time.time())
                 })
 
+    return lockups
+
+def print_lockups(lockups):
     if not lockups:
         print("No active lockups.")
         return
@@ -32,11 +33,13 @@ def view_lockups(username):
         days_remaining = max(0, int((start + duration * 86400 - time.time()) / 86400))
         print(f" {i+1}. {amount} Orbit locked for {duration} days ({days_remaining} days remaining)")
 
+def view_lockups(username):
+    lockups = get_user_lockups(username)
+    print_lockups(lockups)
+
 def lock_tokens(username):
     users = load_users()
-    user_data = users[username]
-    balance, active_locked = load_balance(username)
-#    balance = user_data.get("balance", 0)
+    balance, _ = load_balance(username)
 
     try:
         amount = float(input(f"Enter amount of Orbit to lock (available: {balance}): "))
@@ -49,8 +52,7 @@ def lock_tokens(username):
             print("Duration must be at least 1 day.")
             return
 
-        user_data["balance"] -= amount
-        users[username] = user_data
+        users[username]["balance"] -= amount
         save_users(users)
 
         lock_tx = TXConfig.Transaction(
@@ -70,47 +72,39 @@ def lock_tokens(username):
 def claim_lockup_rewards(username):
     users = load_users()
     claimed = users[username].get("claimed_rewards", {})
-    blockchain = load_chain()
+    lockups = get_user_lockups(username)
     total_reward = 0
     reward_txs = []
     now = time.time()
 
-    for block in blockchain:
-        for tx_data in block.get("transactions", []):
-            tx = TXConfig.Transaction.from_dict(tx_data)
+    for lock in lockups:
+        lock_start = lock["start_time"]
+        duration_secs = lock["duration"] * 86400
+        lock_end = lock_start + duration_secs
 
-            if tx.recipient != username:
-                continue
-            if not isinstance(tx.note, dict) or "duration_days" not in tx.note:
-                continue
+        last_claim = claimed.get(str(lock_start), lock_start)
+        claim_until = min(now, lock_end)
 
-            lock_start = tx.timestamp
-            duration_secs = tx.note["duration_days"] * 86400
-            lock_end = lock_start + duration_secs
+        if last_claim >= claim_until:
+            continue
 
-            last_claim = claimed.get(str(lock_start), lock_start)
-            claim_until = min(now, lock_end)
+        seconds_eligible = claim_until - last_claim
+        rate_per_day = 0.05
+        rate_per_sec = (lock["amount"] * rate_per_day) / 86400
 
-            if last_claim >= claim_until:
-                continue
+        reward = seconds_eligible * rate_per_sec
+        if reward > 0:
+            total_reward += reward
+            claimed[str(lock_start)] = claim_until
 
-            seconds_eligible = claim_until - last_claim
-            rate_per_day = 0.05
-            rate_per_sec = (tx.amount * rate_per_day) / 86400
-
-            reward = seconds_eligible * rate_per_sec
-            if reward > 0:
-                total_reward += reward
-                claimed[str(lock_start)] = claim_until
-
-                reward_tx = TXConfig.Transaction(
-                    sender="lockup_reward",
-                    recipient=username,
-                    amount=reward,
-                    note={"lock_start": lock_start, "claim_until": claim_until},
-                    timestamp=now
-                )
-                reward_txs.append(reward_tx.to_dict())
+            reward_tx = TXConfig.Transaction(
+                sender="lockup_reward",
+                recipient=username,
+                amount=reward,
+                note={"lock_start": lock_start, "claim_until": claim_until},
+                timestamp=now
+            )
+            reward_txs.append(reward_tx.to_dict())
 
     if reward_txs:
         add_block(reward_txs)
