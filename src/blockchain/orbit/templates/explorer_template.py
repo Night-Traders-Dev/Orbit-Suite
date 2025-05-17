@@ -44,20 +44,20 @@ HTML_TEMPLATE = '''
         <h2>Search Results for "{{ query }}"</h2>
         {% for match in results %}
         <div class="tx">
-            <strong>Block:</strong> <a href="/block/{{ match.block }}">{{ match.block }}</a><br>
-            <strong>Sender:</strong> <a href="/address/{{ match.tx.sender }}">{{ match.tx.sender }}</a><br>
-            <strong>Recipient:</strong> <a href="/address/{{ match.tx.recipient }}">{{ match.tx.recipient }}</a><br>
-            <strong>Amount:</strong> {{ match.tx.amount }} Orbit<br>
-            <strong>Note:</strong> <pre>{{ match.tx.note }}</pre><br>
-            {% if match.tx.note is mapping %}
-                {% if match.tx.note.type == 'burn_fee' %}
+            <strong>Block:</strong> <a href="/block/{{ match['block'] }}">{{ match['block'] }}</a><br>
+            <strong>Sender:</strong> <a href="/address/{{ match['tx']['sender'] }}">{{ match['tx']['sender'] }}</a><br>
+            <strong>Recipient:</strong> <a href="/address/{{ match['tx']['recipient'] }}">{{ match['tx']['recipient'] }}</a><br>
+            <strong>Amount:</strong> {{ match['tx']['amount'] }} Orbit<br>
+            <strong>Note:</strong> <pre>{{ match['tx']['note'] }}</pre><br>
+            {% if match['tx']['note'] is mapping %}
+                {% if match['tx']['note']['type'] == 'burn_fee' %}
                     <strong>Type:</strong> Burn Fee<br>
-                {% elif match.tx.note.type == 'order' %}
-                    <strong>Type:</strong> {{ match.tx.note.side|capitalize }} Order<br>
+                {% elif match['tx']['note']['type'] == 'order' %}
+                    <strong>Type:</strong> {{ match['tx']['note']['side']|capitalize }} Order<br>
                 {% endif %}
             {% endif %}
-            <strong>Timestamp:</strong> {{ match.tx.timestamp | ts }}<br>
-            <a href="/tx/{{ match.tx.sender }}-{{ match.tx.recipient }}-{{ match.tx.timestamp }}">View Details</a>
+            <strong>Timestamp:</strong> {{ match['tx']['timestamp'] | ts }}<br>
+            <a href="/tx/{{ match['tx']['sender'] }}-{{ match['tx']['recipient'] }}-{{ match['tx']['timestamp'] }}">View Details</a>
         </div>
         {% endfor %}
     {% else %}

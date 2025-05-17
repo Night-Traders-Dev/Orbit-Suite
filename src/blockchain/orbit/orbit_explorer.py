@@ -22,13 +22,17 @@ def search_chain(query):
     matches = []
     for block in load_chain():
         for tx in block.get("transactions", []):
-            tx_id = f"{tx.get('sender')}-{tx.get('recipient')}-{tx.get('timestamp')}"
-            if (query in tx.get("sender", "").lower() or
-                query in tx.get("recipient", "").lower() or
-                query in json.dumps(tx).lower() or
+            sender = tx.get("sender") or ""
+            recipient = tx.get("recipient") or ""
+            tx_str = json.dumps(tx).lower()
+            tx_id = f"{sender}-{recipient}-{tx.get('timestamp', '')}"
+            if (query in sender.lower() or
+                query in recipient.lower() or
+                query in tx_str or
                 query in tx_id.lower()):
                 matches.append({"block": block["index"], "tx": tx})
     return matches
+
 
 def calculate_balance(address):
     balance = 0
