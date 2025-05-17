@@ -37,7 +37,6 @@ def handle_connection(conn, addr, node_id):
         if not data:
             return
         msg = json.loads(data.decode())
-        print(f"[{node_id}] Received from {addr}: {msg}")
 
         if msg.get("type") == "block":
             block_data = msg["data"]
@@ -45,22 +44,17 @@ def handle_connection(conn, addr, node_id):
 
             # Skip if block already exists
             if any(b["hash"] == block_data["hash"] for b in chain):
-                print(f"[{node_id}] Block {block_data['index']} already exists.")
                 return
 
             # First-time use: accept block if chain is empty and index is 0
             if not chain and block_data["index"] == 0:
                 save_chain([block_data])
-                print(f"[{node_id}] Genesis block accepted.")
                 return
 
             # Normal validation
             if chain and block_data["previous_hash"] == chain[-1]["hash"]:
                 chain.append(block_data)
                 save_chain(chain)
-                print(f"[{node_id}] Block {block_data['index']} added to chain.")
-            else:
-                print(f"[{node_id}] Block {block_data['index']} rejected (invalid previous hash).")
 
     except Exception as e:
         print(f"[{node_id}] Error handling connection from {addr}: {e}")
@@ -131,15 +125,12 @@ def propose_block(node_id, block_data, timeout=5):
     proposer_config = NodeConfig.from_dict(nodes[node_id])
     quorum_slice = proposer_config.quorum_slice
 
-    print(f"[Propose] Node {node_id} proposing block to quorum: {quorum_slice}")
-
     votes = {node_id}
     signatures = {node_id: sign_vote(node_id, block_data)}
     start_time = time.time()
 
     for peer_id in quorum_slice:
         if time.time() - start_time > timeout:
-            print("[Propose] Timeout during quorum vote collection.")
             break
 
         peer_data = nodes.get(peer_id)
@@ -158,15 +149,12 @@ def propose_block(node_id, block_data, timeout=5):
             if simulate_quorum_vote(peer_id, block_data):
                 votes.add(peer_id)
                 signatures[peer_id] = sign_vote(peer_id, block_data)
-                print(f"[Propose] Vote received from {peer_id} (trust: {trust_score:.2f})")
                 peer_data["trust_score"] = min(peer_data.get("trust_score", 0.5) + ADJUST_RATE, 1.0)
                 peer_data["uptime_score"] = min(peer_data.get("uptime_score", 0.5) + ADJUST_RATE, 1.0)
             else:
-                print(f"[Propose] {peer_id} voted NO (trust: {trust_score:.2f})")
 
                 peer_data["trust_score"] = max(peer_data.get("trust_score", 0.5) - ADJUST_RATE, 0.0)
         else:
-            print(f"[Propose] {peer_id} unavailable (uptime: {uptime_score:.2f})")
 
             peer_data["uptime_score"] = max(peer_data.get("uptime_score", 0.5) - ADJUST_RATE, 0.0)
 
@@ -175,8 +163,6 @@ def propose_block(node_id, block_data, timeout=5):
     required_votes = (len(quorum_slice) // 2) + 1
 
     if len(votes) >= required_votes:
-        print(f"[Propose] Consensus achieved: {len(votes)} votes (required {required_votes}).")
-        print(f"[Signatures] {signatures}")
         save_nodes(nodes)
         return True
     else:
@@ -215,7 +201,6 @@ def receive_block(block):
 
     chain.append(block)
     save_chain(chain)
-    print(f"Block {block['index']} received and added to Orbit chain.")
     return True
 
 def send_block(peer_address, block):
@@ -226,10 +211,8 @@ def send_block(peer_address, block):
         s.connect((host, port))
         data = json.dumps({"type": "block", "data": block.to_dict()})
         s.sendall(data.encode())
-        print(f"Block sent to {peer_address}")
 
 def broadcast_block(block, sender_id=None):
-    print(f"Broadcasting block {block.index} to peers...")
     nodes = load_nodes()
     for node_id, info in nodes.items():
         if node_id == sender_id:

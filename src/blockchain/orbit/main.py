@@ -13,26 +13,28 @@ from core.walletutil import load_balance
 from core.userutil import login, logout, register
 import sys
 import threading
+from colorama import Fore, Style, init
+
+init(autoreset=True)
+
+HEADER = f"{Fore.CYAN + Style.BRIGHT}=== Orbit Terminal ==="
+PROMPT = f"{Fore.YELLOW}> {Style.RESET_ALL}"
+
 
 def pre_login_menu():
     clear_screen()
     while True:
-        print("\n=== Orbit Terminal ===")
+        print(f"\n{HEADER}")
         print("1. Login")
         print("2. Register")
         print("3. Exit")
-        choice = input("Choose an option: ").strip()
+        choice = input(PROMPT).strip()
         clear_screen()
         if choice == "1":
             result = login()
-            if result is None:
-                continue
-            else:
+            if result:
                 user, node_id = result
-                listener_thread = threading.Thread(
-                    target=start_listener, args=(node_id,), daemon=True
-                )
-                listener_thread.start()
+                threading.Thread(target=start_listener, args=(node_id,), daemon=True).start()
                 post_login_menu(user)
         elif choice == "2":
             register()
@@ -42,66 +44,54 @@ def pre_login_menu():
         else:
             print("Invalid option. Try again.")
 
+
 def quorum_slice_menu(user):
     clear_screen()
     while True:
-        print("\n=== Node Manager Menu ===")
+        print(f"\n{Fore.MAGENTA}=== Node Manager Menu ===")
         print("1. View All Nodes")
         print("2. Register This Node")
         print("3. Edit Quorum Slice")
         print("4. Back")
-        choice = input("Choose an option: ").strip()
+        choice = input(PROMPT).strip()
         clear_screen()
         if choice == "1":
             nodes = load_nodes()
-            if not nodes:
-                print("No nodes registered.")
-            else:
-                print("Registered Nodes:")
-                for nid, node in nodes.items():
-                    quorum = node.get("quorum_slice", [])
-                    trust = round(node.get("trust_score", 0.0), 2)
-                    uptime = round(node.get("uptime_score", 0.0), 2)
-                    print(f"- {nid} (Quorum Slice: {quorum}) | Trust: {trust} | Uptime: {uptime}")
-
+            print("Registered Nodes:")
+            for nid, node in nodes.items():
+                quorum = node.get("quorum_slice", [])
+                trust = round(node.get("trust_score", 0.0), 2)
+                uptime = round(node.get("uptime_score", 0.0), 2)
+                print(f"- {nid} | Trust: {trust} | Uptime: {uptime} | Quorum: {quorum}")
         elif choice == "2":
-            node_id = input("Enter node ID to register (e.g., Node3): ").strip()
-            if node_id:
-                nodes = load_nodes()
-                quorum_slice = nodes[node_id]["quorum_slice"]
-                register_node(node_id, quorum_slice)
-                print(f"Node {node_id} registered.")
-            else:
-                print("Node ID cannot be empty.")
-
+            node_id = input("Enter node ID: ").strip()
+            quorum_slice = input("Comma-separated quorum nodes: ").split(',')
+            quorum = [q.strip() for q in quorum_slice if q.strip()]
+            register_node(node_id, quorum)
+            print(f"Node {node_id} registered.")
         elif choice == "3":
-            node_id = input("Enter your node ID: ").strip()
+            node_id = input("Node ID: ").strip()
             nodes = load_nodes()
-            if node_id not in nodes:
+            if node_id in nodes:
+                quorum_slice = input("New quorum (comma-separated): ").split(',')
+                nodes[node_id]["quorum_slice"] = [q.strip() for q in quorum_slice if q.strip()]
+                save_nodes(nodes)
+                print("Quorum updated.")
+            else:
                 print("Node not found.")
-                continue
-
-            print("Enter comma-separated IDs of trusted nodes (quorum slice):")
-            quorum_input = input("e.g., Node1,Node2: ").strip()
-            quorum_slice = [q.strip() for q in quorum_input.split(",") if q.strip()]
-            nodes[node_id]["quorum_slice"] = quorum_slice
-            save_nodes()
-            print(f"Quorum slice for {node_id} updated.")
-
         elif choice == "4":
             break
-        else:
-            print("Invalid option. Try again.")
+
 
 def lockup_menu(user):
     clear_screen()
     while True:
-        print("\n=== Lockups Menu ===")
+        print(f"\n{Fore.BLUE}=== Lockups Menu ===")
         print("1. Lock Orbit")
         print("2. View Lockups")
         print("3. Claim")
         print("4. Back")
-        choice = input("Choose an option: ").strip()
+        choice = input(PROMPT).strip()
         clear_screen()
         if choice == "1":
             lock_tokens(user)
@@ -111,49 +101,42 @@ def lockup_menu(user):
             claim_lockup_rewards(user)
         elif choice == "4":
             break
-        else:
-            print("Invalid option. Try again.")
+
 
 def wallet_menu(user):
     clear_screen()
     while True:
-        print("\n=== Wallet Menu ===")
+        print(f"\n{Fore.GREEN}=== Wallet Menu ===")
         print("1. Show Balance")
         print("2. Send Orbit")
         print("3. Staking")
         print("4. Back")
-        choice = input("Choose an option: ").strip()
+        choice = input(PROMPT).strip()
         clear_screen()
-
         if choice == "1":
-            available, active_locked = load_balance(user)
-            print(f"Total Balance: {available + active_locked:.4f} Orbit")
-            print(f"Locked: {active_locked:.4f} Orbit")
-            print(f"Available: {available:.4f} Orbit")
+            available, locked = load_balance(user)
+            total = available + locked
+            print(f"Total: {total:.4f} | Locked: {locked:.4f} | Available: {available:.4f}")
         elif choice == "2":
-            available, active_locked = load_balance(user)
-            print(f"Available Orbit: {available:.4f}")
-            recipient = input("Enter recipient username: ").strip()
-            amount = round(float(input(f"Enter amount to send (max {available:.4f}): ")), 4)
-            send_orbit(user, recipient, amount)
+            recipient = input("Recipient: ").strip()
+            amount = float(input("Amount: ").strip())
+            send_orbit(user, recipient, round(amount, 4))
         elif choice == "3":
             lockup_menu(user)
         elif choice == "4":
             break
-        else:
-            print("Invalid option. Try again.")
+
 
 def security_circle_menu(user):
     clear_screen()
     while True:
-        print("\n=== Security Circle Menu ===")
-        print("1. View Security Circle")
-        print("2. Add to Security Circle")
-        print("3. Remove from Security Circle")
+        print(f"\n{Fore.YELLOW}=== Security Circle Menu ===")
+        print("1. View")
+        print("2. Add")
+        print("3. Remove")
         print("4. Back")
-        choice = input("Choose an option: ").strip()
+        choice = input(PROMPT).strip()
         clear_screen()
-
         if choice == "1":
             view_security_circle(user)
         elif choice == "2":
@@ -162,22 +145,19 @@ def security_circle_menu(user):
             remove_from_security_circle(user)
         elif choice == "4":
             break
-        else:
-            print("Invalid option. Try again.")
 
 
 def ledger_menu(user):
     clear_screen()
     while True:
-        print("\n=== Ledger Menu ===")
-        print("1. View All Transactions")
-        print("2. View My Transactions")
-        print("3. View My Mining Rewards")
-        print("4. View My Transfers")
+        print(f"\n{Fore.CYAN}=== Ledger Menu ===")
+        print("1. All Transactions")
+        print("2. My Transactions")
+        print("3. Mining Rewards")
+        print("4. Transfers")
         print("5. Back")
-        choice = input("Choose an option: ").strip()
+        choice = input(PROMPT).strip()
         clear_screen()
-
         if choice == "1":
             view_all_transactions()
         elif choice == "2":
@@ -188,23 +168,20 @@ def ledger_menu(user):
             view_transfers(user)
         elif choice == "5":
             break
-        else:
-            print("Invalid option. Try again.")
+
 
 def post_login_menu(user):
     clear_screen()
     while True:
-        print(f"\n=== Welcome to Orbit, {user} ===")
+        print(f"\n{Fore.LIGHTCYAN_EX}=== Welcome to Orbit, {user} ===")
         print("1. Mine Orbit")
         print("2. Wallet")
         print("3. Security Circle")
         print("4. Ledger")
         print("5. Node Management")
         print("6. Logout")
-
-        choice = input("Choose an option: ").strip()
+        choice = input(PROMPT).strip()
         clear_screen()
-
         if choice == "1":
             simulate_mining(user, duration=10)
         elif choice == "2":
@@ -219,8 +196,7 @@ def post_login_menu(user):
             logout(user)
             print("Logged out.")
             sys.exit()
-        else:
-            print("Invalid option. Try again.")
+
 
 if __name__ == "__main__":
     clear_screen()
