@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for
 import json, os, datetime, math
 from config.configutil import OrbitDB
 from blockchain.stakeutil import get_user_lockups
-from templates.explorer_template import HTML_TEMPLATE
 
 orbit_db = OrbitDB()
 app = Flask(__name__)
@@ -119,6 +118,28 @@ def home():
                            blocks=blocks,
                            summary=summary)
 
+
+@app.route("/api/latest-block")
+def api_latest_block():
+    chain = load_chain()
+    if chain:
+        return jsonify(chain[-1])
+    return jsonify({"error": "No blocks found"}), 404
+
+
+@app.route("/api/latest-transactions")
+def api_latest_transactions():
+    limit = int(request.args.get("limit", 5))
+    txs = []
+    for block in reversed(load_chain()):
+        for tx in reversed(block.get("transactions", [])):
+            tx["block"] = block["index"]
+            txs.append(tx)
+            if len(txs) >= limit:
+                return jsonify(txs)
+    return jsonify(txs)
+
+
 @app.route("/tx/<txid>")
 def tx_detail(txid):
     chain = load_chain()
@@ -232,7 +253,6 @@ def api_tx(txid):
 @app.route("/api/summary")
 def api_summary():
     return jsonify(get_chain_summary())
-
 
 if __name__ == "__main__":
     app.run(port=PORT, debug=True)

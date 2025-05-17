@@ -1,4 +1,6 @@
 {% for block in blocks %}
+<div id="latest-block" data-block-index=""></div>
+<div id="live-transactions"></div>
 <div class="block">
     <strong>Block #<a href="/block/{{ block.index }}">{{ block.index }}</a></strong><br>
     <strong>Timestamp:</strong> {{ block.timestamp | ts }}<br>
@@ -8,21 +10,7 @@
     <hr>
     <strong>Transactions:</strong>
     {% for tx in block.transactions %}
-        <div class="tx">
-            <strong>From:</strong> <a href="/address/{{ tx.sender }}">{{ tx.sender }}</a><br>
-            <strong>To:</strong> <a href="/address/{{ tx.recipient }}">{{ tx.recipient }}</a><br>
-            <strong>Amount:</strong> {{ tx.amount }} Orbit<br>
-            <strong>Note:</strong> <pre>{{ tx.note }}</pre><br>
-            {% if tx.note is mapping %}
-                {% if tx.note.type == 'burn_fee' %}
-                    <strong>Type:</strong> Burn Fee<br>
-                {% elif tx.note.type == 'order' %}
-                    <strong>Type:</strong> {{ tx.note.side|capitalize }} Order<br>
-                {% endif %}
-            {% endif %}
-            <strong>Timestamp:</strong> {{ tx.timestamp | ts }}<br>
-            <a href="/tx/{{ tx.sender }}-{{ tx.recipient }}-{{ tx.timestamp }}">View Details</a>
-        </div>
+        {% include "partials/tx_card.html" %}
     {% endfor %}
 </div>
 {% endfor %}

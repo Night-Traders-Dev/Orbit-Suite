@@ -1,9 +1,21 @@
-<div class="summary">
+<div class="summary" id="chain-summary">
     <h2>Chain Summary</h2>
-    <ul>
-        <li>Total Blocks: {{ summary.blocks }}</li>
-        <li>Total Transactions: {{ summary.transactions }}</li>
-        <li>Total Accounts: {{ summary.accounts }}</li>
-        <li>Total Orbit: {{ summary.total_orbit }}</li>
-    </ul>
+    <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+        <div style="flex: 1; min-width: 200px;">
+            <h3>Total Blocks</h3>
+            <p><strong>{{ "{:,}".format(summary.blocks) }}</strong></p>
+        </div>
+        <div style="flex: 1; min-width: 200px;">
+            <h3>Total Transactions</h3>
+            <p><strong>{{ "{:,}".format(summary.transactions) }}</strong></p>
+        </div>
+        <div style="flex: 1; min-width: 200px;">
+            <h3>Total Accounts</h3>
+            <p><strong>{{ "{:,}".format(summary.accounts) }}</strong></p>
+        </div>
+        <div style="flex: 1; min-width: 200px;">
+            <h3>Total Orbit Supply</h3>
+            <p><strong>{{ "{:,.4f}".format(summary.total_orbit) }}</strong> ORBIT</p>
+        </div>
+    </div>
 </div>

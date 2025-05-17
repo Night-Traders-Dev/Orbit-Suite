@@ -1,0 +1,20 @@
+<h3>Locked Tokens</h3>
+<ul>
+    {% if address_data.lockups %}
+        {% for lock in address_data.lockups %}
+            <li>
+                {{ lock.amount }} Orbit locked until {{ lock.unlock_time | ts }}
+                {% if lock.matured %}
+                    — <em>Matured</em>
+                {% else %}
+                    — <em>Pending</em>
+                {% endif %}
+                {% if lock.reward %}
+                    (Reward: {{ lock.reward }})
+                {% endif %}
+            </li>
+        {% endfor %}
+    {% else %}
+        <li>None</li>
+    {% endif %}
+</ul>

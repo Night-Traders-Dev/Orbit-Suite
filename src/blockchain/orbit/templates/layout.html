@@ -27,8 +27,105 @@
             font-weight: bold;
             background: #bbb;
         }
+        .summary h3 {
+            margin-bottom: 5px;
+            color: #555;
+        }
+        .summary p {
+            font-size: 1.4em;
+            color: #000;
+        }
     </style>
 </head>
+
+<script>
+function fetchChainSummary() {
+    fetch('/api/summary')
+        .then(res => res.json())
+        .then(summary => {
+            const box = document.getElementById("chain-summary");
+            if (!box) return;
+
+            box.innerHTML = `
+                <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <h3>Total Blocks</h3>
+                        <p><strong>${summary.blocks.toLocaleString()}</strong></p>
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <h3>Total Transactions</h3>
+                        <p><strong>${summary.transactions.toLocaleString()}</strong></p>
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <h3>Total Accounts</h3>
+                        <p><strong>${summary.accounts.toLocaleString()}</strong></p>
+                    </div>
+                    <div style="flex: 1; min-width: 200px;">
+                        <h3>Total Orbit Supply</h3>
+                        <p><strong>${parseFloat(summary.total_orbit).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</strong> ORBIT</p>
+                    </div>
+                </div>
+            `;
+        });
+}
+function fetchLatestTransactions() {
+    fetch('/api/latest-transactions?limit=5')
+        .then(res => res.json())
+        .then(txs => {
+            const txFeed = document.getElementById("live-transactions");
+            if (!txFeed) return;
+
+            txFeed.innerHTML = `<h2>Recent Transactions</h2>`;
+            txs.forEach(tx => {
+                txFeed.innerHTML += `
+                    <div class="tx">
+                        <p><strong>${tx.sender}</strong> → <strong>${tx.recipient}</strong></p>
+                        <p>Amount: ${tx.amount} Orbit</p>
+                        <p>Note: ${typeof tx.note === 'object' ? JSON.stringify(tx.note) : tx.note}</p>
+                        <p><a href="/tx/${tx.sender}-${tx.recipient}-${tx.timestamp}">View Tx</a></p>
+                        <hr/>
+                    </div>
+                `;
+            });
+        });
+}
+    const pollInterval = 5000; // milliseconds
+
+    function fetchLatestBlock() {
+        fetch('/api/latest-block')
+            .then(res => res.json())
+            .then(block => {
+                const latestBlockDiv = document.getElementById("latest-block");
+                if (!latestBlockDiv) return;
+
+                if (latestBlockDiv.dataset.blockIndex != block.index) {
+                    latestBlockDiv.dataset.blockIndex = block.index;
+                    latestBlockDiv.innerHTML = `
+                        <h2>Latest Block</h2>
+                        <p><strong>Block #${block.index}</strong></p>
+                        <p>Validator: ${block.validator}</p>
+                        <p>Transactions: ${block.transactions.length}</p>
+                        <p>Time: ${new Date(block.timestamp * 1000).toLocaleString()}</p>
+                        <p><a href="/block/${block.index}">View Block</a></p>
+                        <hr/>
+                    `;
+                }
+            });
+    }
+
+    setInterval(() => {
+        fetchLatestBlock();
+        fetchLatestTransactions();
+        fetchChainSummary();
+    }, pollInterval);
+
+    window.onload = () => {
+        fetchLatestBlock();
+        fetchLatestTransactions();
+        fetchChainSummary();
+    };
+</script>
+
 <body>
     <h1>Orbit Blockchain Explorer</h1>
 
