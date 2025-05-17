@@ -17,5 +17,9 @@
             <h3>Total Orbit Supply</h3>
             <p><strong>{{ "{:,.4f}".format(summary.total_orbit) }}</strong> ORBIT</p>
         </div>
+        <div style="flex: 1 1 100%; min-width: 400px;">
+            <h3>Transactions (Last 14 Days)</h3>
+            <canvas id="txChart" height="120" style="width:100%; max-width:600px;"></canvas>
+        </div>
     </div>
 </div>

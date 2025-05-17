@@ -119,6 +119,34 @@ def home():
                            summary=summary)
 
 
+
+@app.route("/api/tx_volume_14d")
+def tx_volume_14d():
+    from collections import defaultdict
+    import time
+
+    chain = load_chain()
+    now = int(time.time())
+    one_day = 86400
+
+    tx_by_day = defaultdict(int)
+    for block in chain:
+        for tx in block.get("transactions", []):
+            day = (tx.get("timestamp", block["timestamp"])) // one_day
+            tx_by_day[day] += 1
+
+    recent_days = [(now // one_day) - i for i in range(13, -1, -1)]
+    data = []
+    for day in recent_days:
+        date_str = datetime.datetime.fromtimestamp(day * one_day).strftime("%b %d")
+        data.append({
+            "date": date_str,
+            "count": tx_by_day.get(day, 0)
+        })
+
+    return jsonify(data)
+
+
 @app.route("/api/latest-block")
 def api_latest_block():
     chain = load_chain()

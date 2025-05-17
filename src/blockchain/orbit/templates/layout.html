@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <title>Orbit Block Explorer</title>
     <style>
         body { font-family: Arial; margin: 40px; background: #f4f4f4; }
@@ -39,35 +40,18 @@
 </head>
 
 <script>
+
 function fetchChainSummary() {
     fetch('/api/summary')
         .then(res => res.json())
         .then(summary => {
-            const box = document.getElementById("chain-summary");
-            if (!box) return;
-
-            box.innerHTML = `
-                <div style="display: flex; flex-wrap: wrap; gap: 20px;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <h3>Total Blocks</h3>
-                        <p><strong>${summary.blocks.toLocaleString()}</strong></p>
-                    </div>
-                    <div style="flex: 1; min-width: 200px;">
-                        <h3>Total Transactions</h3>
-                        <p><strong>${summary.transactions.toLocaleString()}</strong></p>
-                    </div>
-                    <div style="flex: 1; min-width: 200px;">
-                        <h3>Total Accounts</h3>
-                        <p><strong>${summary.accounts.toLocaleString()}</strong></p>
-                    </div>
-                    <div style="flex: 1; min-width: 200px;">
-                        <h3>Total Orbit Supply</h3>
-                        <p><strong>${parseFloat(summary.total_orbit).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</strong> ORBIT</p>
-                    </div>
-                </div>
-            `;
+            document.getElementById("summary-blocks").textContent = summary.blocks.toLocaleString();
+            document.getElementById("summary-txs").textContent = summary.transactions.toLocaleString();
+            document.getElementById("summary-accounts").textContent = summary.accounts.toLocaleString();
+            document.getElementById("summary-supply").textContent = parseFloat(summary.total_orbit).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 });
         });
 }
+
 function fetchLatestTransactions() {
     fetch('/api/latest-transactions?limit=5')
         .then(res => res.json())
@@ -113,18 +97,68 @@ function fetchLatestTransactions() {
             });
     }
 
+    let txChart;
+
+    function fetchTxChartData() {
+        fetch('/api/tx_volume_14d')
+            .then(res => res.json())
+            .then(data => {
+                const ctx = document.getElementById('txChart');
+                const labels = data.map(d => d.date);
+                const counts = data.map(d => d.count);
+
+                if (txChart) {
+                    txChart.data.labels = labels;
+                    txChart.data.datasets[0].data = counts;
+                    txChart.update();
+                } else {
+                    txChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Transactions per Day',
+                                data: counts,
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                tension: 0.3,
+                                fill: true,
+                                pointRadius: 3
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+}
+
     setInterval(() => {
+        fetchChainSummary();
+        fetchTxChartData();
         fetchLatestBlock();
         fetchLatestTransactions();
-        fetchChainSummary();
     }, pollInterval);
 
     window.onload = () => {
+        fetchChainSummary();
+        fetchTxChartData();
         fetchLatestBlock();
         fetchLatestTransactions();
-        fetchChainSummary();
     };
+
+
 </script>
+
 
 <body>
     <h1>Orbit Blockchain Explorer</h1>
