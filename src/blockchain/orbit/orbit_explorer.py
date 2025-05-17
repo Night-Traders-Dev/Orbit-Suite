@@ -1,11 +1,10 @@
-from flask import Flask, render_template_string, request
+from flask import Flask, render_template_string, request, jsonify
 import json, os, datetime, math
 from config.configutil import OrbitDB
 from blockchain.stakeutil import get_user_lockups
-from templates.explorer_template import HTML_TEMPLATE
+from templates.test import HTML_TEMPLATE
 
 orbit_db = OrbitDB()
-
 app = Flask(__name__)
 
 CHAIN_PATH = orbit_db.blockchaindb
@@ -17,7 +16,6 @@ def load_chain():
         with open(CHAIN_PATH, 'r') as f:
             return json.load(f)
     return []
-
 
 def search_chain(query):
     query = query.lower()
@@ -53,6 +51,16 @@ def last_transactions(address, limit=10):
                     return txs
     return txs
 
+def get_validator_stats():
+    stats = {}
+    chain = load_chain()
+    for block in chain:
+        val = block.get("validator")
+        if val:
+            stats[val] = stats.get(val, 0) + 1
+    total = sum(stats.values())
+    return [{"validator": v, "blocks": c, "percent": round(100 * c / total, 2)} for v, c in sorted(stats.items(), key=lambda x: x[1], reverse=True)]
+
 @app.template_filter('ts')
 def format_timestamp(value):
     try:
@@ -85,12 +93,15 @@ def tx_detail(txid):
         for tx in block.get("transactions", []):
             current_id = f"{tx.get('sender')}-{tx.get('recipient')}-{tx.get('timestamp')}"
             if current_id == txid:
+                note = tx.get("note", {})
+                note_type = note.get("type", "N/A")
                 return f'''
                 <h1>Transaction Details</h1>
                 <p><strong>Sender:</strong> {tx["sender"]}</p>
                 <p><strong>Recipient:</strong> {tx["recipient"]}</p>
                 <p><strong>Amount:</strong> {tx["amount"]} Orbit</p>
-                <p><strong>Note:</strong> {tx["note"]}</p>
+                <p><strong>Note Type:</strong> {note_type}</p>
+                <p><strong>Note Content:</strong> <pre>{json.dumps(note, indent=2)}</pre></p>
                 <p><strong>Timestamp:</strong> {format_timestamp(tx["timestamp"])}</p>
                 <a href="/">Back</a>
                 '''
@@ -101,6 +112,8 @@ def block_detail(index):
     chain = load_chain()
     for block in chain:
         if block["index"] == index:
+            txs = block.get("transactions", [])
+            fee_txs = [tx for tx in txs if isinstance(tx.get("note"), dict) and "burn" in json.dumps(tx["note"])]
             return f'''
             <h1>Block #{block["index"]}</h1>
             <p><strong>Timestamp:</strong> {format_timestamp(block["timestamp"])}</p>
@@ -109,10 +122,14 @@ def block_detail(index):
             <p><strong>Validator:</strong> {block["validator"]}</p>
             <p><strong>Merkle Root:</strong> {block["merkle_root"]}</p>
             <p><strong>Nonce:</strong> {block["nonce"]}</p>
+            <p><strong>Size:</strong> {len(txs)} txs</p>
+            <p><strong>Fee Transactions:</strong> {len(fee_txs)}</p>
             <p><strong>Signatures:</strong> <pre>{json.dumps(block["signatures"], indent=2)}</pre></p>
             <h3>Transactions:</h3>
             <ul>
-                {''.join(f"<li>{tx['sender']} → {tx['recipient']} ({tx['amount']} Orbit)</li>" for tx in block.get("transactions", []))}
+                {''.join(f"<li>{tx['sender']} → {tx['recipient']} ({tx['amount']} Orbit)" +
+                         (f" [{tx['note'].get('type')}]" if isinstance(tx.get("note"), dict) and 'type' in tx['note'] else "") +
+                         "</li>" for tx in txs)}
             </ul>
             <a href="/">Back</a>
             '''
@@ -136,6 +153,43 @@ def address_detail(address):
     </ul>
     <a href="/">Back</a>
     '''
+
+@app.route("/validators")
+def validator_stats():
+    stats = get_validator_stats()
+    rows = "".join(f"<li>{s['validator']}: {s['blocks']} blocks ({s['percent']}%)</li>" for s in stats)
+    return f"<h1>Validator Stats</h1><ul>{rows}</ul><a href='/'>Back</a>"
+
+# New API Endpoints
+@app.route("/api/chain")
+def api_chain():
+    return jsonify(load_chain())
+
+@app.route("/api/address/<address>")
+def api_address(address):
+    return jsonify({
+        "balance": calculate_balance(address),
+        "locked": get_user_lockups(address),
+        "last_10_transactions": last_transactions(address)
+    })
+
+@app.route("/api/block/<int:index>")
+def api_block(index):
+    chain = load_chain()
+    for block in chain:
+        if block["index"] == index:
+            return jsonify(block)
+    return jsonify({"error": "Block not found"}), 404
+
+@app.route("/api/tx/<txid>")
+def api_tx(txid):
+    chain = load_chain()
+    for block in chain:
+        for tx in block.get("transactions", []):
+            current_id = f"{tx.get('sender')}-{tx.get('recipient')}-{tx.get('timestamp')}"
+            if current_id == txid:
+                return jsonify(tx)
+    return jsonify({"error": "Transaction not found"}), 404
 
 if __name__ == "__main__":
     app.run(port=PORT, debug=True)

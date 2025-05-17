@@ -1,5 +1,3 @@
-# explorer_template.py
-
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
 <html>
@@ -50,7 +48,14 @@ HTML_TEMPLATE = '''
             <strong>Sender:</strong> <a href="/address/{{ match.tx.sender }}">{{ match.tx.sender }}</a><br>
             <strong>Recipient:</strong> <a href="/address/{{ match.tx.recipient }}">{{ match.tx.recipient }}</a><br>
             <strong>Amount:</strong> {{ match.tx.amount }} Orbit<br>
-            <strong>Note:</strong> {{ match.tx.note }}<br>
+            <strong>Note:</strong> <pre>{{ match.tx.note }}</pre><br>
+            {% if match.tx.note is mapping %}
+                {% if match.tx.note.type == 'burn_fee' %}
+                    <strong>Type:</strong> Burn Fee<br>
+                {% elif match.tx.note.type == 'order' %}
+                    <strong>Type:</strong> {{ match.tx.note.side|capitalize }} Order<br>
+                {% endif %}
+            {% endif %}
             <strong>Timestamp:</strong> {{ match.tx.timestamp | ts }}<br>
             <a href="/tx/{{ match.tx.sender }}-{{ match.tx.recipient }}-{{ match.tx.timestamp }}">View Details</a>
         </div>
@@ -70,7 +75,14 @@ HTML_TEMPLATE = '''
                     <strong>From:</strong> <a href="/address/{{ tx.sender }}">{{ tx.sender }}</a><br>
                     <strong>To:</strong> <a href="/address/{{ tx.recipient }}">{{ tx.recipient }}</a><br>
                     <strong>Amount:</strong> {{ tx.amount }} Orbit<br>
-                    <strong>Note:</strong> {{ tx.note }}<br>
+                    <strong>Note:</strong> <pre>{{ tx.note }}</pre><br>
+                    {% if tx.note is mapping %}
+                        {% if tx.note.type == 'burn_fee' %}
+                            <strong>Type:</strong> Burn Fee<br>
+                        {% elif tx.note.type == 'order' %}
+                            <strong>Type:</strong> {{ tx.note.side|capitalize }} Order<br>
+                        {% endif %}
+                    {% endif %}
                     <strong>Timestamp:</strong> {{ tx.timestamp | ts }}<br>
                     <a href="/tx/{{ tx.sender }}-{{ tx.recipient }}-{{ tx.timestamp }}">View Details</a>
                 </div>
