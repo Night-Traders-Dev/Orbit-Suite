@@ -1,24 +1,24 @@
 from flask import Flask, render_template_string, request
-import json
-import os
-import datetime
+import json, os, datetime, math
 from config.configutil import OrbitDB
+from blockchain.stakeutil import get_user_lockups
+from templates.explorer_template import HTML_TEMPLATE
 
 orbit_db = OrbitDB()
 
 app = Flask(__name__)
 
 CHAIN_PATH = orbit_db.blockchaindb
+PAGE_SIZE = 5
 PORT = 7000
 
-# Load the blockchain
 def load_chain():
     if os.path.exists(CHAIN_PATH):
         with open(CHAIN_PATH, 'r') as f:
             return json.load(f)
     return []
 
-# Search transactions by address or tx hash
+
 def search_chain(query):
     query = query.lower()
     matches = []
@@ -32,69 +32,26 @@ def search_chain(query):
                 matches.append({"block": block["index"], "tx": tx})
     return matches
 
-HTML_TEMPLATE = '''
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Orbit Block Explorer</title>
-    <style>
-        body { font-family: Arial; margin: 40px; background: #f4f4f4; }
-        h1 { color: #333; }
-        .block, .tx { background: #fff; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 0 8px rgba(0,0,0,0.1); overflow-x: auto; }
-        .tx { margin-left: 20px; }
-        code { background: #eee; padding: 2px 4px; border-radius: 4px; }
-        input[type="text"] { width: 400px; padding: 8px; margin-right: 10px; }
-        button { padding: 8px 12px; }
-    </style>
-</head>
-<body>
-    <h1>Orbit Blockchain Explorer</h1>
+def calculate_balance(address):
+    balance = 0
+    chain = load_chain()
+    for block in chain:
+        for tx in block.get("transactions", []):
+            if tx["recipient"] == address:
+                balance += tx["amount"]
+            if tx["sender"] == address:
+                balance -= tx["amount"]
+    return balance
 
-    <form method="get">
-        <input type="text" name="q" placeholder="Search by address or tx ID..." value="{{ query }}"/>
-        <button type="submit">Search</button>
-    </form>
-
-    {% if results %}
-        <h2>Search Results for "{{ query }}"</h2>
-        {% for match in results %}
-        <div class="tx">
-            <strong>Block:</strong> {{ match.block }}<br>
-            <strong>Sender:</strong> {{ match.tx.sender }}<br>
-            <strong>Recipient:</strong> {{ match.tx.recipient }}<br>
-            <strong>Amount:</strong> {{ match.tx.amount }} Orbit<br>
-            <strong>Note:</strong> {{ match.tx.note }}<br>
-            <strong>Timestamp:</strong> {{ match.tx.timestamp | ts }}
-        </div>
-        {% endfor %}
-    {% else %}
-        {% for block in chain[::-1] %}
-        <div class="block">
-            <strong>Block #{{ block.index }}</strong><br>
-            <strong>Timestamp:</strong> {{ block.timestamp | ts }}<br>
-            <strong>Hash:</strong> <code>{{ block.hash }}</code><br>
-            <strong>Prev Hash:</strong> <code>{{ block.previous_hash }}</code><br>
-            <strong>Validator:</strong> {{ block.validator }}<br>
-            <strong>Merkle Root:</strong> <code>{{ block.merkle_root }}</code><br>
-            <strong>Nonce:</strong> {{ block.nonce }}<br>
-            <strong>Signatures:</strong> <pre>{{ block.signatures }}</pre>
-            <hr>
-            <strong>Transactions:</strong>
-            {% for tx in block.transactions %}
-                <div class="tx">
-                    <strong>From:</strong> {{ tx.sender }}<br>
-                    <strong>To:</strong> {{ tx.recipient }}<br>
-                    <strong>Amount:</strong> {{ tx.amount }} Orbit<br>
-                    <strong>Note:</strong> {{ tx.note }}<br>
-                    <strong>Timestamp:</strong> {{ tx.timestamp | ts }}<br>
-                </div>
-            {% endfor %}
-        </div>
-        {% endfor %}
-    {% endif %}
-</body>
-</html>
-'''
+def last_transactions(address, limit=10):
+    txs = []
+    for block in reversed(load_chain()):
+        for tx in block.get("transactions", []):
+            if tx["sender"] == address or tx["recipient"] == address:
+                txs.append(tx)
+                if len(txs) >= limit:
+                    return txs
+    return txs
 
 @app.template_filter('ts')
 def format_timestamp(value):
@@ -106,9 +63,79 @@ def format_timestamp(value):
 @app.route("/")
 def home():
     query = request.args.get("q", "").strip()
+    page = int(request.args.get("page", 1))
     chain = load_chain()
     results = search_chain(query) if query else []
-    return render_template_string(HTML_TEMPLATE, chain=chain, query=query, results=results)
+    total_pages = max(1, math.ceil(len(chain) / PAGE_SIZE))
+    start = (page - 1) * PAGE_SIZE
+    end = start + PAGE_SIZE
+    blocks = chain[::-1][start:end] if not query else []
+    return render_template_string(HTML_TEMPLATE,
+                                  chain=chain,
+                                  results=results,
+                                  query=query,
+                                  page=page,
+                                  total_pages=total_pages,
+                                  blocks=blocks)
+
+@app.route("/tx/<txid>")
+def tx_detail(txid):
+    chain = load_chain()
+    for block in chain:
+        for tx in block.get("transactions", []):
+            current_id = f"{tx.get('sender')}-{tx.get('recipient')}-{tx.get('timestamp')}"
+            if current_id == txid:
+                return f'''
+                <h1>Transaction Details</h1>
+                <p><strong>Sender:</strong> {tx["sender"]}</p>
+                <p><strong>Recipient:</strong> {tx["recipient"]}</p>
+                <p><strong>Amount:</strong> {tx["amount"]} Orbit</p>
+                <p><strong>Note:</strong> {tx["note"]}</p>
+                <p><strong>Timestamp:</strong> {format_timestamp(tx["timestamp"])}</p>
+                <a href="/">Back</a>
+                '''
+    return "Transaction not found", 404
+
+@app.route("/block/<int:index>")
+def block_detail(index):
+    chain = load_chain()
+    for block in chain:
+        if block["index"] == index:
+            return f'''
+            <h1>Block #{block["index"]}</h1>
+            <p><strong>Timestamp:</strong> {format_timestamp(block["timestamp"])}</p>
+            <p><strong>Hash:</strong> {block["hash"]}</p>
+            <p><strong>Prev Hash:</strong> {block["previous_hash"]}</p>
+            <p><strong>Validator:</strong> {block["validator"]}</p>
+            <p><strong>Merkle Root:</strong> {block["merkle_root"]}</p>
+            <p><strong>Nonce:</strong> {block["nonce"]}</p>
+            <p><strong>Signatures:</strong> <pre>{json.dumps(block["signatures"], indent=2)}</pre></p>
+            <h3>Transactions:</h3>
+            <ul>
+                {''.join(f"<li>{tx['sender']} → {tx['recipient']} ({tx['amount']} Orbit)</li>" for tx in block.get("transactions", []))}
+            </ul>
+            <a href="/">Back</a>
+            '''
+    return "Block not found", 404
+
+@app.route("/address/<address>")
+def address_detail(address):
+    balance = calculate_balance(address)
+    locks = get_user_lockups(address)
+    last10 = last_transactions(address)
+    return f'''
+    <h1>Address: {address}</h1>
+    <p><strong>Current Balance:</strong> {balance} Orbit</p>
+    <h3>Locked Balances:</h3>
+    <ul>
+        {''.join(f"<li>{l['amount']} Orbit locked until {format_timestamp(l['duration'])}</li>" for l in locks)}
+    </ul>
+    <h3>Last 10 Transactions:</h3>
+    <ul>
+        {''.join(f"<li>{tx['sender']} → {tx['recipient']} ({tx['amount']} Orbit) [{format_timestamp(tx['timestamp'])}]</li>" for tx in last10)}
+    </ul>
+    <a href="/">Back</a>
+    '''
 
 if __name__ == "__main__":
     app.run(port=PORT, debug=True)
