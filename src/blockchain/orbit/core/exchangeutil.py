@@ -22,11 +22,6 @@ def append_order(order):
     data["orders"].append(order)
     save_exchange(data)
 
-def update_balance(data, user, delta_orbit=0, delta_usd=0):
-    bal = data["balances"].setdefault(user, {"orbit": 0, "usd": 0})
-    bal["orbit"] += delta_orbit
-    bal["usd"] += delta_usd
-
 def place_order(user, side, amount, price, wallet):
     data = load_exchange()
     recipient = "exchange01"
@@ -53,17 +48,18 @@ def place_order(user, side, amount, price, wallet):
     append_order(order)
     return True, order["id"]
 
-def cancel_order(data, user, order_id):
+def cancel_order(user, order_id):
+    data = load_exchange()
     for order in data["orders"]:
         if order["id"] == order_id and order["user"] == user:
             if order["side"] == "buy":
                 refund = order["amount"] * order["price"]
-                update_balance(data, user, delta_usd=refund)
-            else:
-                update_balance(data, user, delta_orbit=order["amount"])
-            data["orders"].remove(order)
-            return True
+                send_orbit("exchange01", user, refund)
+                data["orders"].remove(order)
+                save_exchange(data)
+                return True
     return False
+
 
 def match_orders(data):
     buys = sorted([o for o in data["orders"] if o["side"] == "buy"], key=lambda o: (-o["price"], o["timestamp"]))

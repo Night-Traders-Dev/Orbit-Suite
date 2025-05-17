@@ -41,7 +41,7 @@ def send_orbit(sender, recipient, amount):
         tx1 = TXConfig.Transaction(
             sender=sender,
             recipient=recipient,
-            amount=net_amount,
+            amount=amount,
             timestamp=current_time
         )
 
@@ -56,7 +56,7 @@ def send_orbit(sender, recipient, amount):
 
         add_block([tx1.to_dict(), tx2.to_dict()])
 
-        print(f"Sent {net_amount:.4f} Orbit to {recipient} with {fee:.4f} Orbit burned as fee.")
+        print(f"Sent {amount:.4f} Orbit to {recipient} with {fee:.4f} Orbit burned as fee.")
 
     except ValueError:
         print("Invalid input.")
