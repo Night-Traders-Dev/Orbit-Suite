@@ -8,3 +8,6 @@
 # Ignore the data folder
 data/
 *.sh
+
+node_activity.py
+user_activity.py

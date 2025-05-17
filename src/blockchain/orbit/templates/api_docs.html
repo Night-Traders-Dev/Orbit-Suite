@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card">
+    <h2>Orbit Blockchain API Documentation</h2>
+    <p>This API provides access to blockchain data including blocks, transactions, addresses, validators, and chain summary.</p>
+    
+    <ul style="list-style: none; padding: 0;">
+        <li>
+            <h4>GET /api/chain</h4>
+            <p>Returns the entire blockchain.</p>
+        </li>
+        <li>
+            <h4>GET /api/block/&lt;index&gt;</h4>
+            <p>Returns data for a specific block by index.</p>
+        </li>
+        <li>
+            <h4>GET /api/tx/&lt;txid&gt;</h4>
+            <p>Returns data for a specific transaction by ID.</p>
+        </li>
+        <li>
+            <h4>GET /api/address/&lt;address&gt;</h4>
+            <p>Returns balance, lockups, and recent transactions for an address.</p>
+        </li>
+        <li>
+            <h4>GET /api/summary</h4>
+            <p>Returns chain-wide statistics like total blocks, transactions, and total Orbit supply.</p>
+        </li>
+        <li>
+            <h4>GET /api/latest-block</h4>
+            <p>Returns the most recent block on the chain.</p>
+        </li>
+        <li>
+            <h4>GET /api/latest-transactions?limit=5</h4>
+            <p>Returns the latest <code>limit</code> transactions (default: 5).</p>
+        </li>
+        <li>
+            <h4>GET /api/tx_volume_14d</h4>
+            <p>Returns a JSON list of transaction counts for the last 14 days.</p>
+        </li>
+    </ul>
+
+    <p><strong>Note:</strong> All responses are in JSON format.</p>
+</div>
+{% endblock %}

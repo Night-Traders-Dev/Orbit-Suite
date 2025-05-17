@@ -10,12 +10,6 @@ CHAIN_PATH = orbit_db.blockchaindb
 PAGE_SIZE = 5
 PORT = 7000
 
-LABELS = {
-    "abcd1234": "Validator Node #1",
-    "efgh5678": "Whale Wallet",
-}
-
-
 def load_chain():
     if os.path.exists(CHAIN_PATH):
         with open(CHAIN_PATH, 'r') as f:
@@ -175,8 +169,7 @@ def tx_detail(txid):
         for tx in block.get("transactions", []):
             current_id = f"{tx.get('sender')}-{tx.get('recipient')}-{tx.get('timestamp')}"
             if current_id == txid:
-                note = tx.get("note", {})
-                note_type = note.get("type", "N/A")
+                note_type = tx.get("note", tx.get("metadata", {}).get("note", "N/A"))
                 confirmations = len(chain) - block["index"] - 1
                 return {
                     "tx": tx,
@@ -233,16 +226,7 @@ def validator_stats():
 
 @app.route("/api/docs")
 def api_docs():
-    return {
-        "endpoints": [
-            {"url": "/api/chain", "desc": "Full chain data"},
-            {"url": "/api/block/<index>", "desc": "Block data by index"},
-            {"url": "/api/tx/<txid>", "desc": "Transaction details by txid"},
-            {"url": "/api/address/<address>", "desc": "Address profile"},
-            {"url": "/api/summary", "desc": "Chain summary stats"}
-        ]
-    }
-
+    return render_template("api_docs.html")
 
 @app.route("/api/chain")
 def api_chain():

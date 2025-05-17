@@ -2,7 +2,7 @@ import time
 from core.walletutil import load_balance
 from core.userutil import load_users, save_users
 from blockchain.blockutil import add_block, load_chain
-from config.configutil import TXConfig
+from config.configutil import TXConfig, get_node_for_user
 
 MIN_TRANSFER_AMOUNT = 0.0001
 FEE_RATE = 0.02
@@ -48,9 +48,9 @@ def send_orbit(sender, recipient, amount, order=None):
         # Create burn fee transaction
         tx2 = TXConfig.Transaction(
             sender=sender,
-            recipient="burn",
+            recipient="nodefeecollector",
             amount=fee,
-            note={"type": "burn_fee"},
+            note={"type": f"Node Fee: {fee}", "node": f"{get_node_for_user(sender)}"},
             timestamp=current_time
         )
 

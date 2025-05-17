@@ -73,9 +73,13 @@ def simulate_mining(username, duration=10):
     now = time.time()
 
     start_time = user_data.get("mining_start_time", now)
-    if now - start_time < 1:
-        print("Mining session already active or too recent.")
-        return
+    if not start_time:
+        user_data["mining_start_time"] = now
+        start_time = now
+    else:
+        if now - start_time < 1:
+            print("Mining session already active or too recent.")
+            return
 
     duration = min(duration, MAX_MINING_DURATION)
     user_data["mining_start_time"] = now
