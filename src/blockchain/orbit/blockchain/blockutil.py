@@ -6,7 +6,7 @@ import random
 import socket
 import threading
 
-from blockchain.orbitutil import save_nodes, load_nodes, simulate_peer_vote, sign_vote, relay_pending_proposal
+from blockchain.orbitutil import save_nodes, load_nodes, simulate_peer_vote, sign_vote, relay_pending_proposal, simulate_quorum_vote
 from config.configutil import OrbitDB, NodeConfig, TXConfig, get_node_for_user
 
 orbit_db = OrbitDB()
@@ -155,7 +155,7 @@ def propose_block(node_id, block_data, timeout=5):
         ADJUST_RATE = 0.05
 
         if online:
-            if simulate_peer_vote(peer_id, block_data, trust_score):
+            if simulate_quorum_vote(peer_id, block_data):
                 votes.add(peer_id)
                 signatures[peer_id] = sign_vote(peer_id, block_data)
                 print(f"[Propose] Vote received from {peer_id} (trust: {trust_score:.2f})")
