@@ -8,11 +8,16 @@ orbit_db = OrbitDB()
 NODES_FILE = orbit_db.nodedb
 PENDING_PROPOSALS_FILE = orbit_db.pendpropdb
 
+def log_node_activity(node_id, action, detail=""):
+    with open("node_activity.log", "a") as log:
+        log.write(f"{time.time()} | Node {node_id} | {action} | {detail}\n")
+
 def load_nodes():
     if not os.path.exists(NODES_FILE):
         return {}
     with open(NODES_FILE, "r") as f:
-        return json.load(f)
+        nodes = json.load(f)
+    return nodes
 
 def save_nodes(nodes):
     with open(NODES_FILE, "w") as f:
@@ -29,21 +34,26 @@ def register_node(node_id, quorum_slice, address):
 
     nodes[node_id] = node_config.to_dict()
     save_nodes(nodes)
+    log_node_activity(node_id, "register_node", f"Registered with quorum {quorum_slice}")
 
 def update_uptime(node_id, is_online=True):
     nodes = load_nodes()
     if node_id in nodes:
+        old_score = nodes[node_id]["uptime_score"]
         nodes[node_id]["uptime_score"] += 0.05 if is_online else -0.1
         nodes[node_id]["uptime_score"] = max(0.0, min(1.0, nodes[node_id]["uptime_score"]))
         save_nodes(nodes)
+        log_node_activity(node_id, "update_uptime", f"{old_score:.3f} → {nodes[node_id]['uptime_score']:.3f}")
 
 def update_trust(node_id, success=True):
     nodes = load_nodes()
     if node_id in nodes:
+        old_score = nodes[node_id]["trust_score"]
         delta = 0.05 if success else -0.1
         nodes[node_id]["trust_score"] += delta
         nodes[node_id]["trust_score"] = max(0.0, min(1.0, nodes[node_id]["trust_score"]))
         save_nodes(nodes)
+        log_node_activity(node_id, "update_trust", f"{old_score:.3f} → {nodes[node_id]['trust_score']:.3f}")
 
 def simulate_quorum_vote(node_id, block_data):
     nodes = load_nodes()
@@ -52,27 +62,31 @@ def simulate_quorum_vote(node_id, block_data):
     for peer in quorum:
         trust = nodes.get(peer, {}).get("trust_score", 0.5)
         result = simulate_peer_vote(peer, block_data, trust)
-        update_uptime(peer, result)  # always update uptime
+        update_uptime(peer, result)
+        update_trust(peer, result)
         if result:
-            update_trust(peer, +0.01)
             votes += 1
-        else:
-            update_trust(peer, -0.01)
+    log_node_activity(node_id, "simulate_quorum_vote", f"{votes}/{len(quorum)} approvals")
     return votes >= max(1, len(quorum) // 2)
-
 
 def simulate_peer_vote(peer_id, block_data, trust_score):
     approval_chance = trust_score * 0.9 + 0.1
-    return random.random() < approval_chance
+    result = random.random() < approval_chance
+    log_node_activity(peer_id, "simulate_peer_vote", f"Trust {trust_score:.2f} → {'approve' if result else 'reject'}")
+    return result
 
 def sign_vote(node_id, block_data):
+    log_node_activity(node_id, "sign_vote", f"Signed block {block_data}")
     return f"signed({node_id})"
 
 def select_next_validator():
     nodes = load_nodes()
     candidates = [(nid, n["trust_score"] * n["uptime_score"]) for nid, n in nodes.items()]
     candidates.sort(key=lambda x: x[1], reverse=True)
-    return candidates[0][0] if candidates else None
+    selected = candidates[0][0] if candidates else None
+    if selected:
+        log_node_activity(selected, "select_next_validator", "Selected as next validator")
+    return selected
 
 def relay_pending_proposal(node_id, block_data):
     if not os.path.exists(PENDING_PROPOSALS_FILE):
@@ -89,8 +103,6 @@ def relay_pending_proposal(node_id, block_data):
 
     with open(PENDING_PROPOSALS_FILE, "w") as f:
         json.dump(proposals, f, indent=2)
-    print("[Relay] Proposal added to retry queue.")
 
-def log_node_activity(node_id, action, detail=""):
-    with open("node_activity.log", "a") as log:
-        log.write(f"{time.time()} | Node {node_id} | {action} | {detail}\n")
+    log_node_activity(node_id, "relay_pending_proposal", f"Block {block_data} queued")
+    print("[Relay] Proposal added to retry queue.")
