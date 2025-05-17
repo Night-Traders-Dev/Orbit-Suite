@@ -2,7 +2,7 @@ from flask import Flask, render_template_string, request, jsonify
 import json, os, datetime, math
 from config.configutil import OrbitDB
 from blockchain.stakeutil import get_user_lockups
-from templates.test import HTML_TEMPLATE
+from templates.explorer_template import HTML_TEMPLATE
 
 orbit_db = OrbitDB()
 app = Flask(__name__)
