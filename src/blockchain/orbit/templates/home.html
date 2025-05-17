@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+{% block content %}
+    {% if summary %}{% include "summary.html" %}{% endif %}
+    {% if address_data %}{% include "address.html" %}{% endif %}
+    {% if validator_data %}{% include "validators.html" %}{% endif %}
+
+    {% if results %}
+        {% include "results.html" %}
+    {% else %}
+        {% include "block_list.html" %}
+    {% endif %}
+{% endblock %}

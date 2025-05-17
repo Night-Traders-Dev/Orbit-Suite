@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="address">
+    <h2>Address: {{ address_data.address }}</h2>
+    <p>Balance: {{ address_data.balance }} Orbit</p>
+    <h3>Locked Tokens</h3>
+    <ul>
+        {% for lock in address_data.lockups %}
+            <li>{{ lock.amount }} locked until {{ lock.unlock_time | ts }}</li>
+        {% else %}
+            <li>None</li>
+        {% endfor %}
+    </ul>
+    <h3>Last 10 Transactions</h3>
+    <ul>
+        {% for tx in address_data.last10 %}
+        <li><a href="/tx/{{ tx.sender }}-{{ tx.recipient }}-{{ tx.timestamp }}">
+            {{ tx.sender }} → {{ tx.recipient }} ({{ tx.amount }} Orbit)
+        </a></li>
+        {% else %}
+            <li>No recent transactions.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
