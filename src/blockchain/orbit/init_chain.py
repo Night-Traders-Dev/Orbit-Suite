@@ -14,12 +14,36 @@ def calculate_genesis_hash(block):
     return hashlib.sha256(block_string.encode()).hexdigest()
 
 def create_genesis_block():
+    transactions = [
+        {
+            "sender": "genesis",
+            "recipient": "lockup_reward",
+            "amount": 100000.0,
+            "timestamp": 0,
+            "note": "Initial supply for lockup rewards"
+        },
+        {
+            "sender": "genesis",
+            "recipient": "mining",
+            "amount": 1000000.0,
+            "timestamp": 0,
+            "note": "Initial supply for mining rewards"
+        },
+        {
+            "sender": "genesis",
+            "recipient": "system",
+            "amount": 98900000.0,
+            "timestamp": 0,
+            "note": "Initial supply for system wallet"
+        }
+    ]
+
     block = {
         "index": 0,
         "timestamp": 0,
-        "transactions": [],
-        "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
-        "hash": "",  # temporary, filled below
+        "transactions": transactions,
+        "previous_hash": "0" * 64,
+        "hash": "",  # calculated below
         "validator": "genesis",
         "signatures": {},
         "merkle_root": "",
@@ -29,6 +53,7 @@ def create_genesis_block():
             "note": "Genesis Block for Orbit Chain"
         }
     }
+
     block["hash"] = calculate_genesis_hash(block)
     return block
 
