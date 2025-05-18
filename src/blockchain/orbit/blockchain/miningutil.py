@@ -87,19 +87,37 @@ def simulate_mining(username, duration=10):
     print(f"Simulating mining for {duration} seconds...")
     rate = calculate_total_rate(user_data, start_time)
     mined = round(rate * duration, 6)
-    user_data["balance"] += mined
+
+    # Calculate dynamic node fee (e.g., 3% of mined)
+    node_fee_rate = 0.03
+    node_fee = round(mined * node_fee_rate, 6)
+    user_payout = round(mined - node_fee, 6)
+
+    user_data["balance"] += user_payout
+
     print(f"Mining rate: {rate:.6f} Orbit/sec")
-    print(f"Mined: {mined:.6f} Orbit")
+    print(f"Total mined: {mined:.6f} Orbit")
+    print(f"Node Fee: {node_fee:.6f} Orbit → Node {node_id}")
+    print(f"User reward: {user_payout:.6f} Orbit")
 
     if MODE == "simulation":
         mining_tx = TXConfig.Transaction(
             sender="mining",
             recipient=username,
-            amount=mined,
+            amount=user_payout,
             note="Mining Reward",
             timestamp=now
         )
-        add_block([mining_tx.to_dict()], node_id)
+
+        fee_tx = TXConfig.Transaction(
+            sender=username,
+            recipient="nodefeecollector",
+            amount=node_fee,
+            note={"type": f"Node Fee: {node_fee}", "node": node_id},
+            timestamp=now
+        )
+
+        add_block([mining_tx.to_dict(), fee_tx.to_dict()], node_id)
 
     users[username] = user_data
     save_users(users)

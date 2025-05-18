@@ -1,5 +1,5 @@
 import time
-from config.configutil import TXConfig
+from config.configutil import TXConfig, get_node_for_user
 from blockchain.blockutil import add_block, load_chain
 from core.userutil import load_users, save_users
 from core.walletutil import load_balance
@@ -69,6 +69,7 @@ def lock_tokens(username):
     except ValueError:
         print("Invalid input.")
 
+
 def claim_lockup_rewards(username):
     users = load_users()
     claimed = users[username].get("claimed_rewards", {})
@@ -102,36 +103,57 @@ def claim_lockup_rewards(username):
                 timestamp=now
             ).to_dict())
 
-    if reward_txs:
-        add_block(reward_txs)
+    if total_reward == 0:
+        print("No new rewards available to claim.")
+        return
 
+    # Calculate node fee (e.g., 3%) and adjust payout
+    node_id = get_node_for_user(username)
+    node_fee_rate = 0.03
+    node_fee = round(total_reward * node_fee_rate, 6)
+    net_reward = round(total_reward - node_fee, 6)
+
+    # Add node fee transaction
+    reward_txs.append(TXConfig.Transaction(
+        sender=username,
+        recipient="nodefeecollector",
+        amount=node_fee,
+        note={"type": f"Node Fee: {node_fee}", "node": node_id},
+        timestamp=now
+    ).to_dict())
+
+    # Write reward transactions to the chain
+    add_block(reward_txs, node_id)
+
+    # Save claimed state
     users[username]["claimed_rewards"] = claimed
     save_users(users)
 
-    if total_reward > 0:
-        print(f"Claimed {total_reward:.6f} Orbit in lockup rewards.")
-        choice = input("Re-lock rewards for compounding? (y/n): ").strip().lower()
-        if choice == 'y':
-            try:
-                duration = int(input("Enter new lockup duration in days (1 - 1825): "))
-                if duration < 1 or duration > MAX_LOCK_DURATION_DAYS:
-                    print("Invalid duration.")
-                    return
-                relock_tx = TXConfig.Transaction(
-                    sender="system",
-                    recipient=username,
-                    amount=total_reward,
-                    note={"duration_days": duration},
-                    timestamp=time.time()
-                )
-                add_block([relock_tx.to_dict()])
-                print(f"Re-locked {total_reward:.6f} Orbit for {duration} days.")
-            except ValueError:
+    print(f"Claimed {total_reward:.6f} Orbit in lockup rewards.")
+    print(f"Node Fee: {node_fee:.6f} Orbit → Node {node_id}")
+    print(f"Net credited: {net_reward:.6f} Orbit")
+
+    # Ask user to re-lock or receive balance
+    choice = input("Re-lock rewards for compounding? (y/n): ").strip().lower()
+    if choice == 'y':
+        try:
+            duration = int(input("Enter new lockup duration in days (1 - 1825): "))
+            if duration < 1 or duration > MAX_LOCK_DURATION_DAYS:
                 print("Invalid duration.")
-        else:
-            users = load_users()
-            users[username]["balance"] += total_reward
-            save_users(users)
-            print(f"{total_reward:.6f} Orbit added to your balance.")
+                return
+            relock_tx = TXConfig.Transaction(
+                sender="system",
+                recipient=username,
+                amount=net_reward,
+                note={"duration_days": duration},
+                timestamp=time.time()
+            )
+            add_block([relock_tx.to_dict()], node_id)
+            print(f"Re-locked {net_reward:.6f} Orbit for {duration} days.")
+        except ValueError:
+            print("Invalid duration.")
     else:
-        print("No new rewards available to claim.")
+        users = load_users()
+        users[username]["balance"] += net_reward
+        save_users(users)
+        print(f"{net_reward:.6f} Orbit added to your balance.")

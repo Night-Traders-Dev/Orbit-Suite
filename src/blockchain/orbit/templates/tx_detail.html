@@ -8,7 +8,6 @@
     <p><strong>Amount:</strong> {{ "%.4f"|format(tx.amount) }} Orbit</p>
     <p><strong>Status:</strong> {{ status }}</p>
     <p><strong>Confirmations:</strong> {{ confirmations }}</p>
-    <p><strong>Fee:</strong> {{ "%.4f"|format(fee) }} Orbit</p>
     <p><strong>Timestamp:</strong> {{ tx.timestamp | ts }}</p>
 
     {% if note_type %}
@@ -28,7 +27,15 @@
 
     <p><strong>Included in Block:</strong> <a href="/block/{{ block_index }}">#{{ block_index }}</a></p>
 
-    <details style="margin-top: 1em;">
+    {% if node_fee %}
+        <div style="margin-top: 1.5em; background: #f5faff; padding: 10px 14px; border-left: 4px solid #3498db; border-radius: 6px;">
+            <strong>Node Fee Applied:</strong><br>
+            <span>{{ "%.4f"|format(node_fee.amount) }} Orbit</span> → collected by <strong>{{ node_fee.node }}</strong><br>
+            <small style="color: #555;">Note: {{ node_fee.type }}</small>
+        </div>
+    {% endif %}
+
+    <details style="margin-top: 1.5em;">
         <summary style="cursor: pointer; font-weight: bold;">View Raw JSON</summary>
         <pre style="margin-top: 10px; font-size: 0.9em; background: #f4f4f4; padding: 10px; border-radius: 6px;">
 {{ tx | tojson(indent=2) }}

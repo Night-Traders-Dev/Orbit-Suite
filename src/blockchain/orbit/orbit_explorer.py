@@ -161,9 +161,16 @@ def locked():
     sort = request.args.get("sort", "date")
 
     locks = []
+    total_claimed = 0.0
+
     for block in chain:
         for tx in block.get("transactions", []):
             note = tx.get("note", {})
+            # Track claimed rewards
+            if tx.get("sender") == "lockup_reward":
+                total_claimed += float(tx.get("amount", 0))
+
+            # Track lockups
             if isinstance(note, dict) and "duration_days" in note:
                 duration = int(note["duration_days"])
                 days_remaining = max(0, int((tx["timestamp"] + duration * 86400 - now) / 86400))
@@ -191,11 +198,11 @@ def locked():
     totals = {
         "total_locked": sum(lock["amount"] for lock in locks),
         "count": len(locks),
-        "avg_days": round(sum(lock["duration"] for lock in locks) / len(locks), 1) if locks else 0
+        "avg_days": round(sum(lock["duration"] for lock in locks) / len(locks), 1) if locks else 0,
+        "total_claimed": round(total_claimed, 4)
     }
 
     return render_template("locked.html", locks=locks, totals=totals, sort=sort)
-
 
 @app.route("/api/latest-block")
 def api_latest_block():
@@ -221,11 +228,27 @@ def api_latest_transactions():
 def tx_detail(txid):
     chain = load_chain()
     for block in chain:
-        for tx in block.get("transactions", []):
+        txs = block.get("transactions", [])
+        for tx in txs:
             current_id = f"{tx.get('sender')}-{tx.get('recipient')}-{tx.get('timestamp')}"
             if current_id == txid:
+                # Search this block for a node fee transaction
+                fee_applied = None
+                for other_tx in txs:
+                    note = other_tx.get("note")
+                    if (isinstance(note, dict) and 
+                        note.get("type", "").startswith("Node Fee") and 
+                        other_tx.get("recipient") == "nodefeecollector"):
+                        fee_applied = {
+                            "amount": other_tx.get("amount"),
+                            "node": note.get("node"),
+                            "type": note.get("type")
+                        }
+                        break
+
                 note_type = tx.get("note") or tx.get("metadata", {}).get("note")
                 confirmations = len(chain) - block["index"] - 1
+
                 return render_template("tx_detail.html",
                     tx=tx,
                     note_type=note_type,
@@ -233,9 +256,11 @@ def tx_detail(txid):
                     status="Success" if tx.get("valid", True) else "Fail",
                     fee=tx.get("fee", 0),
                     proof=tx.get("signature", "N/A"),
-                    block_index=block["index"]
+                    block_index=block["index"],
+                    node_fee=fee_applied
                 )
     return "Transaction not found", 404
+
 
 @app.route("/block/<int:index>")
 def block_detail(index):
