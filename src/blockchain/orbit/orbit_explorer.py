@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for
 import json, os, datetime, math
 from config.configutil import OrbitDB
 from blockchain.stakeutil import get_user_lockups
+from core.walletutil import load_balance
 import time
 
 orbit_db = OrbitDB()
@@ -25,18 +26,6 @@ def search_chain(query):
     if len(query) >= 50:
         return redirect(url_for('tx_detail', txid=query))
     return redirect(url_for('address_detail', address=query))
-
-
-def calculate_balance(address):
-    balance = 0
-    chain = load_chain()
-    for block in chain:
-        for tx in block.get("transactions", []):
-            if tx["recipient"] == address:
-                balance += tx["amount"]
-            if tx["sender"] == address:
-                balance -= tx["amount"]
-    return balance
 
 
 def last_transactions(address, limit=10):
@@ -248,12 +237,12 @@ def block_detail(index):
 
 @app.route("/address/<address>")
 def address_detail(address):
-    balance = calculate_balance(address)
+    balance, active_locks = load_balance(address)
     locks = get_user_lockups(address)
     last10 = last_transactions(address)
     pending = [l for l in locks if not l.get("matured")]
     matured = [l for l in locks if l.get("matured")]
-    return {
+    data = {
         "address": address,
         "balance": balance,
         "lockups": locks,
@@ -262,7 +251,9 @@ def address_detail(address):
         "claimable": sum(l.get("reward", 0) for l in matured),
         "last10": last10,
     }
-
+    if request.args.get("json") == "1":
+        return jsonify(data)
+    return render_template("address.html", address_data=data)
 
 @app.route("/validators")
 def validator_stats():
@@ -282,7 +273,7 @@ def api_chain():
 @app.route("/api/address/<address>")
 def api_address(address):
     return jsonify({
-        "balance": calculate_balance(address),
+        "balance": load_balance(address),
         "locked": get_user_lockups(address),
         "last_10_transactions": last_transactions(address)
     })

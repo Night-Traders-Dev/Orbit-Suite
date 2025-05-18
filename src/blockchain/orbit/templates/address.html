@@ -1,18 +1,33 @@
 {% extends "layout.html" %}
 {% block content %}
-<div class="address">
-    <h2>Address: {{ address_data.address }}</h2>
-    {% if address_data.label %}
-        <p><strong>Label:</strong> {{ address_data.label }}</p>
-    {% endif %}
+<div class="address profile-card">
+    <div class="profile-header">
+        <h2>{{ address_data.label or 'User Address' }}</h2>
+        <p class="address-id"><code>{{ address_data.address }}</code></p>
+    </div>
 
-    <p><strong>Balance:</strong> {{ address_data.balance }} Orbit</p>
+    <div class="profile-stats">
+        <div class="stat-box">
+            <h4>Balance</h4>
+            <p><strong>{{ "{:,.4f}".format(address_data.balance) }}</strong> Orbit</p>
+        </div>
+        <div class="stat-box">
+            <h4>Pending Lockups</h4>
+            <p>{{ address_data.pending_lockups | length }}</p>
+        </div>
+        <div class="stat-box">
+            <h4>Matured Lockups</h4>
+            <p>{{ address_data.matured_lockups | length }}</p>
+        </div>
+        {% if address_data.claimable > 0 %}
+        <div class="stat-box">
+            <h4>Claimable</h4>
+            <p><strong>{{ "{:,.4f}".format(address_data.claimable) }}</strong> Orbit</p>
+        </div>
+        {% endif %}
+    </div>
 
     {% include "partials/address_lockups.html" %}
     {% include "partials/address_recent_txs.html" %}
-
-    {% if address_data.claimable > 0 %}
-        <p><strong>Claimable Rewards:</strong> {{ address_data.claimable }} Orbit</p>
-    {% endif %}
 </div>
 {% endblock %}
