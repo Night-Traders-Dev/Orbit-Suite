@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for
 import json, os, datetime, math
 from config.configutil import OrbitDB
 from blockchain.stakeutil import get_user_lockups
+import time
 
 orbit_db = OrbitDB()
 app = Flask(__name__)
@@ -139,6 +140,53 @@ def tx_volume_14d():
         })
 
     return jsonify(data)
+
+
+
+@app.route("/locked")
+def locked():
+    chain = load_chain()
+    now = time.time()
+    user_filter = request.args.get("user", "").strip().lower()
+    min_amount = float(request.args.get("min_amount", 0))
+    min_days = int(request.args.get("min_days", 0))
+    sort = request.args.get("sort", "date")
+
+    locks = []
+    for block in chain:
+        for tx in block.get("transactions", []):
+            note = tx.get("note", {})
+            if isinstance(note, dict) and "duration_days" in note:
+                duration = int(note["duration_days"])
+                days_remaining = max(0, int((tx["timestamp"] + duration * 86400 - now) / 86400))
+                entry = {
+                    "username": tx["recipient"],
+                    "amount": float(tx["amount"]),
+                    "duration": duration,
+                    "days_remaining": days_remaining,
+                    "timestamp": tx["timestamp"]
+                }
+                if (
+                    (not user_filter or user_filter in entry["username"].lower())
+                    and entry["amount"] >= min_amount
+                    and entry["duration"] >= min_days
+                ):
+                    locks.append(entry)
+
+    if sort == "amount":
+        locks.sort(key=lambda x: -x["amount"])
+    elif sort == "user":
+        locks.sort(key=lambda x: x["username"])
+    else:
+        locks.sort(key=lambda x: x["timestamp"])
+
+    totals = {
+        "total_locked": sum(lock["amount"] for lock in locks),
+        "count": len(locks),
+        "avg_days": round(sum(lock["duration"] for lock in locks) / len(locks), 1) if locks else 0
+    }
+
+    return render_template("locked.html", locks=locks, totals=totals, sort=sort)
 
 
 @app.route("/api/latest-block")

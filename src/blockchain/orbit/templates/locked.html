@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="summary">
+    <h2>Locked Orbit Summary</h2>
+    <div class="summary-grid">
+        <div class="summary-item">
+            <h3>Total Locked</h3>
+            <p>{{ "{:,.4f}".format(totals.total_locked) }} ORBIT</p>
+        </div>
+        <div class="summary-item">
+            <h3>Active Lockups</h3>
+            <p>{{ totals.count }}</p>
+        </div>
+        <div class="summary-item">
+            <h3>Average Duration</h3>
+            <p>{{ totals.avg_days }} days</p>
+        </div>
+    </div>
+</div>
+
+<form method="get" class="filter-bar" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px;">
+    <input type="text" name="user" placeholder="Filter by user" value="{{ request.args.get('user', '') }}">
+    <input type="number" name="min_amount" placeholder="Min ORBIT" step="0.01" value="{{ request.args.get('min_amount', '') }}">
+    <input type="number" name="min_days" placeholder="Min Days" value="{{ request.args.get('min_days', '') }}">
+    <select name="sort">
+        <option value="amount" {% if sort == 'amount' %}selected{% endif %}>Amount</option>
+        <option value="date" {% if sort == 'date' %}selected{% endif %}>Unlock Date</option>
+        <option value="user" {% if sort == 'user' %}selected{% endif %}>Username</option>
+    </select>
+    <button type="submit">Apply</button>
+</form>
+
+<div class="card">
+    <h3>Lockups</h3>
+    {% for lock in locks %}
+    <div class="lock-entry {% if lock.days_remaining < 7 %}soon{% elif lock.duration > 90 %}long{% endif %}">
+        <p><strong>{{ lock.username }}</strong> locked <strong>{{ "{:,.4f}".format(lock.amount) }}</strong> ORBIT</p>
+        <p>Unlocks in {{ lock.days_remaining }} days ({{ lock.duration }}d)</p>
+    </div>
+    {% else %}
+    <p>No lockups found with current filters.</p>
+    {% endfor %}
+</div>
+{% endblock %}
