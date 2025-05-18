@@ -8,7 +8,7 @@ import threading
 
 from blockchain.orbitutil import save_nodes, load_nodes, simulate_peer_vote, sign_vote, relay_pending_proposal, simulate_quorum_vote
 from config.configutil import OrbitDB, NodeConfig, TXConfig, get_node_for_user
-from core.userutil import load_users
+from core.userutil import load_users, save_users
 
 orbit_db = OrbitDB()
 
@@ -257,14 +257,29 @@ def add_block(transactions, node_id="Node1"):
         new_block.metadata
     )
 
+
     if propose_block(node_id, new_block):
         broadcast_block(new_block)
-        tx_count = sum(len(b.get("transactions", [])) for b in chain)
-        if tx_count % 100 == 0 and tx_count != 0:
-            users = load_users()
-            recipient = random.choice(users)
-            user_data = users.get("nofeecollector", {"balance": 0, "locked": []})
-            send_orbit("nodefeecollector", recipient, user_data["balance"])
+        users = load_users()
+
+        for tx in new_block.transactions:
+            tx_dict = tx.to_dict() if hasattr(tx, "to_dict") else tx
+            sender = tx_dict.get("sender")
+            sender_data = users[sender]
+            recipient = tx_dict.get("recipient")
+            recipient_data = users[recipient]
+            amount = tx_dict.get("amount", 0)
+
+            # Apply transfer
+            if sender_data["balance"] >= amount:
+                sender_data["balance"] -= amount
+                recipient_data["balance"] += amount
+            else:
+                print(f"Insufficient funds for {sender}. Skipping transaction.")
+
+        users[sender] = sender_data
+        users[recipient] = recipient_data
+        save_users(users)
     else:
         print("Block rejected due to failed consensus.")
 

@@ -17,7 +17,7 @@ def create_genesis_block():
     transactions = [
         {
             "sender": "genesis",
-            "recipient": "lockup_reward",
+            "recipient": "lockup_rewards",
             "amount": 100000.0,
             "timestamp": 0,
             "note": "Initial supply for lockup rewards"

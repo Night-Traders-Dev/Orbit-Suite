@@ -46,7 +46,7 @@ def generate_user(username, balance):
 def init_users():
     users = {}
     users["system"] = generate_user("system", 98900000.0)
-    users["lockup_reward"] = generate_user("lockup_reward", 100000.0)
+    users["lockup_rewards"] = generate_user("lockup_rewards", 100000.0)
     users["mining"] = generate_user("mining", 1000000.0)
     users["nodefeecollector"] = generate_user("nodefeecollector", 0.0)
 

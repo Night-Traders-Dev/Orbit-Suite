@@ -96,7 +96,7 @@ def claim_lockup_rewards(username):
             total_reward += reward
             claimed[str(lock_start)] = claim_until
             reward_txs.append(TXConfig.Transaction(
-                sender="lockup_reward",
+                sender="lockup_rewards",
                 recipient=username,
                 amount=reward,
                 note={"lock_start": lock_start, "claim_until": claim_until},

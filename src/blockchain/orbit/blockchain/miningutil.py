@@ -3,6 +3,7 @@ import time
 from core.userutil import load_users, save_users
 from blockchain.blockutil import add_block
 from config.configutil import MiningConfig, TXConfig, get_node_for_user
+from blockchain.tokenutil import send_orbit
 
 # Load configuration
 mining_config = MiningConfig()
@@ -93,31 +94,13 @@ def simulate_mining(username, duration=10):
     node_fee = round(mined * node_fee_rate, 6)
     user_payout = round(mined - node_fee, 6)
 
-    user_data["balance"] += user_payout
-
     print(f"Mining rate: {rate:.6f} Orbit/sec")
     print(f"Total mined: {mined:.6f} Orbit")
     print(f"Node Fee: {node_fee:.6f} Orbit → Node {node_id}")
     print(f"User reward: {user_payout:.6f} Orbit")
 
     if MODE == "simulation":
-        mining_tx = TXConfig.Transaction(
-            sender="mining",
-            recipient=username,
-            amount=user_payout,
-            note="Mining Reward",
-            timestamp=now
-        )
-
-        fee_tx = TXConfig.Transaction(
-            sender=username,
-            recipient="nodefeecollector",
-            amount=node_fee,
-            note={"type": f"Node Fee: {node_fee}", "node": node_id},
-            timestamp=now
-        )
-
-        add_block([mining_tx.to_dict(), fee_tx.to_dict()], node_id)
+        send_orbit("mining", username, user_payout, "Mining Reward")
 
     users[username] = user_data
     save_users(users)
