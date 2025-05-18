@@ -2,20 +2,46 @@
 {% block content %}
 <div class="card">
     <h2>Transaction Details</h2>
+
     <p><strong>From:</strong> <a href="/address/{{ tx.sender }}">{{ tx.sender }}</a></p>
     <p><strong>To:</strong> <a href="/address/{{ tx.recipient }}">{{ tx.recipient }}</a></p>
-    <p><strong>Amount:</strong> {{ tx.amount }} Orbit</p>
+    <p><strong>Amount:</strong> {{ "%.4f"|format(tx.amount) }} Orbit</p>
     <p><strong>Status:</strong> {{ status }}</p>
     <p><strong>Confirmations:</strong> {{ confirmations }}</p>
-    <p><strong>Fee:</strong> {{ fee }} Orbit</p>
+    <p><strong>Fee:</strong> {{ "%.4f"|format(fee) }} Orbit</p>
     <p><strong>Timestamp:</strong> {{ tx.timestamp | ts }}</p>
 
-    {% if tx.note %}
-        <p><strong>Note:</strong> <pre>{{ tx.note }}</pre></p>
+    {% if note_type %}
+        <p><strong>Note:</strong>
+            {% if note_type is mapping %}
+                <pre>{{ note_type | tojson(indent=2) }}</pre>
+            {% else %}
+                <code>{{ note_type }}</code>
+            {% endif %}
+        </p>
     {% endif %}
-    
-    <p><strong>Proof:</strong> <code>{{ proof }}</code></p>
 
-<p><strong>Included in Block:</strong> <a href="/block/{{ tx.block_index }}">#{{ tx.block_index }}</a></p>
+    <p><strong>Proof:</strong>
+        <code id="proof">{{ proof }}</code>
+        <button onclick="copyToClipboard('proof')">Copy</button>
+    </p>
+
+    <p><strong>Included in Block:</strong> <a href="/block/{{ block_index }}">#{{ block_index }}</a></p>
+
+    <details style="margin-top: 1em;">
+        <summary style="cursor: pointer; font-weight: bold;">View Raw JSON</summary>
+        <pre style="margin-top: 10px; font-size: 0.9em; background: #f4f4f4; padding: 10px; border-radius: 6px;">
+{{ tx | tojson(indent=2) }}
+        </pre>
+    </details>
 </div>
+
+<script>
+function copyToClipboard(elementId) {
+    const text = document.getElementById(elementId).innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        alert("Copied to clipboard");
+    });
+}
+</script>
 {% endblock %}

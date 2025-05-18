@@ -217,7 +217,6 @@ def api_latest_transactions():
                 return jsonify(txs)
     return jsonify(txs)
 
-
 @app.route("/tx/<txid>")
 def tx_detail(txid):
     chain = load_chain()
@@ -225,16 +224,18 @@ def tx_detail(txid):
         for tx in block.get("transactions", []):
             current_id = f"{tx.get('sender')}-{tx.get('recipient')}-{tx.get('timestamp')}"
             if current_id == txid:
-                note_type = tx.get("note", tx.get("metadata", {}).get("note", "N/A"))
+                note_type = tx.get("note") or tx.get("metadata", {}).get("note")
                 confirmations = len(chain) - block["index"] - 1
-                return render_template("tx_detail.html", tx=tx, note_type=note_type,
-                                       confirmations=confirmations,
-                                       status="Success" if tx.get("valid", True) else "Fail",
-                                       fee=tx.get("fee", 0),
-                                       proof=tx.get("signature", "N/A"),
-                                       block_index=block["index"])
+                return render_template("tx_detail.html",
+                    tx=tx,
+                    note_type=note_type,
+                    confirmations=confirmations,
+                    status="Success" if tx.get("valid", True) else "Fail",
+                    fee=tx.get("fee", 0),
+                    proof=tx.get("signature", "N/A"),
+                    block_index=block["index"]
+                )
     return "Transaction not found", 404
-
 
 @app.route("/block/<int:index>")
 def block_detail(index):
