@@ -1,11 +1,38 @@
 {% extends "layout.html" %}
 {% block content %}
 <div class="validator">
-    <h2>Validator Statistics</h2>
-        <ul style="list-style: none; padding: 0;">
-        {% for v in validator_data %}
-            <li>{{ v.validator }} — Blocks: {{ v.blocks }} ({{ v.percent }}%)</li>
-        {% endfor %}
-    </ul>
+    <div class="profile-card">
+        <div class="profile-header">
+            <h2>Validator Statistics</h2>
+            <input type="text" id="validatorSearch" onkeyup="filterValidators()" placeholder="Search validator...">
+        </div>
+
+        <div class="validator-grid" id="validatorList">
+            {% for v in validator_data %}
+            <div class="validator-card">
+                <h3>{{ v.validator }}</h3>
+                <p><strong>Blocks:</strong> {{ v.blocks }} ({{ v.percent }}%)</p>
+                <p><strong>Trust:</strong> {{ "{:.2f}".format(v.trust or 0.0) }}</p>
+                <p><strong>Uptime:</strong> {{ "{:.2f}".format(v.uptime or 0.0) }}</p>
+                {% if v.trust > 0.9 %}
+                    <span class="validator-badge high">High Trust</span>
+                {% elif v.uptime < 0.5 %}
+                    <span class="validator-badge low">Low Uptime</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
 </div>
+
+<script>
+function filterValidators() {
+    const input = document.getElementById("validatorSearch").value.toLowerCase();
+    const cards = document.getElementsByClassName("validator-card");
+    for (let card of cards) {
+        const name = card.getElementsByTagName("h3")[0].innerText.toLowerCase();
+        card.style.display = name.includes(input) ? "block" : "none";
+    }
+}
+</script>
 {% endblock %}

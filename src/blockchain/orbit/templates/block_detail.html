@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card">
+    <h2>Block #{{ block.index }}</h2>
+    <p><strong>Validator:</strong> {{ block.validator }}</p>
+    <p><strong>Timestamp:</strong> {{ block.timestamp | ts }}</p>
+    <p><strong>Hash:</strong> <code>{{ block.hash }}</code></p>
+    <p><strong>Previous Hash:</strong> <code>{{ block.prev_hash }}</code></p>
+    <p><strong>Merkle Root:</strong> <code>{{ block.merkle_root }}</code></p>
+    <p><strong>Transactions:</strong> {{ txs | length }}</p>
+    <p><strong>Burn Fees:</strong> {{ fee_txs }}</p>
+    <hr>
+
+    <h3>Transactions</h3>
+    {% if txs %}
+        {% for tx in txs %}
+            <div class="tx">
+                <p><strong>From:</strong> <a href="/address/{{ tx.sender }}">{{ tx.sender }}</a></p>
+                <p><strong>To:</strong> <a href="/address/{{ tx.recipient }}">{{ tx.recipient }}</a></p>
+                <p><strong>Amount:</strong> {{ tx.amount }} Orbit</p>
+                {% if tx.note %}
+                    <p><strong>Note:</strong> <pre>{{ tx.note }}</pre></p>
+                {% endif %}
+                <p><strong>Timestamp:</strong> {{ tx.timestamp | ts }}</p>
+                <a href="/tx/{{ tx.sender }}-{{ tx.recipient }}-{{ tx.timestamp }}">View Details</a>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No transactions in this block.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -3,6 +3,8 @@ import json, os, datetime, math
 from config.configutil import OrbitDB
 from blockchain.stakeutil import get_user_lockups
 from core.walletutil import load_balance
+from blockchain.blockutil import load_chain
+from blockchain.orbitutil import load_nodes
 import time
 
 orbit_db = OrbitDB()
@@ -11,12 +13,6 @@ app = Flask(__name__)
 CHAIN_PATH = orbit_db.blockchaindb
 PAGE_SIZE = 5
 PORT = 7000
-
-def load_chain():
-    if os.path.exists(CHAIN_PATH):
-        with open(CHAIN_PATH, 'r') as f:
-            return json.load(f)
-    return []
 
 
 def search_chain(query):
@@ -40,15 +36,38 @@ def last_transactions(address, limit=10):
 
 
 def get_validator_stats():
-    stats = {}
+    nodes = load_nodes()
     chain = load_chain()
+
+    # Count blocks produced per validator
+    block_counts = {}
     for block in chain:
         val = block.get("validator")
         if val:
-            stats[val] = stats.get(val, 0) + 1
-    total = sum(stats.values())
-    return [{"validator": v, "blocks": c, "percent": round(100 * c / total, 2)} for v, c in sorted(stats.items(), key=lambda x: x[1], reverse=True)]
+            block_counts[val] = block_counts.get(val, 0) + 1
 
+    total_blocks = sum(block_counts.values())
+    all_validators = set(block_counts.keys()).union(nodes.keys())
+
+    stats = []
+    for validator in sorted(all_validators):
+        blocks = block_counts.get(validator, 0)
+        percent = round(100 * blocks / total_blocks, 2) if total_blocks else 0
+        node_info = nodes.get(validator, {})
+        trust = round(node_info.get("trust_score", 0.0), 3)
+        uptime = round(node_info.get("uptime_score", 0.0), 3)
+
+        stats.append({
+            "validator": validator,
+            "blocks": blocks,
+            "percent": percent,
+            "trust": trust,
+            "uptime": uptime
+        })
+
+    # Optional: Sort by blocks produced
+    stats.sort(key=lambda x: x["blocks"], reverse=True)
+    return stats
 
 def get_chain_summary():
     chain = load_chain()
@@ -208,15 +227,12 @@ def tx_detail(txid):
             if current_id == txid:
                 note_type = tx.get("note", tx.get("metadata", {}).get("note", "N/A"))
                 confirmations = len(chain) - block["index"] - 1
-                return {
-                    "tx": tx,
-                    "note_type": note_type,
-                    "confirmations": confirmations,
-                    "status": "Success" if tx.get("valid", True) else "Fail",
-                    "fee": tx.get("fee", 0),
-                    "proof": tx.get("signature", "N/A"),
-                    "json": tx
-                }
+                return render_template("tx_detail.html", tx=tx, note_type=note_type,
+                                       confirmations=confirmations,
+                                       status="Success" if tx.get("valid", True) else "Fail",
+                                       fee=tx.get("fee", 0),
+                                       proof=tx.get("signature", "N/A"),
+                                       block_index=block["index"])
     return "Transaction not found", 404
 
 
@@ -227,13 +243,13 @@ def block_detail(index):
         if block["index"] == index:
             txs = block.get("transactions", [])
             fee_txs = [tx for tx in txs if isinstance(tx.get("note"), dict) and "burn" in json.dumps(tx["note"])]
-            return {
-                "block": block,
-                "fee_txs": len(fee_txs),
-                "json": block
-            }
+            return render_template(
+                "block_detail.html",
+                block=block,
+                txs=txs,
+                fee_txs=fee_txs
+            )
     return "Block not found", 404
-
 
 @app.route("/address/<address>")
 def address_detail(address):
@@ -256,10 +272,9 @@ def address_detail(address):
     return render_template("address.html", address_data=data)
 
 @app.route("/validators")
-def validator_stats():
+def validators():
     stats = get_validator_stats()
-    return {"validators": stats}
-
+    return render_template("validators.html", validator_data=stats)
 
 @app.route("/api/docs")
 def api_docs():

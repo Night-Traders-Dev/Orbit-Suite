@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card">
+    <h2>Transaction Details</h2>
+    <p><strong>From:</strong> <a href="/address/{{ tx.sender }}">{{ tx.sender }}</a></p>
+    <p><strong>To:</strong> <a href="/address/{{ tx.recipient }}">{{ tx.recipient }}</a></p>
+    <p><strong>Amount:</strong> {{ tx.amount }} Orbit</p>
+    <p><strong>Status:</strong> {{ status }}</p>
+    <p><strong>Confirmations:</strong> {{ confirmations }}</p>
+    <p><strong>Fee:</strong> {{ fee }} Orbit</p>
+    <p><strong>Timestamp:</strong> {{ tx.timestamp | ts }}</p>
+
+    {% if tx.note %}
+        <p><strong>Note:</strong> <pre>{{ tx.note }}</pre></p>
+    {% endif %}
+    
+    <p><strong>Proof:</strong> <code>{{ proof }}</code></p>
+
+<p><strong>Included in Block:</strong> <a href="/block/{{ tx.block_index }}">#{{ tx.block_index }}</a></p>
+</div>
+{% endblock %}
