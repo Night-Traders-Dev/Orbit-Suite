@@ -457,3 +457,54 @@
 1747522547.4246933 | Node Node2 | update_trust | 1.000 → 1.000
 1747522547.4283192 | Node Node3 | simulate_quorum_vote | 2/2 approvals
 1747522547.4318817 | Node Node3 | sign_vote | Signed block Block(Index: 24, TXs: 1, Validator: Node1)
+1747526905.2691636 | Node Node1 | sign_vote | Signed block Block(Index: 25, TXs: 1, Validator: Node1)
+1747526905.2722688 | Node Node1 | simulate_peer_vote | Trust 1.00 → approve
+1747526905.276277 | Node Node1 | update_uptime | 1.000 → 1.000
+1747526905.2797945 | Node Node1 | update_trust | 1.000 → 1.000
+1747526905.282669 | Node Node3 | simulate_peer_vote | Trust 1.00 → approve
+1747526905.2866175 | Node Node3 | update_uptime | 1.000 → 1.000
+1747526905.29014 | Node Node3 | update_trust | 1.000 → 1.000
+1747526905.2911792 | Node Node2 | simulate_quorum_vote | 2/2 approvals
+1747526905.292004 | Node Node2 | sign_vote | Signed block Block(Index: 25, TXs: 1, Validator: Node1)
+1747526905.2946157 | Node Node1 | simulate_peer_vote | Trust 1.00 → approve
+1747526905.29891 | Node Node1 | update_uptime | 1.000 → 1.000
+1747526905.3023744 | Node Node1 | update_trust | 1.000 → 1.000
+1747526905.3034015 | Node Node2 | simulate_peer_vote | Trust 1.00 → approve
+1747526905.307238 | Node Node2 | update_uptime | 1.000 → 1.000
+1747526905.3127587 | Node Node2 | update_trust | 1.000 → 1.000
+1747526905.3147109 | Node Node3 | simulate_quorum_vote | 2/2 approvals
+1747526905.3155055 | Node Node3 | sign_vote | Signed block Block(Index: 25, TXs: 1, Validator: Node1)
+1747526925.1541913 | Node Node1 | sign_vote | Signed block Block(Index: 26, TXs: 1, Validator: Node1)
+1747526925.161051 | Node Node1 | simulate_peer_vote | Trust 1.00 → approve
+1747526925.168738 | Node Node1 | update_uptime | 1.000 → 1.000
+1747526925.1755478 | Node Node1 | update_trust | 1.000 → 1.000
+1747526925.1777165 | Node Node3 | simulate_peer_vote | Trust 1.00 → approve
+1747526925.186596 | Node Node3 | update_uptime | 1.000 → 1.000
+1747526925.1964834 | Node Node3 | update_trust | 1.000 → 1.000
+1747526925.1992576 | Node Node2 | simulate_quorum_vote | 2/2 approvals
+1747526925.2026153 | Node Node2 | sign_vote | Signed block Block(Index: 26, TXs: 1, Validator: Node1)
+1747526925.2116938 | Node Node1 | simulate_peer_vote | Trust 1.00 → approve
+1747526925.2229366 | Node Node1 | update_uptime | 1.000 → 1.000
+1747526925.2360113 | Node Node1 | update_trust | 1.000 → 1.000
+1747526925.2393858 | Node Node2 | simulate_peer_vote | Trust 1.00 → approve
+1747526925.2541645 | Node Node2 | update_uptime | 1.000 → 1.000
+1747526925.2700953 | Node Node2 | update_trust | 1.000 → 1.000
+1747526925.2744327 | Node Node3 | simulate_quorum_vote | 2/2 approvals
+1747526925.2786312 | Node Node3 | sign_vote | Signed block Block(Index: 26, TXs: 1, Validator: Node1)
+1747526929.088646 | Node Node1 | sign_vote | Signed block Block(Index: 27, TXs: 1, Validator: Node1)
+1747526929.095099 | Node Node1 | simulate_peer_vote | Trust 1.00 → approve
+1747526929.1044466 | Node Node1 | update_uptime | 1.000 → 1.000
+1747526929.1144176 | Node Node1 | update_trust | 1.000 → 1.000
+1747526929.1172218 | Node Node3 | simulate_peer_vote | Trust 1.00 → approve
+1747526929.1316981 | Node Node3 | update_uptime | 1.000 → 1.000
+1747526929.1444774 | Node Node3 | update_trust | 1.000 → 1.000
+1747526929.148641 | Node Node2 | simulate_quorum_vote | 2/2 approvals
+1747526929.1531236 | Node Node2 | sign_vote | Signed block Block(Index: 27, TXs: 1, Validator: Node1)
+1747526929.1646495 | Node Node1 | simulate_peer_vote | Trust 1.00 → approve
+1747526929.1790528 | Node Node1 | update_uptime | 1.000 → 1.000
+1747526929.1938322 | Node Node1 | update_trust | 1.000 → 1.000
+1747526929.1981328 | Node Node2 | simulate_peer_vote | Trust 1.00 → approve
+1747526929.2132444 | Node Node2 | update_uptime | 1.000 → 1.000
+1747526929.2282858 | Node Node2 | update_trust | 1.000 → 1.000
+1747526929.2326403 | Node Node3 | simulate_quorum_vote | 2/2 approvals
+1747526929.2370522 | Node Node3 | sign_vote | Signed block Block(Index: 27, TXs: 1, Validator: Node1)

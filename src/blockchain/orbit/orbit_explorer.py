@@ -205,7 +205,6 @@ def address_detail(address):
     last10 = last_transactions(address)
     pending = [l for l in locks if not l.get("matured")]
     matured = [l for l in locks if l.get("matured")]
-    label = LABELS.get(address, "")
     return {
         "address": address,
         "balance": balance,
@@ -214,7 +213,6 @@ def address_detail(address):
         "matured_lockups": matured,
         "claimable": sum(l.get("reward", 0) for l in matured),
         "last10": last10,
-        "label": label
     }
 
 

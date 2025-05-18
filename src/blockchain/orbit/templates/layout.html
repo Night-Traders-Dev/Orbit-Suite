@@ -71,19 +71,31 @@ button:hover {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+.validator {
+    background: #eaf6ff !important;     /* Bright soft blue background */
+    color: #1a1a1a !important;          /* Dark readable text */
+    font-size: 1.1rem !important;       /* Slightly larger text */
+    border-left: 6px solid #3498db;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.1);
+    margin-bottom: 20px;
+}
+
 .tx {
     margin-left: 20px;
 }
 
-.card:hover, .block:hover {
+.card:hover, .block:hover{
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(0,0,0,0.08);
 }
 
+
 code {
     background: #eee;
     padding: 2px 4px;
-    border-radius: 4px;
+    border-radius: 2px;
 }
 
 .header-bar {
@@ -189,7 +201,7 @@ code {
 }
 
 /* ===== MOBILE FRIENDLY ===== */
-@media only screen and (max-width: 600px) {
+@media only screen and (max-width: 800px) {
     .main-nav {
         display: flex;
         flex-direction: row;  /* Enforces left-to-right layout */
@@ -207,6 +219,26 @@ code {
         background-color: rgba(52, 152, 219, 0.1);
     }
 
+    .block, .tx, .summary, .address, .validator {
+        background: #fff;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        overflow-x: auto;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }   
+
+    .validator {
+        background: #eaf6ff !important;     /* Bright soft blue background */
+        color: #1a1a1a !important;          /* Dark readable text */
+        font-size: 1.1rem !important;       /* Slightly larger text */
+        border-left: 6px solid #3498db;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 12px rgba(52, 152, 219, 0.1);
+        margin-bottom: 20px;
+    }
     .hamburger {
         display: flex;
     }
@@ -290,7 +322,6 @@ code {
         margin: 0
         padding: 0;
         overflow: hidden;
-        background-color: #333;
 }
      li {
 

@@ -2,7 +2,7 @@
 {% block content %}
 <div class="validator">
     <h2>Validator Statistics</h2>
-    <ul>
+        <ul style="list-style: none; padding: 0;">
         {% for v in validator_data %}
             <li>{{ v.validator }} — Blocks: {{ v.blocks }} ({{ v.percent }}%)</li>
         {% endfor %}
