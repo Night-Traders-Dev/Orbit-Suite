@@ -9,5 +9,4 @@
 data/
 *.sh
 
-node_activity.log
-user_activity.log
+*.log
