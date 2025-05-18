@@ -1,6 +1,0 @@
-# Ignore Python bytecode
-__pycache__/
-**/__pycache__/
-
-# Ignore charts directory
-charts/

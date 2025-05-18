@@ -1,0 +1,14 @@
+contract MyToken:
+    let total_supply: uint64 = 1_000_000
+
+    public func balance_of(address: string) -> uint64:
+        return storage.get(address, default=0)
+
+    public func transfer(to: string, amount: uint64) -> bool:
+        let sender = context.sender
+        let bal = balance_of(sender)
+        if bal < amount:
+            return false
+        storage.set(sender, bal - amount)
+        storage.set(to, balance_of(to) + amount)
+        return true
