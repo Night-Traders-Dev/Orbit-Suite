@@ -45,10 +45,10 @@ def generate_user(username, balance):
 
 def init_users():
     users = {}
-    users["system"] = generate_user("system", 98900000.0)
-    users["lockup_rewards"] = generate_user("lockup_rewards", 100000.0)
-    users["mining"] = generate_user("mining", 1000000.0)
-    users["nodefeecollector"] = generate_user("nodefeecollector", 0.0)
+    users["system"] = generate_user("system", 98900000.0000)
+    users["lockup_rewards"] = generate_user("lockup_rewards", 100000.0000)
+    users["mining"] = generate_user("mining", 1000000.0000)
+    users["nodefeecollector"] = generate_user("nodefeecollector", 0.0000)
 
     with open(USERS_FILE, "w") as f:
         json.dump(users, f, indent=4)

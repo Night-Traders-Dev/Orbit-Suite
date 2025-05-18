@@ -2,6 +2,7 @@ import os
 import json
 import hashlib
 from config.configutil import OrbitDB
+import time
 
 orbit_db = OrbitDB()
 
@@ -18,21 +19,21 @@ def create_genesis_block():
         {
             "sender": "genesis",
             "recipient": "lockup_rewards",
-            "amount": 100000.0,
+            "amount": 100000.0000,
             "timestamp": 0,
             "note": "Initial supply for lockup rewards"
         },
         {
             "sender": "genesis",
             "recipient": "mining",
-            "amount": 1000000.0,
+            "amount": 1000000.0000,
             "timestamp": 0,
             "note": "Initial supply for mining rewards"
         },
         {
             "sender": "genesis",
             "recipient": "system",
-            "amount": 98900000.0,
+            "amount": 98900000.0000,
             "timestamp": 0,
             "note": "Initial supply for system wallet"
         }

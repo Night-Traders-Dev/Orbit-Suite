@@ -96,7 +96,6 @@ def simulate_mining(username, duration=10):
 
     print(f"Mining rate: {rate:.6f} Orbit/sec")
     print(f"Total mined: {mined:.6f} Orbit")
-    print(f"Node Fee: {node_fee:.6f} Orbit → Node {node_id}")
     print(f"User reward: {user_payout:.6f} Orbit")
 
     if MODE == "simulation":

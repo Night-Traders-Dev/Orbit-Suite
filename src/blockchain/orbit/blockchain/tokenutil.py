@@ -9,6 +9,7 @@ FEE_RATE = 0.02
 
 def send_orbit(sender, recipient, amount, order=None):
     users = load_users()
+
     if sender not in users:
         print("Sender not found.")
         return
@@ -35,7 +36,22 @@ def send_orbit(sender, recipient, amount, order=None):
 
         current_time = time.time()
 
-        # Create main transfer transaction
+        # Ensure nodefeecollector exists
+        if "nodefeecollector" not in users:
+            users["nodefeecollector"] = {
+                "balance": 0.0,
+                "locked": [],
+                "security_circle": [],
+                "referrals": [],
+                "mining_start_time": time.time()
+            }
+
+        # Update balances
+        users[sender]["balance"] -= total
+        users[recipient]["balance"] += amount
+        users["nodefeecollector"]["balance"] += fee
+
+        # Transactions
         tx_note = order if order else None
         tx1 = TXConfig.Transaction(
             sender=sender,
@@ -45,7 +61,6 @@ def send_orbit(sender, recipient, amount, order=None):
             timestamp=current_time
         )
 
-        # Create burn fee transaction
         tx2 = TXConfig.Transaction(
             sender=sender,
             recipient="nodefeecollector",
@@ -54,8 +69,9 @@ def send_orbit(sender, recipient, amount, order=None):
             timestamp=current_time
         )
 
-        # Add both to a new block
         add_block([tx1.to_dict(), tx2.to_dict()])
+        save_users(users)
+
         print(f"Sent {amount:.6f} Orbit to {recipient} | Fee: {fee:.6f} Orbit burned.")
 
     except ValueError:

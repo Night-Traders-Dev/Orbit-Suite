@@ -257,32 +257,43 @@ def add_block(transactions, node_id="Node1"):
         new_block.metadata
     )
 
-
     if propose_block(node_id, new_block):
-        broadcast_block(new_block)
+#        broadcast_block(new_block)
         users = load_users()
 
         for tx in new_block.transactions:
             tx_dict = tx.to_dict() if hasattr(tx, "to_dict") else tx
             sender = tx_dict.get("sender")
-            sender_data = users[sender]
             recipient = tx_dict.get("recipient")
-            recipient_data = users[recipient]
             amount = tx_dict.get("amount", 0)
 
-            # Apply transfer
-            if sender_data["balance"] >= amount:
-                sender_data["balance"] -= amount
-                recipient_data["balance"] += amount
-            else:
-                print(f"Insufficient funds for {sender}. Skipping transaction.")
+            # Skip unknown users unless it's a system wallet
+            is_system_wallet = sender in ["mining", "lockup_reward", "system"]
 
-        users[sender] = sender_data
-        users[recipient] = recipient_data
+            if sender not in users and not is_system_wallet:
+                print(f"Unknown sender {sender}, skipping.")
+                continue
+            if recipient not in users:
+                print(f"Unknown recipient {recipient}, skipping.")
+                continue
+
+            # Create default system wallet entry if missing
+            if is_system_wallet and sender not in users:
+                users[sender] = {"balance": 0, "locked": [], "security_circle": [], "referrals": []}
+
+            if sender in users:
+                if users[sender]["balance"] >= amount:
+                    users[sender]["balance"] -= amount
+                    users[recipient]["balance"] += amount
+                else:
+                    print(f"Insufficient funds for {sender}, skipping.")
+            elif is_system_wallet:
+                # Always subtract from system wallet
+                users[sender]["balance"] -= amount
+                users[recipient]["balance"] += amount
+
         save_users(users)
-    else:
-        print("Block rejected due to failed consensus.")
-
+        broadcast_block(new_block)
 def is_chain_valid():
     chain = load_chain()
     for i in range(1, len(chain)):
