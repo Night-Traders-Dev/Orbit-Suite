@@ -8,6 +8,16 @@ orbit_db = OrbitDB()
 
 GENESIS_PATH = orbit_db.blockchaindb
 
+def calculate_merkle_root(transactions):
+    if not transactions:
+        return ""
+    hashes = [hashlib.sha256(json.dumps(tx, sort_keys=True).encode()).hexdigest() for tx in transactions]
+    while len(hashes) > 1:
+        hashes = [hashlib.sha256((hashes[i] + hashes[i+1]).encode()).hexdigest()
+                  for i in range(0, len(hashes)-1, 2)] + (hashes[-1:] if len(hashes) % 2 else [])
+    return hashes[0]
+
+
 def calculate_genesis_hash(block):
     block_copy = block.copy()
     block_copy["hash"] = ""
@@ -20,28 +30,28 @@ def create_genesis_block():
             "sender": "genesis",
             "recipient": "lockup_rewards",
             "amount": 100000.0000,
-            "timestamp": 0,
+            "timestamp": int(time.time()),
             "note": "Initial supply for lockup rewards"
         },
         {
             "sender": "genesis",
             "recipient": "mining",
             "amount": 1000000.0000,
-            "timestamp": 0,
+            "timestamp": int(time.time()),
             "note": "Initial supply for mining rewards"
         },
         {
             "sender": "genesis",
             "recipient": "system",
             "amount": 98900000.0000,
-            "timestamp": 0,
+            "timestamp": int(time.time()),
             "note": "Initial supply for system wallet"
         }
     ]
 
     block = {
         "index": 0,
-        "timestamp": 0,
+        "timestamp": int(time.time()),
         "transactions": transactions,
         "previous_hash": "0" * 64,
         "hash": "",  # calculated below
@@ -55,6 +65,7 @@ def create_genesis_block():
         }
     }
 
+    block["merkle_root"] = calculate_merkle_root(transactions)
     block["hash"] = calculate_genesis_hash(block)
     return block
 

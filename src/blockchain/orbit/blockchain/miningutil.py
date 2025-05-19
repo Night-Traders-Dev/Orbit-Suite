@@ -1,6 +1,7 @@
 import math
 import time
 from core.userutil import load_users, save_users
+from core.walletutil import load_balance
 from blockchain.blockutil import add_block
 from config.configutil import MiningConfig, TXConfig, get_node_for_user
 from blockchain.tokenutil import send_orbit
@@ -99,7 +100,7 @@ def simulate_mining(username, duration=10):
     print(f"User reward: {user_payout:.6f} Orbit")
 
     if MODE == "simulation":
-        send_orbit("mining", username, user_payout, {"type": "mining"})
-
         users[username] = user_data
         save_users(users)
+        send_orbit("mining", username, user_payout, {"type": "mining"})
+        load_balance("mining")

@@ -1,6 +1,7 @@
 import time
 from config.configutil import TXConfig, get_node_for_user
 from blockchain.blockutil import add_block, load_chain
+from blockchain.tokenutil import send_orbit
 from core.userutil import load_users, save_users
 from core.walletutil import load_balance
 
@@ -14,7 +15,7 @@ def get_user_lockups(username):
     for block in blockchain:
         for tx_data in block.get("transactions", []):
             tx = TXConfig.Transaction.from_dict(tx_data)
-            if tx.recipient == username and isinstance(tx.note, dict) and "duration_days" in tx.note:
+            if tx.sender == username and isinstance(tx.note, dict) and "duration_days" in tx.note:
                 lockups.append({
                     "amount": tx.amount,
                     "duration": tx.note["duration_days"],
@@ -53,17 +54,7 @@ def lock_tokens(username):
             print(f"Duration must be between 1 and {MAX_LOCK_DURATION_DAYS} days.")
             return
 
-        users[username]["balance"] -= amount
-        save_users(users)
-
-        lock_tx = TXConfig.Transaction(
-            sender="system",
-            recipient=username,
-            amount=amount,
-            note={"duration_days": duration},
-            timestamp=time.time()
-        )
-        add_block([lock_tx.to_dict()])
+        send_orbit(username, "lockup_rewards", amount, {"duration_days": duration})
         print(f"Locked {amount:.4f} Orbit for {duration} days.")
 
     except ValueError:
@@ -142,8 +133,8 @@ def claim_lockup_rewards(username):
                 print("Invalid duration.")
                 return
             relock_tx = TXConfig.Transaction(
-                sender="system",
-                recipient=username,
+                sender=username,
+                recipient="lockup_rewards",
                 amount=net_reward,
                 note={"duration_days": duration},
                 timestamp=time.time()

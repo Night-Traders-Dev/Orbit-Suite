@@ -33,7 +33,7 @@ def load_balance(username):
                     balance_from_ledger += tx.amount
 
             # Process lockup
-            elif tx_type == "lockup" and tx.recipient == username:
+            elif tx_type == "lockup" and tx.sender == username:
                 duration = tx.note.get("duration_days", 0) if isinstance(tx.note, dict) else 0
                 lock = {
                     "amount": tx.amount,
@@ -44,8 +44,11 @@ def load_balance(username):
                 balance_from_ledger -= lock["amount"]
 
             # Process mining reward
-            elif tx_type == "mining" and tx.recipient == username:
-                balance_from_ledger += tx.amount
+            elif tx_type == "mining":
+                if tx.recipient == username:
+                    balance_from_ledger += tx.amount
+                if tx.sender == username:
+                    balance_from_ledger -= tx.amount
 
     current_time = time.time()
     active_locked = sum(

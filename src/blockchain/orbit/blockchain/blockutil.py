@@ -227,11 +227,10 @@ def broadcast_block(block, sender_id=None):
             except Exception as e:
                 print(f"Failed to send block to {node_id} at {full_address}: {e}")
 
+
 def add_block(transactions, node_id="Node1"):
     chain = load_chain()
     last_block = chain[-1]
-    if node_id is None:
-        node_id = "Node1"
 
     tx_objs = [TXConfig.Transaction.from_dict(tx) for tx in transactions]
 
@@ -243,7 +242,7 @@ def add_block(transactions, node_id="Node1"):
         hash="",
         validator=node_id,
         signatures={},
-        merkle_root="",  # Will auto-compute if empty
+        merkle_root="",
         nonce=0,
         metadata={"lockup_rewards": [], "version": "1.0"}
     )
@@ -260,32 +259,32 @@ def add_block(transactions, node_id="Node1"):
     )
 
     if propose_block(node_id, new_block):
+        users = load_users()
+
         for tx in new_block.transactions:
-            users = load_users()
             tx_dict = tx.to_dict() if hasattr(tx, "to_dict") else tx
             sender = tx_dict.get("sender")
             recipient = tx_dict.get("recipient")
             amount = tx_dict.get("amount", 0)
 
+            # Ensure both sender and recipient exist
             if sender not in users:
-                print(f"Unknown sender {sender}, skipping.")
+                print(f"Unknown sender {sender}, skipping transaction.")
                 continue
             if recipient not in users:
-                print(f"Unknown recipient {recipient}, skipping.")
+                print(f"Unknown recipient {recipient}, skipping transaction.")
                 continue
 
-            if sender in users:
-                if users[sender]["balance"] >= amount:
-                    sender_data = users.get(sender, {"balance": 0})
-                    recipient_data = users.get(recipient, {"balance": 0})
-                    sender_data["balance"] -= amount
-                    recipient_data["balance"] += amount
-                    users[sender] = sender_data
-                    users[recipient] = recipient_data
-                    save_users(users)
-                    broadcast_block(new_block)
-                else:
-                    print(f"Insufficient funds for {sender}, skipping.")
+            # Apply transfer logic
+            if users[sender]["balance"] >= amount:
+                users[sender]["balance"] -= amount
+                users[recipient]["balance"] += amount
+            else:
+                print(f"Insufficient funds for {sender}, skipping transaction.")
+                continue
+
+        save_users(users)
+        broadcast_block(new_block, sender)
 
 def is_chain_valid():
     chain = load_chain()
