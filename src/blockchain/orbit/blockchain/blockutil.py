@@ -230,6 +230,8 @@ def broadcast_block(block, sender_id=None):
 def add_block(transactions, node_id="Node1"):
     chain = load_chain()
     last_block = chain[-1]
+    if node_id is None:
+        node_id = "Node1"
 
     tx_objs = [TXConfig.Transaction.from_dict(tx) for tx in transactions]
 
@@ -258,7 +260,6 @@ def add_block(transactions, node_id="Node1"):
     )
 
     if propose_block(node_id, new_block):
-#        broadcast_block(new_block)
         users = load_users()
 
         for tx in new_block.transactions:
@@ -267,33 +268,24 @@ def add_block(transactions, node_id="Node1"):
             recipient = tx_dict.get("recipient")
             amount = tx_dict.get("amount", 0)
 
-            # Skip unknown users unless it's a system wallet
-            is_system_wallet = sender in ["mining", "lockup_reward", "system"]
-
-            if sender not in users and not is_system_wallet:
+            if sender not in users:
                 print(f"Unknown sender {sender}, skipping.")
                 continue
             if recipient not in users:
                 print(f"Unknown recipient {recipient}, skipping.")
                 continue
 
-            # Create default system wallet entry if missing
-            if is_system_wallet and sender not in users:
-                users[sender] = {"balance": 0, "locked": [], "security_circle": [], "referrals": []}
-
             if sender in users:
                 if users[sender]["balance"] >= amount:
                     users[sender]["balance"] -= amount
                     users[recipient]["balance"] += amount
+                    print(f"[Balance] {sender} {users[sender]['balance']} and {recipient} {users[recipient]['balance']}")
+                    print(f"[Transfer] {amount} ORBIT from {sender} to {recipient}")
+                    save_users(users)
+                    broadcast_block(new_block)
                 else:
                     print(f"Insufficient funds for {sender}, skipping.")
-            elif is_system_wallet:
-                # Always subtract from system wallet
-                users[sender]["balance"] -= amount
-                users[recipient]["balance"] += amount
-
-        save_users(users)
-        broadcast_block(new_block)
+#        broadcast_block(new_block)
 def is_chain_valid():
     chain = load_chain()
     for i in range(1, len(chain)):

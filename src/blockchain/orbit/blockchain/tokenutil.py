@@ -36,21 +36,6 @@ def send_orbit(sender, recipient, amount, order=None):
 
         current_time = time.time()
 
-        # Ensure nodefeecollector exists
-        if "nodefeecollector" not in users:
-            users["nodefeecollector"] = {
-                "balance": 0.0,
-                "locked": [],
-                "security_circle": [],
-                "referrals": [],
-                "mining_start_time": time.time()
-            }
-
-        # Update balances
-        users[sender]["balance"] -= total
-        users[recipient]["balance"] += amount
-        users["nodefeecollector"]["balance"] += fee
-
         # Transactions
         tx_note = order if order else None
         tx1 = TXConfig.Transaction(
@@ -70,7 +55,7 @@ def send_orbit(sender, recipient, amount, order=None):
         )
 
         add_block([tx1.to_dict(), tx2.to_dict()])
-        save_users(users)
+#        save_users(users)
 
         print(f"Sent {amount:.6f} Orbit to {recipient} | Fee: {fee:.6f} Orbit burned.")
 
