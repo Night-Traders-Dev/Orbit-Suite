@@ -347,5 +347,16 @@ def api_tx(txid):
 def api_summary():
     return jsonify(get_chain_summary())
 
+@app.route("/ping")
+def ping():
+    return "pong", 200
+
+@app.route("/receive_block", methods=["POST"])
+def receive_block():
+    block_data = request.json
+    # TODO: validate and append to chain if valid
+    print(f"Received block proposal: {block_data.get('index')}")
+    return "OK", 200
+
 if __name__ == "__main__":
     app.run(port=PORT, debug=True)

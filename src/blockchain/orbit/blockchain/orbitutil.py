@@ -3,6 +3,7 @@ import os
 import time
 import random
 from config.configutil import NodeConfig, OrbitDB
+from core.networkutil import send_block_to_node
 
 orbit_db = OrbitDB()
 NODES_FILE = orbit_db.nodedb
@@ -106,3 +107,15 @@ def relay_pending_proposal(node_id, block_data):
 
     log_node_activity(node_id, "relay_pending_proposal", f"Block {block_data} queued")
     print("[Relay] Proposal added to retry queue.")
+
+
+def relay_pending_proposal_new(node_id, block_data):
+    nodes = load_nodes()
+    quorum = nodes.get(node_id, {}).get("quorum_slice", [])
+
+    for peer_id in quorum:
+        peer_node = nodes.get(peer_id)
+        if peer_node:
+            address = peer_node.get("address")
+            success = send_block_to_node(address, block_data)
+            log_node_activity(node_id, "relay", f"Sent block to {peer_id} ({'✓' if success else 'x'})")

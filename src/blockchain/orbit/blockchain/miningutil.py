@@ -114,7 +114,7 @@ def start_mining(username):
     print(f"Total mined: {mined:.6f} Orbit")
     print(f"User reward: {user_payout:.6f} Orbit")
 
-    if MODE == "simulation":
+    if MODE == "mainnet":
         users[username] = user_data
         save_users(users)
         send_orbit("mining", username, user_payout, {"type": "mining", "fee": f"{node_fee}"})
