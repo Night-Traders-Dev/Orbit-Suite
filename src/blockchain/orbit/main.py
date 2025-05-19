@@ -1,7 +1,7 @@
 from blockchain.orbitutil import load_nodes, save_nodes, register_node
 from blockchain.blockutil import start_listener
 from blockchain.stakeutil import view_lockups, lock_tokens, claim_lockup_rewards
-from blockchain.miningutil import simulate_mining
+from blockchain.miningutil import start_mining
 from blockchain.tokenutil import send_orbit
 from blockchain.ledgerutil import (
     view_all_transactions, view_user_transactions,
@@ -50,9 +50,9 @@ def quorum_slice_menu(user):
     while True:
         print(f"\n{Fore.MAGENTA}=== Node Manager Menu ===")
         print("1. View All Nodes")
-        print("2. Register This Node")
-        print("3. Edit Quorum Slice")
-        print("4. Back")
+#        print("2. Register This Node")
+#        print("3. Edit Quorum Slice")
+        print("2. Back")
         choice = input(PROMPT).strip()
         clear_screen()
         if choice == "1":
@@ -64,12 +64,14 @@ def quorum_slice_menu(user):
                 uptime = round(node.get("uptime_score", 0.0), 2)
                 print(f"- {nid} | Trust: {trust} | Uptime: {uptime} | Quorum: {quorum}")
         elif choice == "2":
+            break
             node_id = input("Enter node ID: ").strip()
             quorum_slice = input("Comma-separated quorum nodes: ").split(',')
             quorum = [q.strip() for q in quorum_slice if q.strip()]
             register_node(node_id, quorum)
             print(f"Node {node_id} registered.")
         elif choice == "3":
+            break
             node_id = input("Node ID: ").strip()
             nodes = load_nodes()
             if node_id in nodes:
@@ -183,7 +185,7 @@ def post_login_menu(user):
         choice = input(PROMPT).strip()
         clear_screen()
         if choice == "1":
-            simulate_mining(user, duration=10)
+            start_mining(user)
         elif choice == "2":
             wallet_menu(user)
         elif choice == "3":

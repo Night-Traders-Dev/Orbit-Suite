@@ -8,10 +8,10 @@ from blockchain.tokenutil import send_orbit
 
 # Load configuration
 mining_config = MiningConfig()
-MODE = "simulation"  # Toggle to "mainnet" when ready
+MODE = "mainnet"
 
 MAX_MINING_RATE = 5.0  # max Orbit/sec allowed per user
-MAX_MINING_DURATION = 60 * 60  # 1 hour max per mining session
+MAX_MINING_DURATION = 3600  # 1 hour max per mining session
 
 def get_base_rate(start_time):
     current_time = time.time()
@@ -64,7 +64,24 @@ def calculate_total_rate(user_data, start_time):
     I = B * (1 + S + L + R)
     return min(I, MAX_MINING_RATE)
 
-def simulate_mining(username, duration=10):
+def format_duration(seconds):
+    seconds = int(seconds)
+    days, seconds = divmod(seconds, 86400)
+    hours, seconds = divmod(seconds, 3600)
+    minutes, seconds = divmod(seconds, 60)
+
+    parts = []
+    if days > 0:
+        parts.append(f"{days}d")
+    if hours > 0 or days > 0:
+        parts.append(f"{hours}h")
+    if minutes > 0 or hours > 0 or days > 0:
+        parts.append(f"{minutes}m")
+    parts.append(f"{seconds}s")
+
+    return " ".join(parts)
+
+def start_mining(username):
     users = load_users()
     if username not in users:
         print("User not found.")
@@ -79,16 +96,14 @@ def simulate_mining(username, duration=10):
         user_data["mining_start_time"] = now
         start_time = now
     else:
-        if now - start_time < 1:
-            print("Mining session already active or too recent.")
+        if now - start_time < MAX_MINING_DURATION:
+            print(f"Mining available again in {format_duration(MAX_MINING_DURATION - (now - start_time))}")
             return
 
-    duration = min(duration, MAX_MINING_DURATION)
     user_data["mining_start_time"] = now
 
-    print(f"Simulating mining for {duration} seconds...")
     rate = calculate_total_rate(user_data, start_time)
-    mined = round(rate * duration, 6)
+    mined = round(rate * MAX_MINING_DURATION, 6)
 
     # Calculate dynamic node fee (e.g., 3% of mined)
     node_fee_rate = 0.03
@@ -102,5 +117,5 @@ def simulate_mining(username, duration=10):
     if MODE == "simulation":
         users[username] = user_data
         save_users(users)
-        send_orbit("mining", username, user_payout, {"type": "mining"})
+        send_orbit("mining", username, user_payout, {"type": "mining", "fee": f"{node_fee}"})
         load_balance("mining")
