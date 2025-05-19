@@ -24,11 +24,12 @@ def save_nodes(nodes):
     with open(NODES_FILE, "w") as f:
         json.dump(nodes, f, indent=2)
 
-def register_node(node_id, quorum_slice, address):
+def register_node(node_id, quorum_slice, address, port):
     nodes = load_nodes()
 
     node_config = NodeConfig()
     node_config.address = address
+    node_config.port = port
     node_config.quorum_slice = quorum_slice
     node_config.trust_score = 1.0
     node_config.uptime_score = 1.0

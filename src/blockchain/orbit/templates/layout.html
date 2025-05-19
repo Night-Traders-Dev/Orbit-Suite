@@ -26,6 +26,17 @@ h2, h3, h4 {
     margin-bottom: 8px;
 }
 
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #ccc;
+    text-align: left;
+}
+
 nav {
     display: flex;
     flex-wrap: wrap;
@@ -485,6 +496,7 @@ function fetchLatestTransactions() {
 <!-- Dropdown menu triggered by hamburger -->
 <nav class="mobile-dropdown" id="dropdownMenu">
      <a href="/locked">Locked Tokens</a>
+     <a href="/top-wallets"> Top Wallets</a>
 </nav>
 
 <form method="get" action="/">

@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card">
+    <h2>Top 10 Wallets</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Address</th>
+                <th>Balance (Orbit)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for wallet in wallets %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><a href="/address/{{ wallet.address }}">{{ wallet.address }}</a></td>
+                <td>{{ "{:,.4f}".format(wallet.balance) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
