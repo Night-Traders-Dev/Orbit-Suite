@@ -171,7 +171,7 @@ def ledger_menu(user):
 
 
 def post_login_menu(user):
-#    clear_screen()
+    clear_screen()
     while True:
         print(f"\n{Fore.LIGHTCYAN_EX}=== Welcome to Orbit, {user} ===")
         print("1. Mine Orbit")
@@ -181,7 +181,7 @@ def post_login_menu(user):
         print("5. Node Management")
         print("6. Logout")
         choice = input(PROMPT).strip()
-#        clear_screen()
+        clear_screen()
         if choice == "1":
             simulate_mining(user, duration=10)
         elif choice == "2":

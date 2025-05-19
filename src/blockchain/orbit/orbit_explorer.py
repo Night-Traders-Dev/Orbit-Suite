@@ -73,18 +73,21 @@ def get_chain_summary():
     chain = load_chain()
     tx_count = sum(len(b.get("transactions", [])) for b in chain)
     account_set = set()
-    total_orbit = 0
+    total_orbit = 100000000
+    circulating = (0 - total_orbit)
     for b in chain:
         for tx in b.get("transactions", []):
             account_set.add(tx["sender"])
             account_set.add(tx["recipient"])
-            total_orbit += tx["amount"]
+            circulating += tx["amount"]
     return {
         "blocks": len(chain),
         "transactions": tx_count,
         "accounts": len(account_set),
+        "circulating": circulating,
         "total_orbit": total_orbit
     }
+
 
 
 @app.template_filter('ts')

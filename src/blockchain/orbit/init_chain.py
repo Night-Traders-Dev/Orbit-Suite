@@ -46,6 +46,13 @@ def create_genesis_block():
             "amount": 98900000.0000,
             "timestamp": int(time.time()),
             "note": "Initial supply for system wallet"
+        },
+        {
+            "sender": "genesis",
+            "recipient": "nodefeecollector",
+            "amount": 0.0000,
+            "timestamp": int(time.time()),
+            "note": "Initial supply for system wallet"
         }
     ]
 
