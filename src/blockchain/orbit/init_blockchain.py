@@ -109,7 +109,12 @@ def ensure_genesis_block():
 # ===== Initial Node File =====
 def init_nodes():
     nodes = {
-        "Node1": NodeConfig("127.0.0.1:5000", ["Node1"], 1.0, 1.0).to_dict()
+        "Node1": NodeConfig(
+            address="127.0.0.1:5000",
+            quorum_slice=["Node1"],
+            trust_score=1.0,
+            uptime_score=1.0
+        ).to_dict()
     }
     with open(NODES_FILE, "w") as f:
         json.dump(nodes, f, indent=4)
