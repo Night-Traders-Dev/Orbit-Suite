@@ -99,7 +99,7 @@ def simulate_mining(username, duration=10):
     print(f"User reward: {user_payout:.6f} Orbit")
 
     if MODE == "simulation":
-        send_orbit("mining", username, user_payout, "Mining Reward")
+        send_orbit("mining", username, user_payout, {"type": "mining"})
 
-    users[username] = user_data
-    save_users(users)
+        users[username] = user_data
+        save_users(users)

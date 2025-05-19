@@ -260,9 +260,8 @@ def add_block(transactions, node_id="Node1"):
     )
 
     if propose_block(node_id, new_block):
-        users = load_users()
-
         for tx in new_block.transactions:
+            users = load_users()
             tx_dict = tx.to_dict() if hasattr(tx, "to_dict") else tx
             sender = tx_dict.get("sender")
             recipient = tx_dict.get("recipient")
@@ -277,15 +276,17 @@ def add_block(transactions, node_id="Node1"):
 
             if sender in users:
                 if users[sender]["balance"] >= amount:
-                    users[sender]["balance"] -= amount
-                    users[recipient]["balance"] += amount
-                    print(f"[Balance] {sender} {users[sender]['balance']} and {recipient} {users[recipient]['balance']}")
-                    print(f"[Transfer] {amount} ORBIT from {sender} to {recipient}")
+                    sender_data = users.get(sender, {"balance": 0})
+                    recipient_data = users.get(recipient, {"balance": 0})
+                    sender_data["balance"] -= amount
+                    recipient_data["balance"] += amount
+                    users[sender] = sender_data
+                    users[recipient] = recipient_data
                     save_users(users)
                     broadcast_block(new_block)
                 else:
                     print(f"Insufficient funds for {sender}, skipping.")
-#        broadcast_block(new_block)
+
 def is_chain_valid():
     chain = load_chain()
     for i in range(1, len(chain)):
