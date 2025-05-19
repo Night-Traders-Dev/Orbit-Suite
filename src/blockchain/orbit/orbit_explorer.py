@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 CHAIN_PATH = orbit_db.blockchaindb
 PAGE_SIZE = 5
-PORT = 7000
+PORT = 10000
 
 
 def search_chain(query):
