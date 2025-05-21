@@ -25,6 +25,75 @@
             <p><strong>{{ "{:,.4f}".format(address_data.claimable) }}</strong> Orbit</p>
         </div>
         {% endif %}
+        <div class="stat-box">
+            <h4>Total Sent</h4>
+            <p><strong>{{ "{:,.4f}".format(address_data.total_sent) }}</strong> Orbit</p>
+        </div>
+        <div class="stat-box">
+            <h4>Total Received</h4>
+            <p><strong>{{ "{:,.4f}".format(address_data.total_received) }}</strong> Orbit</p>
+        </div>
+        <div class="stat-box">
+            <h4>Average Tx Size</h4>
+            <p>{{ address_data.avg_tx_size }} Orbit</p>
+        </div>
+        <div class="stat-box">
+            <h4>Total Tx Count</h4>
+            <p>{{ address_data.tx_count }}</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>14-Day Inflow / Outflow Chart</h3>
+        <canvas id="flowChart" height="300"></canvas>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const chartData = {{ address_data.chart_data | tojson }};
+        const labels = chartData.map(d => d.date);
+        const inflows = chartData.map(d => d.in);
+        const outflows = chartData.map(d => d.out);
+
+        new Chart(document.getElementById("flowChart"), {
+            type: "bar",
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: "Inflow",
+                        data: inflows,
+                        backgroundColor: "rgba(75, 192, 192, 0.6)",
+                        borderColor: "rgba(75, 192, 192, 1)",
+                        borderWidth: 1
+                    },
+                    {
+                        label: "Outflow",
+                        data: outflows,
+                        backgroundColor: "rgba(255, 99, 132, 0.6)",
+                        borderColor: "rgba(255, 99, 132, 1)",
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: { mode: 'index', intersect: false },
+                    legend: { position: 'top' }
+                },
+                scales: {
+                    x: {
+                        stacked: false,
+                        ticks: { autoSkip: false, maxRotation: 60, minRotation: 30 }
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
     </div>
 
     {% include "partials/address_lockups.html" %}

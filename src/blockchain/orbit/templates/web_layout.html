@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Orbit Web</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="header-bar">
+        <h1>Orbit Web</h1>
+        {% if session.get("user") %}
+            <div class="main-nav">
+                <a href="/dashboard">Dashboard</a>
+                <a href="/wallet">Wallet</a>
+                <a href="/mine">Mine</a>
+                <a href="/logout">Logout</a>
+            </div>
+        {% endif %}
+    </div>
+    <div class="container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash">{{ messages[0] }}</div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

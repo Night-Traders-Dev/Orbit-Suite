@@ -6,13 +6,14 @@ from core.walletutil import load_balance
 from blockchain.blockutil import load_chain
 from blockchain.orbitutil import load_nodes
 import time
+from collections import defaultdict
 
 orbit_db = OrbitDB()
 app = Flask(__name__)
 
 CHAIN_PATH = orbit_db.blockchaindb
 PAGE_SIZE = 5
-PORT = 10000
+PORT = 7000
 
 
 def search_chain(query):
@@ -276,7 +277,7 @@ def top_wallets():
             recipient = tx.get("recipient")
             amount = tx.get("amount", 0)
 
-            if sender != "mining":
+            if sender != "genesis":
                 balances[sender] = balances.get(sender, 0) - amount
             balances[recipient] = balances.get(recipient, 0) + amount
 
@@ -300,6 +301,8 @@ def block_detail(index):
             )
     return "Block not found", 404
 
+
+
 @app.route("/address/<address>")
 def address_detail(address):
     balance, active_locks = load_balance(address)
@@ -307,6 +310,39 @@ def address_detail(address):
     last10 = last_transactions(address)
     pending = [l for l in locks if not l.get("matured")]
     matured = [l for l in locks if l.get("matured")]
+
+    chain = load_chain()
+    tx_count = 0
+    total_sent = 0
+    total_received = 0
+    volume_by_day = defaultdict(lambda: {"in": 0, "out": 0})
+
+    for block in chain:
+        for tx in block.get("transactions", []):
+            ts = datetime.datetime.fromtimestamp(tx["timestamp"]).strftime("%Y-%m-%d")
+            if tx["sender"] == address:
+                total_sent += tx["amount"]
+                volume_by_day[ts]["out"] += tx["amount"]
+                tx_count += 1
+            elif tx["recipient"] == address:
+                total_received += tx["amount"]
+                volume_by_day[ts]["in"] += tx["amount"]
+                tx_count += 1
+
+    avg_tx_size = round((total_sent + total_received) / tx_count, 4) if tx_count else 0
+
+    chart_data = []
+    today = datetime.datetime.utcnow().date()
+    for i in range(14):
+        day = today - datetime.timedelta(days=i)
+        label = day.strftime("%Y-%m-%d")
+        chart_data.append({
+            "date": label,
+            "in": round(volume_by_day[label]["in"], 4),
+            "out": round(volume_by_day[label]["out"], 4)
+        })
+    chart_data.reverse()
+
     data = {
         "address": address,
         "balance": balance,
@@ -315,15 +351,56 @@ def address_detail(address):
         "matured_lockups": matured,
         "claimable": sum(l.get("reward", 0) for l in matured),
         "last10": last10,
+        "total_sent": total_sent,
+        "total_received": total_received,
+        "avg_tx_size": avg_tx_size,
+        "tx_count": tx_count,
+        "chart_data": chart_data
     }
+
     if request.args.get("json") == "1":
         return jsonify(data)
+
     return render_template("address.html", address_data=data)
 
 @app.route("/validators")
 def validators():
     stats = get_validator_stats()
     return render_template("validators.html", validator_data=stats)
+
+@app.route("/node/<node_id>")
+def node_profile(node_id):
+    nodes = load_nodes()
+    chain = load_chain()
+
+    node_data = nodes.get(node_id)
+    if not node_data:
+        return "Node not found", 404
+
+    # Filter blocks validated by this node
+    blocks_validated = [b for b in chain if b.get("validator") == node_id]
+    total_blocks = len(blocks_validated)
+    trust = node_data.get("trust_score", 0)
+    uptime = node_data.get("uptime_score", 0)
+
+    total_orbit = 0
+    total_tx_count = 0
+    for block in blocks_validated:
+        txs = block.get("transactions", [])
+        total_tx_count += len(txs)
+        for tx in txs:
+            total_orbit += tx.get("amount", 0)
+
+    avg_block_size = round(total_tx_count / total_blocks, 2) if total_blocks else 0
+
+    return render_template("node_profile.html",
+                           node_id=node_id,
+                           blocks=blocks_validated,
+                           trust=trust,
+                           uptime=uptime,
+                           total_blocks=total_blocks,
+                           total_orbit=round(total_orbit, 4),
+                           avg_block_size=avg_block_size)
 
 @app.route("/api/docs")
 def api_docs():

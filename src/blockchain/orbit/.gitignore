@@ -7,6 +7,7 @@
 
 # Ignore the data folder
 data/
-*.sh
 
+*.sh
 *.log
+*.key

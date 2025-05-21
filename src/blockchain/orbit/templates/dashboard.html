@@ -1,0 +1,48 @@
+{% extends "web_layout.html" %}
+{% block content %}
+<div class="profile-card">
+    <div class="profile-header">
+        <h2>Wallet Overview</h2>
+        <p class="address-id"><code>{{ user_data.username }}</code></p>
+    </div>
+
+    <div class="profile-stats">
+        <div class="stat-box">
+            <h4>Balance</h4>
+            <p><strong>{{ "{:,.4f}".format(user_data.balance) }}</strong> ORBIT</p>
+        </div>
+        <div class="stat-box">
+            <h4>Locked</h4>
+            <p>{{ "{:,.4f}".format(user_data.locked) }} ORBIT</p>
+        </div>
+        <div class="stat-box">
+            <h4>Claimable</h4>
+            <p>{{ "{:,.4f}".format(user_data.claimable) }} ORBIT</p>
+        </div>
+        <div class="stat-box">
+            <h4>Total Sent</h4>
+            <p>{{ "{:,.4f}".format(user_data.sent) }} ORBIT</p>
+        </div>
+        <div class="stat-box">
+            <h4>Total Received</h4>
+            <p>{{ "{:,.4f}".format(user_data.received) }} ORBIT</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Recent Activity</h3>
+        <ul>
+            {% for tx in user_data.last10 %}
+            <li>
+                {{ tx.timestamp | ts }} — 
+                {% if tx.sender == user_data.username %}
+                    Sent <strong>{{ tx.amount }}</strong> to <a href="/address/{{ tx.recipient }}">{{ tx.recipient }}</a>
+                {% else %}
+                    Received <strong>{{ tx.amount }}</strong> from <a href="/address/{{ tx.sender }}">{{ tx.sender }}</a>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

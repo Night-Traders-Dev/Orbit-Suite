@@ -10,7 +10,7 @@
         <div class="validator-grid" id="validatorList">
             {% for v in validator_data %}
             <div class="validator-card">
-                <h3>{{ v.validator }}</h3>
+                <h3><a href="/node/{{ v.validator }}">{{ v.validator }}</a></h3>
                 <p><strong>Blocks:</strong> {{ v.blocks }} ({{ v.percent }}%)</p>
                 <p><strong>Trust:</strong> {{ "{:.2f}".format(v.trust or 0.0) }}</p>
                 <p><strong>Uptime:</strong> {{ "{:.2f}".format(v.uptime or 0.0) }}</p>

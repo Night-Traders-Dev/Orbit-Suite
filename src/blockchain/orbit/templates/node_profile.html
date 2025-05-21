@@ -1,0 +1,35 @@
+{% extends "layout.html" %} {% block content %}
+
+<div class="card">
+    <h2>Node: {{ node_id }}</h2><div class="profile-stats">
+    <div class="stat-box">
+        <h4>Total Blocks Validated</h4>
+        <p>{{ total_blocks }}</p>
+    </div>
+    <div class="stat-box">
+        <h4>Trust Score</h4>
+        <p>{{ "%.2f"|format(trust) }}</p>
+    </div>
+    <div class="stat-box">
+        <h4>Uptime Score</h4>
+        <p>{{ "%.2f"|format(uptime) }}</p>
+    </div>
+    <div class="stat-box">
+        <h4>Total Orbit Processed</h4>
+        <p>{{ "{:,.4f}".format(total_orbit or 0) }} ORBIT</p>
+    </div>
+    <div class="stat-box">
+        <h4>Average Block Size</h4>
+        <p>{{ "%.2f"|format(avg_block_size) }} tx/block</p>
+    </div>
+</div>
+
+<h3>Blocks Validated</h3>
+<ul>
+    {% for block in blocks %}
+    <li><a href="/block/{{ block.index }}">Block #{{ block.index }}</a> — {{ block.timestamp | ts }}</li>
+    {% endfor %}
+</ul>
+
+</div>
+{% endblock %}
