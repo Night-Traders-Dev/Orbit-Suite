@@ -7,7 +7,7 @@ def load_balance(username):
     users = load_users()
     user_data = users.get(username, {"balance": 0, "locked": []})
 
-    blockchain = load_chain()
+    blockchain = load_chain(username)
     balance_from_ledger = 0
     locked_from_ledger = []
 

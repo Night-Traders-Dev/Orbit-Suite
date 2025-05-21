@@ -69,12 +69,21 @@ def claim_lockup_rewards(username):
     reward_txs = []
     now = time.time()
 
+    matured_total = 0
+    still_locked = []
+
     for lock in lockups:
         lock_start = lock["start_time"]
         duration_secs = lock["duration"] * 86400
         lock_end = lock_start + duration_secs
         last_claim = claimed.get(str(lock_start), lock_start)
         claim_until = min(now, lock_end)
+
+        # Unlock matured principal
+        if now >= lock_end:
+            matured_total += lock["amount"]
+        else:
+            still_locked.append(lock)
 
         if last_claim >= claim_until:
             continue
@@ -94,57 +103,64 @@ def claim_lockup_rewards(username):
                 timestamp=now
             ).to_dict())
 
-    if total_reward == 0:
-        print("No new rewards available to claim.")
+    if total_reward == 0 and matured_total == 0:
+        print("No new rewards or matured lockups available.")
         return
 
-    # Calculate node fee (e.g., 3%) and adjust payout
     node_id = get_node_for_user(username)
     node_fee_rate = 0.03
     node_fee = round(total_reward * node_fee_rate, 6)
     net_reward = round(total_reward - node_fee, 6)
 
-    # Add node fee transaction
-    reward_txs.append(TXConfig.Transaction(
-        sender=username,
-        recipient="nodefeecollector",
-        amount=node_fee,
-        note={"type": f"Node Fee: {node_fee}", "node": node_id},
-        timestamp=now
-    ).to_dict())
+    if total_reward > 0:
+        # Add node fee transaction
+        reward_txs.append(TXConfig.Transaction(
+            sender=username,
+            recipient="nodefeecollector",
+            amount=node_fee,
+            note={"type": f"Node Fee: {node_fee}", "node": node_id},
+            timestamp=now
+        ).to_dict())
 
-    # Write reward transactions to the chain
-    add_block(reward_txs, node_id)
+        # Write reward block
+        add_block(reward_txs, node_id)
 
-    # Save claimed state
+    # Add matured tokens to balance
+    if matured_total > 0:
+        users[username]["balance"] += round(matured_total, 6)
+        print(f"{matured_total:.6f} Orbit unlocked from matured lockups.")
+
+    # Save claimed and remaining lockups
     users[username]["claimed_rewards"] = claimed
+    users[username]["locked"] = still_locked
     save_users(users)
 
-    print(f"Claimed {total_reward:.6f} Orbit in lockup rewards.")
-    print(f"Node Fee: {node_fee:.6f} Orbit → Node {node_id}")
-    print(f"Net credited: {net_reward:.6f} Orbit")
+    # Handle relocking
+    if net_reward > 0:
+        print(f"Claimed {total_reward:.6f} Orbit in lockup rewards.")
+        print(f"Node Fee: {node_fee:.6f} Orbit → Node {node_id}")
+        print(f"Net credited: {net_reward:.6f} Orbit")
 
-    # Ask user to re-lock or receive balance
-    choice = input("Re-lock rewards for compounding? (y/n): ").strip().lower()
-    if choice == 'y':
-        try:
-            duration = int(input("Enter new lockup duration in days (1 - 1825): "))
-            if duration < 1 or duration > MAX_LOCK_DURATION_DAYS:
+        choice = input("Re-lock rewards for compounding? (y/n): ").strip().lower()
+        if choice == 'y':
+            try:
+                duration = int(input("Enter new lockup duration in days (1 - 1825): "))
+                if duration < 1 or duration > MAX_LOCK_DURATION_DAYS:
+                    print("Invalid duration.")
+                    return
+                relock_tx = TXConfig.Transaction(
+                    sender=username,
+                    recipient="lockup_rewards",
+                    amount=net_reward,
+                    note={"duration_days": duration},
+                    timestamp=time.time()
+                )
+                add_block([relock_tx.to_dict()], node_id)
+                print(f"Re-locked {net_reward:.6f} Orbit for {duration} days.")
+            except ValueError:
                 print("Invalid duration.")
-                return
-            relock_tx = TXConfig.Transaction(
-                sender=username,
-                recipient="lockup_rewards",
-                amount=net_reward,
-                note={"duration_days": duration},
-                timestamp=time.time()
-            )
-            add_block([relock_tx.to_dict()], node_id)
-            print(f"Re-locked {net_reward:.6f} Orbit for {duration} days.")
-        except ValueError:
-            print("Invalid duration.")
-    else:
-        users = load_users()
-        users[username]["balance"] += net_reward
-        save_users(users)
-        print(f"{net_reward:.6f} Orbit added to your balance.")
+        else:
+            users = load_users()
+            users[username]["balance"] += net_reward
+            save_users(users)
+            print(f"{net_reward:.6f} Orbit added to your balance.")
