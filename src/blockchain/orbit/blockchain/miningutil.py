@@ -1,5 +1,6 @@
 import math
 import time
+from core.tx_types import TXTypes
 from core.userutil import load_users, save_users
 from core.walletutil import load_balance
 from blockchain.blockutil import add_block
@@ -117,5 +118,23 @@ def start_mining(username):
     if MODE == "mainnet":
         users[username] = user_data
         save_users(users)
-        send_orbit("mining", username, user_payout, {"type": "mining", "fee": f"{node_fee}"})
+        tx_metadata = TXTypes.MiningTypes(
+            mined,
+            get_base_rate(start_time),
+            get_security_circle_bonus(user_data),
+            get_lockup_reward(user_data),
+            get_referral_bonus(user_data),
+            time.time()
+        )
+
+        tx = {
+            "type": {
+                "mining": {
+                    "fee": node_fee,
+                    "bonuses": tx_metadata.rate_dict()
+                }
+            }
+        }
+
+        send_orbit("mining", username, user_payout, order=tx)
         load_balance("mining")

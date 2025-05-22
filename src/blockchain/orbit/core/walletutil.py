@@ -20,8 +20,6 @@ def load_balance(username):
             if not tx_type:
                 if tx.sender == "mining":
                     tx_type = "mining"
-                elif isinstance(tx.note, dict) and "duration_days" in tx.note:
-                    tx_type = "lockup"
                 else:
                     tx_type = "transfer"
 
@@ -32,22 +30,6 @@ def load_balance(username):
                 if tx.recipient == username:
                     balance_from_ledger += tx.amount
 
-            # Process lockup
-            elif tx_type == "lockup":
-                if tx.sender == username:
-                    duration = tx.note.get("duration_days", 0) if isinstance(tx.note, dict) else 0
-                    lock = {
-                        "amount": tx.amount,
-                        "duration_days": duration,
-                        "start_time": tx.timestamp if hasattr(tx, "timestamp") else time.time()
-                    }
-                    locked_from_ledger.append(lock)
-                    balance_from_ledger -= lock["amount"]
-                if tx.recipient == username:
-                    balance_from_ledger += tx.amount
-
-
-            # Process mining reward
             elif tx_type == "mining":
                 if tx.recipient == username:
                     balance_from_ledger += tx.amount
