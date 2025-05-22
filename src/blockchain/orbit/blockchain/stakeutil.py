@@ -21,11 +21,10 @@ def get_user_lockups(username):
             if tx.sender == username and tx_type == "lockup":
                 lock_data = tx.note.get("lockup")
                 if isinstance(lock_data, dict) and "start" in lock_data and "end" in lock_data:
-                    duration = int((lock_data["end"] - lock_data["start"]) / 86400)
                     lockups.append({
                         "amount": tx.amount,
-                        "duration": duration,
-                        "start_time": lock_data["start"]
+                        "end": lock_data["end"]
+                        "start": lock_data["start"]
                     })
     return lockups
 
@@ -36,10 +35,10 @@ def print_lockups(lockups):
     print("Your Lockups:")
     for i, lock in enumerate(lockups):
         amount = lock["amount"]
-        duration = lock["duration"]
-        start = lock["start_time"]
-        days_remaining = max(0, int((start + duration * 86400 - time.time()) / 86400))
-        print(f" {i+1}. {amount:.4f} Orbit locked for {duration} days ({days_remaining} days remaining)")
+        end = lock["end"]
+        start = lock["start"]
+        days_remaining = lock["days"]
+        print(f" {i+1}. {amount:.4f} Orbit locked for {days_remaining} days remaining)")
 
 def view_lockups(username):
     lockups = get_user_lockups(username)

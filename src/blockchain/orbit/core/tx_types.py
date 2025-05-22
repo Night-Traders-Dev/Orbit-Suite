@@ -74,7 +74,7 @@ class TXTypes:
                 }
             }
             return self.metadata
-            elif build == "claim":
+            if build == "claim":
                 self.metadata = {
                     "type": {
                         "claim": {
@@ -86,7 +86,7 @@ class TXTypes:
                         }
                     }
                 }
-                return self.metadata
+            return self.metadata
 
     class MiscTypes:
         def __init__(self):
