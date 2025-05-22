@@ -2,6 +2,7 @@ import time
 from config.configutil import TXConfig, get_node_for_user
 from blockchain.blockutil import add_block, load_chain
 from blockchain.tokenutil import send_orbit
+from core.tx_types import TXTypes
 from core.userutil import load_users, save_users
 from core.walletutil import load_balance
 
@@ -58,6 +59,7 @@ def lock_tokens(username):
         if duration < 1 or duration > MAX_LOCK_DURATION_DAYS:
             print(f"Duration must be between 1 and {MAX_LOCK_DURATION_DAYS} days.")
             return
+        lockup_times = {"start": time.time() , "end": (time.time() + duration * 86400)}
         send_orbit(username, "lockup_rewards", amount, {"note": {lock_metadata}})
         print(f"Locked {amount:.4f} Orbit for {duration} days.")
 

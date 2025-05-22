@@ -52,9 +52,11 @@ class TXTypes:
             duration = duration or {}
             amount = amount or {}
 
-            self.start = duration.get("start")
-            self.end = duration.get("end")
+            self.init_days = duration.get("init_days", 0)
+            self.start = duration.get("start", time.time())
+            self.end = duration.get("end", (self.start + self.init_days * 86400))
             self.now = duration.get("now", time.time())
+            self.days = ((self.end - self.now) / 86400)
             self.claim = amount.get("claim", 0.0)
             self.lock = amount.get("lock", 0.0)
             self.metadata = {}
@@ -66,10 +68,12 @@ class TXTypes:
                         "lockup": {
                             "amount": self.lock,
                             "start": self.start,
-                            "end": self.end
+                            "end": self.end,
+                            "days": self.days
                         }
                     }
                 }
+                return self.metadata
             elif build == "claim":
                 self.metadata = {
                     "type": {
@@ -77,11 +81,12 @@ class TXTypes:
                             "amount": self.claim,
                             "start": self.start,
                             "end": self.end,
+                            "days": self.days,
                             "locked": self.lock
                         }
                     }
                 }
-            return self.metadata
+                return self.metadata
 
     class MiscTypes:
         def __init__(self):
