@@ -115,7 +115,7 @@ def lock_tokens(username):
 def withdraw_lockup(username):
     users = load_users()
     user = users[username]
-    user_lockups = user.get("locked", [])
+    user_lockups = get_user_lockups(username)
     now = time.time()
 
     matured_total = 0.0
@@ -188,7 +188,7 @@ def withdraw_lockup(username):
 def claim_lockup_rewards(username):
     users = load_users()
     user = users[username]
-    user_lockups = user.get("locked", [])
+    user_lockups = get_user_lockups(username)
     now = time.time()
     chain = load_chain()
 
@@ -198,10 +198,10 @@ def claim_lockup_rewards(username):
         for tx in block.get("transactions", []):
             if tx.get("recipient") == username and tx.get("sender") == "lockup_rewards":
                 note = tx.get("note", {})
-                if isinstance(note, dict) and "lock_start" in note and "claim_until" in note:
-                    lock_start = str(note["lock_start"])
+                if isinstance(note, dict) and "start" in note and "end" in note:
+                    lock_start = str(note["start"])
                     prev_claim = claim_map.get(lock_start, 0)
-                    claim_map[lock_start] = max(prev_claim, note["claim_until"])
+                    claim_map[lock_start] = max(prev_claim, note["end"])
 
     matured_total = 0.0
     total_reward = 0.0
@@ -209,8 +209,8 @@ def claim_lockup_rewards(username):
     still_locked = []
 
     for lock in user_lockups:
-        lock_start = lock["start_time"]
-        duration = lock["duration"]
+        lock_start = lock["start"]
+        duration = lock["days"]
         amount = lock["amount"]
         lock_end = lock_start + duration * 86400
         last_claim = claim_map.get(str(lock_start), lock_start)
@@ -227,14 +227,22 @@ def claim_lockup_rewards(username):
             seconds_eligible = claim_until - last_claim
             reward = (amount * LOCK_REWARD_RATE_PER_DAY / 86400) * seconds_eligible
             reward = round(reward, 6)
-
+            lockup_times = {"start": lock_start, "end": lock["end"], "days": duration,}
+            lockup_amount = {"amount": reward,"locked": amount}
+            staking = TXTypes.StakingTypes(lockup_times, lockup_amount)
+            lock_metadata = TXTypes(
+                tx_class="staking",
+                tx_type="claim",
+                tx_data=staking.tx_build("lockup"),
+                tx_value="dict"
+            )
             if reward > 0:
                 total_reward += reward
                 reward_txs.append(TXConfig.Transaction(
                     sender="lockup_rewards",
                     recipient=username,
                     amount=reward,
-                    note={},
+                    note=staking.tx_build("claim"),
                     timestamp=now
                 ).to_dict())
 
@@ -247,11 +255,12 @@ def claim_lockup_rewards(username):
     net_reward = round(total_reward - node_fee, 6)
 
     if total_reward > 0:
+        tx_fee = TXTypes.GasTypes(node_fee, node_id, username, "nodefeecollector")
         reward_txs.append(TXConfig.Transaction(
             sender=username,
             recipient="nodefeecollector",
             amount=node_fee,
-            note={"type": f"Node Fee: {node_fee}", "node": node_id},
+            note=tx_fee.gas_tx(),
             timestamp=now
         ).to_dict())
         add_block(reward_txs, node_id)
