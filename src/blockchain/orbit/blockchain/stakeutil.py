@@ -59,8 +59,16 @@ def lock_tokens(username):
         if duration < 1 or duration > MAX_LOCK_DURATION_DAYS:
             print(f"Duration must be between 1 and {MAX_LOCK_DURATION_DAYS} days.")
             return
-        lockup_times = {"start": time.time() , "end": (time.time() + duration * 86400)}
-        send_orbit(username, "lockup_rewards", amount, {"note": {lock_metadata}})
+        lockup_times = {"init_days": duration}
+        lockup_amount = {"lock": amount}
+        staking = TXTypes.StakingTypes(lockup_times, lockup_amount)
+        lock_metadata = TXTypes(
+            tx_class="staking",
+            tx_type="lockup",
+            tx_data=staking.tx_build("lockup"),
+            tx_value="dict"
+        )
+        send_orbit(username, "lockup_rewards", amount, order=lock_metadata.tx_types())
         print(f"Locked {amount:.4f} Orbit for {duration} days.")
 
     except ValueError:

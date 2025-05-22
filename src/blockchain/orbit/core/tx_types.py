@@ -70,15 +70,15 @@ class TXTypes:
                             "start": self.start,
                             "end": self.end,
                             "days": self.days
-                        }
                     }
                 }
-                return self.metadata
+            }
+            return self.metadata
             elif build == "claim":
                 self.metadata = {
                     "type": {
                         "claim": {
-                            "amount": self.claim,
+                           "amount": self.claim,
                             "start": self.start,
                             "end": self.end,
                             "days": self.days,
