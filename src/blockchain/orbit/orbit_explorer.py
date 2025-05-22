@@ -127,6 +127,82 @@ def home():
 
 
 
+@app.route("/orbit-stats")
+def orbit_stats():
+    from collections import defaultdict
+    from datetime import datetime
+    chain = load_chain()
+    accounts = defaultdict(float)
+    tx_count = 0
+    tx_volume = 0.0
+    block_sizes = []
+    validators = defaultdict(lambda: {
+        "blocks": 0,
+        "orbit_processed": 0.0,
+        "txs_validated": 0,
+    })
+    orbit_per_day = defaultdict(float)
+    tx_per_day = defaultdict(int)
+
+    for block in chain:
+        date = datetime.fromtimestamp(block["timestamp"]).strftime("%Y-%m-%d")
+        block_tx_count = 0
+        validators[block["validator"]]["blocks"] += 1
+        for tx in block.get("transactions", []):
+            tx_count += 1
+            block_tx_count += 1
+            validators[block["validator"]]["orbit_processed"] += tx["amount"]
+            validators[block["validator"]]["txs_validated"] += 1
+            accounts[tx["recipient"]] += tx["amount"]
+            accounts[tx["sender"]] -= tx["amount"]
+            tx_volume += tx["amount"]
+            orbit_per_day[date] += tx["amount"]
+            tx_per_day[date] += 1
+        block_sizes.append(block_tx_count)
+
+    total_orbit = sum([v for v in accounts.values() if v > 0])
+    avg_block_size = sum(block_sizes) / len(block_sizes) if block_sizes else 0
+
+    return render_template("orbit_stats.html", stats={
+        "blocks": len(chain),
+        "transactions": tx_count,
+        "accounts": len([k for k, v in accounts.items() if v > 0]),
+        "supply": round(total_orbit, 4),
+        "volume": round(tx_volume, 4),
+        "avg_block_size": round(avg_block_size, 2),
+        "validators": dict(validators),
+        "orbit_per_day": dict(orbit_per_day),
+        "tx_per_day": dict(tx_per_day),
+    })
+
+@app.route("/api/orbit_volume_14d")
+def orbit_volume_14d():
+    chain = load_chain()
+    now = datetime.datetime.utcnow()
+    volume_by_day = {}
+
+    # Initialize the last 14 days with zero volume
+    for i in range(14):
+        day = (now - datetime.timedelta(days=i)).strftime("%Y-%m-%d")
+        volume_by_day[day] = 0.0
+
+    for block in chain:
+        for tx in block.get("transactions", []):
+            ts = tx.get("timestamp", block.get("timestamp", None))
+            if ts:
+                dt = datetime.datetime.utcfromtimestamp(ts)
+                day_str = dt.strftime("%Y-%m-%d")
+                if day_str in volume_by_day:
+                    try:
+                        volume_by_day[day_str] += float(tx.get("amount", 0.0))
+                    except:
+                        continue
+
+    # Return sorted ascending
+    result = [{"date": day, "volume": round(volume_by_day[day], 4)} for day in sorted(volume_by_day)]
+    return jsonify(result)
+
+
 @app.route("/api/tx_volume_14d")
 def tx_volume_14d():
     from collections import defaultdict
@@ -154,6 +230,28 @@ def tx_volume_14d():
     return jsonify(data)
 
 
+@app.route("/api/block_volume_14d")
+def block_volume_14d():
+    chain = load_chain()
+    now = datetime.datetime.utcnow()
+    counts = {}
+
+    # Initialize past 14 days
+    for i in range(14):
+        day = (now - datetime.timedelta(days=i)).strftime("%Y-%m-%d")
+        counts[day] = 0
+
+    for block in chain:
+        ts = block.get("timestamp")
+        if ts:
+            dt = datetime.datetime.utcfromtimestamp(ts)
+            day_str = dt.strftime("%Y-%m-%d")
+            if day_str in counts:
+                counts[day_str] += 1
+
+    # Return sorted by date ascending
+    result = [{"date": day, "count": counts[day]} for day in sorted(counts)]
+    return jsonify(result)
 
 @app.route("/locked")
 def locked():
@@ -175,8 +273,8 @@ def locked():
                 total_claimed += float(tx.get("amount", 0))
 
             # Track lockups
-            if isinstance(note, dict) and "duration_days" in note:
-                duration = int(note["duration_days"])
+            if isinstance(note, dict) and "duration" in note:
+                duration = int(note["duration"])
                 days_remaining = max(0, int((tx["timestamp"] + duration * 86400 - now) / 86400))
                 entry = {
                     "username": tx["recipient"],

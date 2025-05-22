@@ -1,6 +1,6 @@
 from blockchain.orbitutil import load_nodes, save_nodes, register_node
 from blockchain.blockutil import start_listener
-from blockchain.stakeutil import view_lockups, lock_tokens, claim_lockup_rewards
+from blockchain.stakeutil import view_lockups, lock_tokens, claim_lockup_rewards, withdraw_lockup
 from blockchain.miningutil import start_mining
 from blockchain.tokenutil import send_orbit
 from blockchain.ledgerutil import (
@@ -50,8 +50,6 @@ def quorum_slice_menu(user):
     while True:
         print(f"\n{Fore.MAGENTA}=== Node Manager Menu ===")
         print("1. View All Nodes")
-#        print("2. Register This Node")
-#        print("3. Edit Quorum Slice")
         print("2. Back")
         choice = input(PROMPT).strip()
         clear_screen()
@@ -92,7 +90,8 @@ def lockup_menu(user):
         print("1. Lock Orbit")
         print("2. View Lockups")
         print("3. Claim")
-        print("4. Back")
+        print("4. Withdraw")
+        print("5. Back")
         choice = input(PROMPT).strip()
         clear_screen()
         if choice == "1":
@@ -102,6 +101,8 @@ def lockup_menu(user):
         elif choice == "3":
             claim_lockup_rewards(user)
         elif choice == "4":
+            withdraw_lockup(user)
+        elif choice == "5":
             break
 
 

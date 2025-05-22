@@ -15,15 +15,18 @@
         </div>
         <div class="summary-item">
             <h3>Circulating Orbit Supply</h3>
-            <p>{{ "{:,.4f}".format(summary.circulating) }} ORBIT</p>
+            <a href="/orbit-stats"><p>{{ "{:,.4f}".format(summary.circulating) }} ORBIT</p></a>
         </div>
         <div class="summary-item">
             <h3>Total Orbit Supply</h3>
-            <p>{{ "{:,.4f}".format(summary.total_orbit) }} ORBIT</p>
+            <a href="/orbit-stats"><p>{{ "{:,.4f}".format(summary.total_orbit) }} ORBIT</p></a>
         </div>
         <div style="flex: 1 1 100%; min-width: 100%;">
-            <h3>Transactions (Last 14 Days)</h3>
+            <h3>Blockchain Stats (Last 14 Days)</h3>
+            <canvas id="orbitChart" height="100"></canvas>
+            <canvas id="blockChart" height="100"></canvas>
             <canvas id="txChart" height="360" style="width: 100%; max-width: 1000px;"></canvas>
+        </div>
         </div>
     </div>
 </div>

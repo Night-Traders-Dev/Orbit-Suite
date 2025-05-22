@@ -17,6 +17,90 @@ function toggleMenu() {
 
 <script>
 
+let orbitChart;
+
+function fetchOrbitChartData() {
+    fetch('/api/orbit_volume_14d')
+        .then(res => res.json())
+        .then(data => {
+            const ctx = document.getElementById('orbitChart');
+            const labels = data.map(d => d.date);
+            const volumes = data.map(d => d.volume);
+
+            if (orbitChart) {
+                orbitChart.data.labels = labels;
+                orbitChart.data.datasets[0].data = volumes;
+                orbitChart.update();
+            } else {
+                orbitChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Orbit Transferred per Day',
+                            data: volumes,
+                            backgroundColor: 'rgba(241, 196, 15, 0.6)',
+                            borderColor: 'rgba(243, 156, 18, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+}
+
+let blockChart;
+
+function fetchBlockChartData() {
+    fetch('/api/block_volume_14d')
+        .then(res => res.json())
+        .then(data => {
+            const ctx = document.getElementById('blockChart');
+            const labels = data.map(d => d.date);
+            const counts = data.map(d => d.count);
+
+            if (blockChart) {
+                blockChart.data.labels = labels;
+                blockChart.data.datasets[0].data = counts;
+                blockChart.update();
+            } else {
+                blockChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Blocks per Day',
+                            data: counts,
+                            backgroundColor: 'rgba(52, 152, 219, 0.6)',
+                            borderColor: 'rgba(41, 128, 185, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { precision: 0 }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+}
+
 function fetchChainSummary() {
     fetch('/api/summary')
         .then(res => res.json())
@@ -120,14 +204,18 @@ function fetchLatestTransactions() {
 
     setInterval(() => {
         fetchChainSummary();
+        fetchOrbitChartData();
         fetchTxChartData();
+        fetchBlockChartData();
         fetchLatestBlock();
         fetchLatestTransactions();
     }, pollInterval);
 
     window.onload = () => {
         fetchChainSummary();
+        fetchOrbitChartData(); 
         fetchTxChartData();
+        fetchBlockChartData();
         fetchLatestBlock();
         fetchLatestTransactions();
     };
@@ -158,6 +246,7 @@ function fetchLatestTransactions() {
 <nav class="mobile-dropdown" id="dropdownMenu">
      <a href="/locked">Locked Tokens</a>
      <a href="/top-wallets"> Top Wallets</a>
+     <a href="/orbit-stats"> Orbit Stats</a>
 </nav>
 
 <form method="get" action="/">

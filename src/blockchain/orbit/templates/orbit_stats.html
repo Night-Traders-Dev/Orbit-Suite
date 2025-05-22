@@ -1,0 +1,143 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card">
+    <h2>Orbit Blockchain Overview</h2>
+    <div class="grid">
+        <div class="stat">
+            <h4>Total Blocks</h4>
+            <p>{{ stats.blocks }}</p>
+        </div>
+        <div class="stat">
+            <h4>Transactions</h4>
+            <p>{{ stats.transactions }}</p>
+        </div>
+        <div class="stat">
+            <h4>Accounts</h4>
+            <p>{{ stats.accounts }}</p>
+        </div>
+        <div class="stat">
+            <h4>Circulating Supply</h4>
+            <p>{{ stats.supply }} ORBIT</p>
+        </div>
+        <div class="stat">
+            <h4>Total Volume</h4>
+            <p>{{ stats.volume - stats.supply }} ORBIT</p>
+        </div>
+        <div class="stat">
+            <h4>Average Block Size</h4>
+            <p>{{ stats.avg_block_size }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Validator Performance</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Validator</th>
+                <th>Blocks</th>
+                <th>Transactions</th>
+                <th>Orbit Processed</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for vid, v in stats.validators.items() %}
+            <tr>
+                <td><a href="/node/{{ vid }}">{{ vid }}</a></td>
+                <td>{{ v.blocks }}</td>
+                <td>{{ v.txs_validated }}</td>
+                <td>{{ "%.2f"|format(v.orbit_processed) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h3>14-Day Orbit Movement</h3>
+    <canvas id="orbitChart" height="100"></canvas>
+</div>
+
+<div class="card">
+    <h3>14-Day Transaction Count</h3>
+    <canvas id="txChart" height="100"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const orbitCtx = document.getElementById("orbitChart").getContext("2d");
+new Chart(orbitCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ stats.orbit_per_day.keys()|list|tojson }},
+        datasets: [{
+            label: 'Orbit Moved',
+            data: {{ stats.orbit_per_day.values()|list|tojson }},
+            backgroundColor: 'rgba(54, 162, 235, 0.7)'
+        }]
+    },
+    options: { scales: { y: { beginAtZero: true } } }
+});
+
+const txCtx = document.getElementById("txChart").getContext("2d");
+new Chart(txCtx, {
+    type: 'line',
+    data: {
+        labels: {{ stats.tx_per_day.keys()|list|tojson }},
+        datasets: [{
+            label: 'Transactions',
+            data: {{ stats.tx_per_day.values()|list|tojson }},
+            borderColor: 'rgba(255, 99, 132, 0.8)',
+            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: { scales: { y: { beginAtZero: true } } }
+});
+</script>
+
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 20px;
+    margin-top: 16px;
+}
+.stat {
+    background: #f0f4f8;
+    padding: 16px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.stat h4 {
+    margin: 0;
+    font-size: 1em;
+    color: #555;
+}
+.stat p {
+    margin: 4px 0 0;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #2c3e50;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+table th, table td {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    text-align: left;
+}
+table th {
+    background-color: #f3f6fa;
+}
+table tr:hover {
+    background-color: #f9fbfd;
+}
+</style>
+{% endblock %}

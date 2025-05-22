@@ -8,6 +8,11 @@
 # Ignore the data folder
 data/
 
+#
 *.sh
 *.log
 *.key
+
+#
+test.py
+aes.key
