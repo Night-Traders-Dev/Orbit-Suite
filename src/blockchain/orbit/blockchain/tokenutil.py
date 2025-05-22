@@ -52,9 +52,19 @@ def send_orbit(sender, recipient, amount, order=None):
             sender=sender,
             recipient="nodefeecollector",
             amount=fee,
-            note={"type": f"Node Fee: {fee}", "node": user_node},
+            note={
+                "type": {
+                    "gas": {
+                        "fee": fee,
+                        "node": user_node,
+                        "tx": f"{sender}->{recipient}"
+                    }
+                }
+            },
             timestamp=current_time
         )
+
+
 
         add_block([tx1.to_dict(), tx2.to_dict()])
         print(f"Sent {amount:.6f} Orbit to {recipient} | Fee: {fee:.6f} Orbit burned.")

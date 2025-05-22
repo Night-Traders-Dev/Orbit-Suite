@@ -5,26 +5,27 @@ from blockchain.tokenutil import send_orbit
 from core.tx_types import TXTypes
 from core.userutil import load_users, save_users
 from core.walletutil import load_balance
+import json
 
 LOCK_REWARD_RATE_PER_DAY = 0.05
 MIN_LOCK_AMOUNT = 0.0001
 MAX_LOCK_DURATION_DAYS = 365 * 5  # 5 years max
 
-
 def get_user_lockups(username):
     blockchain = load_chain()
     lockups = []
     for block in blockchain:
-        for tx_data in block.get("transactions", []):
-            tx = TXConfig.Transaction.from_dict(tx_data)
-            tx_type = getattr(tx, "type", None)
-            if tx.sender == username and tx_type == "lockup":
-                lock_data = tx.note.get("lockup")
-                if isinstance(lock_data, dict) and "start" in lock_data and "end" in lock_data:
+        for tx in block.get("transactions", []):
+            txdata = TXConfig.Transaction.from_dict(tx)
+            note = txdata.note
+            if txdata.sender == username and isinstance(note, dict):
+                lock_data = (txdata.note or {}).get("type", {}).get("lockup")
+                if lock_data and "start" in lock_data and "end" in lock_data:
                     lockups.append({
-                        "amount": tx.amount,
-                        "end": lock_data["end"]
-                        "start": lock_data["start"]
+                        "amount": lock_data["amount"],
+                        "start": lock_data["start"],
+                        "end": lock_data["end"],
+                        "days": lock_data["days"]
                     })
     return lockups
 
@@ -32,13 +33,27 @@ def print_lockups(lockups):
     if not lockups:
         print("No active lockups.")
         return
+
     print("Your Lockups:")
     for i, lock in enumerate(lockups):
-        amount = lock["amount"]
+        locked = lock["amount"]
         end = lock["end"]
         start = lock["start"]
-        days_remaining = lock["days"]
-        print(f" {i+1}. {amount:.4f} Orbit locked for {days_remaining} days remaining)")
+        now = time.time()
+        init_days = int((end - start) / 86400)
+
+        duration = {"start": start, "end": end, "init_days": init_days, "now": now}
+        amount = {"lock": locked}
+        staking = TXTypes.StakingTypes(duration, amount)
+        lockup_tx = TXTypes(
+            tx_class="staking",
+            tx_type="lockup",
+            tx_data=staking.tx_build("lockup"),
+            tx_value="dict"
+        )
+        order_tx = lockup_tx.tx_types()
+        days_remaining = order_tx.get("type", {}).get("lockup", {}).get("days", 0)
+        print(f" {i+1}. {locked:.4f} Orbit locked — {days_remaining:.1f} days remaining")
 
 def view_lockups(username):
     lockups = get_user_lockups(username)

@@ -88,6 +88,16 @@ class TXTypes:
                 }
             return self.metadata
 
+        def from_dict(data):
+            lockup = data.get("type", {}).get("lockup", {})
+            start = lockup.get("start")
+            end = lockup.get("end")
+            days = lockup.get("days")
+            locked = lockup.get("amount")
+            return start, end, days, locked
+
+
+
     class MiscTypes:
         def __init__(self):
             self.metadata = {}
@@ -104,3 +114,5 @@ class TXTypes:
                 }
             }
             return self.metadata
+
+
