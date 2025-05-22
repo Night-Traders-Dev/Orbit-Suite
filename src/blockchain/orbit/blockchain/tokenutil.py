@@ -3,6 +3,7 @@ from core.walletutil import load_balance
 from core.userutil import load_users, save_users
 from blockchain.blockutil import add_block, load_chain
 from config.configutil import TXConfig, get_node_for_user
+from core.tx_types import TXTypes
 
 MIN_TRANSFER_AMOUNT = 0.0001
 FEE_RATE = 0.02
@@ -47,21 +48,14 @@ def send_orbit(sender, recipient, amount, order=None):
             note=tx_note,
             timestamp=current_time
         )
-
+        tx_fee = TXTypes.GasTypes(fee, user_node, sender, "nodefeecollector")
         tx2 = TXConfig.Transaction(
             sender=sender,
             recipient="nodefeecollector",
             amount=fee,
-            note={
-                "type": {
-                    "gas": {
-                        "fee": fee,
-                        "node": user_node,
-                        "tx": f"{sender}->{recipient}"
-                    }
-                }
-            },
+            note=tx_fee.gas_tx(),
             timestamp=current_time
+
         )
 
 

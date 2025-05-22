@@ -49,8 +49,8 @@ class TXTypes:
             return self.metadata
 
         @staticmethod
-        def mining_metadata(self, node_fee, rate_metadata):
-            self.tx = {
+        def mining_metadata(node_fee, rate_metadata):
+            tx = {
                 "type": {
                     "mining": {
                         "fee": node_fee,
@@ -58,7 +58,7 @@ class TXTypes:
                     }
                 }
             }
-            return self.tx
+            return tx
 
     class StakingTypes:
         def __init__(self, duration=None, amount=None):
@@ -111,21 +111,23 @@ class TXTypes:
 
 
 
-    class MiscTypes:
-        def __init__(self):
+    class GasTypes:
+        def __init__(self, node_fee, node_id, sender, recipient):
+            self.node_fee = node_fee
+            self.node_id = node_id
+            self.sender = sender
+            self.recipient = recipient
             self.metadata = {}
 
-
-        def gas_tx(self, node_fee, node_id, tx_id):
+        def gas_tx(self):
             self.metadata = {
                 "type": {
                     "gas": {
-                         "fee": node_fee,
-                         "node": node_id,
-                         "tx": tx_id
+                        "fee": self.node_fee,
+                        "node": self.node_id,
+                        "tx": f"{self.sender}->{self.recipient}",
+                        "timestamp": time.time()
                     }
                 }
             }
             return self.metadata
-
-
