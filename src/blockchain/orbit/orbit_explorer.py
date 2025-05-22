@@ -1,12 +1,13 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 import json, os, datetime, math
 from config.configutil import OrbitDB
-from blockchain.stakeutil import get_user_lockups
+from blockchain.stakeutil import get_user_lockups, get_all_lockups
 from core.walletutil import load_balance
 from blockchain.blockutil import load_chain
 from blockchain.orbitutil import load_nodes
 import time
 from collections import defaultdict
+from core.tx_types import TXTypes
 
 orbit_db = OrbitDB()
 app = Flask(__name__)
@@ -253,6 +254,7 @@ def block_volume_14d():
     result = [{"date": day, "count": counts[day]} for day in sorted(counts)]
     return jsonify(result)
 
+
 @app.route("/locked")
 def locked():
     chain = load_chain()
@@ -268,27 +270,31 @@ def locked():
     for block in chain:
         for tx in block.get("transactions", []):
             note = tx.get("note", {})
+
             # Track claimed rewards
             if tx.get("sender") == "lockup_reward":
                 total_claimed += float(tx.get("amount", 0))
 
-            # Track lockups
-            if isinstance(note, dict) and "duration" in note:
-                duration = int(note["duration"])
-                days_remaining = max(0, int((tx["timestamp"] + duration * 86400 - now) / 86400))
-                entry = {
-                    "username": tx["recipient"],
-                    "amount": float(tx["amount"]),
-                    "duration": duration,
-                    "days_remaining": days_remaining,
-                    "timestamp": tx["timestamp"]
-                }
-                if (
-                    (not user_filter or user_filter in entry["username"].lower())
-                    and entry["amount"] >= min_amount
-                    and entry["duration"] >= min_days
-                ):
-                    locks.append(entry)
+            # Extract lockup metadata using TXTypes
+            try:
+                start, end, days, locked = TXTypes.StakingTypes.from_dict(note)
+                if locked and start and end:
+                    days_remaining = max(0, int((end - now) / 86400))
+                    entry = {
+                        "username": tx.get("recipient", ""),
+                        "amount": float(locked),
+                        "duration": round(days, 1),
+                        "days_remaining": days_remaining,
+                        "timestamp": tx.get("timestamp", 0)
+                    }
+                    if (
+                        (not user_filter or user_filter in entry["username"].lower())
+                        and entry["amount"] >= min_amount
+                        and entry["duration"] >= min_days
+                    ):
+                        locks.append(entry)
+            except Exception:
+                continue
 
     if sort == "amount":
         locks.sort(key=lambda x: -x["amount"])
@@ -305,6 +311,7 @@ def locked():
     }
 
     return render_template("locked.html", locks=locks, totals=totals, sort=sort)
+
 
 @app.route("/api/latest-block")
 def api_latest_block():
@@ -339,7 +346,7 @@ def tx_detail(txid):
                 for other_tx in txs:
                     note = other_tx.get("note")
                     if (isinstance(note, dict) and 
-                        note.get("type", "").startswith("Node Fee") and 
+                        note.get("type", {}).get("gas", {}) and 
                         other_tx.get("recipient") == "nodefeecollector"):
                         fee_applied = {
                             "amount": other_tx.get("amount"),

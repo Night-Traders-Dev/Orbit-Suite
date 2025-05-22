@@ -5,7 +5,7 @@
     <div class="summary-grid">
         <div class="summary-item">
             <h3>Total Locked</h3>
-            <p>{{ "{:,.4f}".format(totals.total_locked) }} ORBIT</p>
+            <p>{{ "{:,.4f}".format(totals.get("total_locked", 0.0)) }} ORBIT</p>
         </div>
         <div class="summary-item">
             <h3>Active Lockups</h3>

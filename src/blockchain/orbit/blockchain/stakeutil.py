@@ -11,6 +11,28 @@ LOCK_REWARD_RATE_PER_DAY = 0.05
 MIN_LOCK_AMOUNT = 0.0001
 MAX_LOCK_DURATION_DAYS = 365 * 5  # 5 years max
 
+def get_all_lockups():
+    locked = 0
+    stakes = 0
+    blockchain = load_chain()
+    lockups = []
+    for block in blockchain:
+        for tx in block.get("transactions", []):  # use list default
+            txdata = TXConfig.Transaction.from_dict(tx)
+            try:
+                lock_data = (txdata.note or {}).get("type", {}).get("lockup")
+                if lock_data and "start" in lock_data and "end" in lock_data:
+                    locked += lock_data["amount"]
+                    stakes += 1
+                    lockups.append({
+                        "amount": lock_data["amount"],
+                        "days": lock_data["days"],
+                        "stakes": stakes
+                    })
+            except Exception as e:
+                continue
+    return lockups
+
 def get_user_lockups(username):
     blockchain = load_chain()
     lockups = []
