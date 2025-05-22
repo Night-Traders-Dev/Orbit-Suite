@@ -126,15 +126,7 @@ def start_mining(username):
             get_referral_bonus(user_data),
             time.time()
         )
-
-        tx = {
-            "type": {
-                "mining": {
-                    "fee": node_fee,
-                    "bonuses": tx_metadata.rate_dict()
-                }
-            }
-        }
-
-        send_orbit("mining", username, user_payout, order=tx)
+        rate_data = tx_metadata.rate_dict()
+        tx_order = TXTypes.MiningTypes.mining_metadata(node_fee, rate_data)
+        send_orbit("mining", username, user_payout, order=tx_order)
         load_balance("mining")

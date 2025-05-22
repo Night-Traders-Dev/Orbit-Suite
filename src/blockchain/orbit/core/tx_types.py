@@ -31,6 +31,7 @@ class TXTypes:
     class MiningTypes:
         def __init__(self, mined=0.0, base=0.0, security=0.0, lockup=0.0, referral=0.0, now=None):
             self.mined = mined
+
             self.rate = {
                 "base": base,
                 "security": security,
@@ -46,6 +47,18 @@ class TXTypes:
                 "formula": self.rate
             }
             return self.metadata
+
+        @staticmethod
+        def mining_metadata(self, node_fee, rate_metadata):
+            self.tx = {
+                "type": {
+                    "mining": {
+                        "fee": node_fee,
+                        "bonuses": rate_metadata
+                    }
+                }
+            }
+            return self.tx
 
     class StakingTypes:
         def __init__(self, duration=None, amount=None):
