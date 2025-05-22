@@ -23,7 +23,7 @@ Orbit aims to create a decentralized ecosystem where users can:
 
 ---
 
-#2 Core Components
+# 2 Core Components
 
 ### 1. Ledger Architecture
 
@@ -241,7 +241,7 @@ Users can define a Security Circle of trusted peers:
 
 ---
 
-##License
+## License
 
 ### MIT License
 Use freely, modify, and contribute to Orbit Blockchain’s continued evolution.
