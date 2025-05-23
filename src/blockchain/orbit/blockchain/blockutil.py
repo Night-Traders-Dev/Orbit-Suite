@@ -68,6 +68,18 @@ def handle_connection(conn, addr, node_id):
         conn.close()
 
 
+
+def generate_merkle_root(transaction_dicts):
+    def hash_pair(a, b):
+        return hashlib.sha256((a + b).encode()).hexdigest()
+
+    tx_hashes = [hashlib.sha256(json.dumps(tx, sort_keys=True).encode()).hexdigest() for tx in transaction_dicts]
+    while len(tx_hashes) > 1:
+        if len(tx_hashes) % 2 == 1:
+            tx_hashes.append(tx_hashes[-1])  # duplicate last hash if odd
+        tx_hashes = [hash_pair(tx_hashes[i], tx_hashes[i+1]) for i in range(0, len(tx_hashes), 2)]
+    return tx_hashes[0] if tx_hashes else ""
+
 def calculate_hash(index, previous_hash, timestamp, transactions, validator="", merkle_root="", nonce=0, metadata=None):
     block_content = {
         "index": index,
@@ -316,12 +328,15 @@ def broadcast_block(block, sender_id=None):
             except Exception as e:
                 print(f"Failed to send block to {node_id} at {full_address}: {e}")
 
-
 def add_block(transactions, node_id="Node1"):
     chain = load_chain()
     last_block = chain[-1]
+    node_id = select_next_validator()
 
     tx_objs = [TXConfig.Transaction.from_dict(tx) for tx in transactions]
+
+    # Calculate Merkle root from transaction dicts
+    merkle_root = generate_merkle_root([tx.to_dict() for tx in tx_objs])
 
     new_block = TXConfig.Block(
         index=len(chain),
@@ -331,11 +346,12 @@ def add_block(transactions, node_id="Node1"):
         hash="",
         validator=node_id,
         signatures={},
-        merkle_root="",
+        merkle_root=merkle_root,
         nonce=0,
         metadata={"lockup_rewards": [], "version": "1.0"}
     )
 
+    # Calculate hash for the new block
     new_block.hash = calculate_hash(
         new_block.index,
         new_block.previous_hash,
@@ -347,6 +363,7 @@ def add_block(transactions, node_id="Node1"):
         new_block.metadata
     )
 
+    # Propose block to consensus
     if propose_block(node_id, new_block):
         users = load_users()
 
@@ -356,7 +373,7 @@ def add_block(transactions, node_id="Node1"):
             recipient = tx_dict.get("recipient")
             amount = tx_dict.get("amount", 0)
 
-            # Ensure both sender and recipient exist
+            # Handle unknown accounts
             if sender not in users:
                 print(f"Unknown sender {sender}, skipping transaction.")
                 continue
@@ -364,7 +381,7 @@ def add_block(transactions, node_id="Node1"):
                 print(f"Unknown recipient {recipient}, skipping transaction.")
                 continue
 
-            # Apply transfer logic
+            # Perform the transfer if balance is sufficient
             if users[sender]["balance"] >= amount:
                 users[sender]["balance"] -= amount
                 users[recipient]["balance"] += amount
@@ -372,8 +389,12 @@ def add_block(transactions, node_id="Node1"):
                 print(f"Insufficient funds for {sender}, skipping transaction.")
                 continue
 
+        # Save updated user balances
         save_users(users)
-        broadcast_block(new_block, sender)
+
+        # Broadcast new block to network
+        broadcast_block(new_block, node_id)
+
 
 def is_chain_valid():
     chain = load_chain()

@@ -107,7 +107,7 @@ def lock_tokens(username):
 def withdraw_lockup(username):
     users = load_users()
     user = users[username]
-    user_lockups = get_user_lockups(username)
+    lockups = get_user_lockups(username)
     now = time.time()
 
     matured_total = 0.0
