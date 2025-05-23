@@ -2,6 +2,7 @@ import hashlib
 import json
 import rsa
 import os
+import time
 from cryptography.fernet import Fernet
 
 KEY_SIZE = 2048  # Use strong RSA key
@@ -28,6 +29,23 @@ def decrypt_private_key(cipher_text):
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
+
+def create_account(username, password, users):
+    hashed_pw = hash_password(password)
+    pubkey, privkey = rsa.newkeys(KEY_SIZE)
+    encrypted_private_key = encrypt_private_key(privkey.save_pkcs1().decode())
+
+    users[username] = {
+        "password": hashed_pw,
+        "public_key": pubkey.save_pkcs1().decode(),
+        "private_key": encrypted_private_key,
+        "balance": 0,
+        "locked": [],
+        "security_circle": [],
+        "referrals": [],
+        "mining_start_time": time.time() - 3600
+    }
+    return users
 
 # ===================== BLOCK UTILS =====================
 

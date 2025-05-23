@@ -4,7 +4,7 @@ import sys
 import time
 import threading
 from blockchain.orbitutil import load_nodes, save_nodes, assign_node_to_user
-from core.hashutil import load_aes_key, encrypt_private_key, decrypt_private_key, hash_password
+from core.hashutil import load_aes_key, encrypt_private_key, decrypt_private_key, hash_password, create_account
 from core.ioutil import load_active_sessions, save_active_sessions, load_users, save_users
 from core.logutil import log_event
 from core.termutil import clear_screen
@@ -33,21 +33,7 @@ def register():
     if len(password) < 6:
         print("Password must be at least 6 characters.")
         return False
-
-    hashed_pw = hash_password(password)
-    pubkey, privkey = rsa.newkeys(KEY_SIZE)
-    encrypted_private_key = encrypt_private_key(privkey.save_pkcs1().decode())
-
-    users[username] = {
-        "password": hashed_pw,
-        "public_key": pubkey.save_pkcs1().decode(),
-        "private_key": encrypted_private_key,
-        "balance": 0,
-        "locked": [],
-        "security_circle": [],
-        "referrals": [],
-        "mining_start_time": time.time() - 3600
-    }
+    users = create_account(username, password, users)
 
     save_users(users)
     log_event("REGISTER", username)
