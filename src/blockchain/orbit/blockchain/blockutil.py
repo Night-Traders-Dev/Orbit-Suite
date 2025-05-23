@@ -1,21 +1,20 @@
-import hashlib
-import json
 import time
-import os
 import random
-import socket
-import threading
-import platform
 
-from blockchain.orbitutil import update_trust, update_uptime, save_nodes, load_nodes, simulate_peer_vote, sign_vote, relay_pending_proposal, simulate_quorum_vote, select_next_validator, log_node_activity
-from config.configutil import NodeConfig, TXConfig, get_node_for_user
+from blockchain.orbitutil import (
+    update_trust, update_uptime, save_nodes, load_nodes, simulate_peer_vote,
+    sign_vote, relay_pending_proposal, simulate_quorum_vote, select_next_validator,
+    log_node_activity
+)
+from config.configutil import NodeConfig, TXConfig
 from core.ioutil import load_chain, save_chain
 from core.hashutil import generate_merkle_root, calculate_hash
 from core.userutil import load_users, save_users
-from core.networkutil import start_listener, handle_connection, send_block
+from core.networkutil import send_block
 
 
 def create_genesis_block():
+    """Creates the initial genesis block."""
     genesis_block = TXConfig.Block(
         index=0,
         timestamp=time.time(),
@@ -29,36 +28,33 @@ def create_genesis_block():
         metadata={"note": "genesis block"}
     )
     genesis_block.hash = calculate_hash(
-        genesis_block.index,
-        genesis_block.previous_hash,
-        genesis_block.timestamp,
-        [],
-        genesis_block.validator,
-        genesis_block.merkle_root,
-        genesis_block.nonce,
-        genesis_block.metadata
+        genesis_block.index, genesis_block.previous_hash, genesis_block.timestamp,
+        [], genesis_block.validator, genesis_block.merkle_root,
+        genesis_block.nonce, genesis_block.metadata
     )
     return genesis_block.to_dict()
 
 
 def get_last_block():
-    chain = load_chain()
-    return chain[-1]
+    """Returns the latest block in the chain."""
+    return load_chain()[-1]
+
 
 def propose_block(node_id, block_data, timeout=5):
+    """Attempts to propose a block and achieve quorum consensus."""
     nodes = load_nodes()
-
     if node_id not in nodes:
-        log_node_activity(node_id, "Propose Block", f"Node {node_id} is not registered.")
+        log_node_activity(node_id, "Propose Block", "Node is not registered.")
         return False
 
-    node_id = select_next_validator()
-    proposer_config = NodeConfig.from_dict(nodes[node_id])
+    proposer_id = select_next_validator()
+    proposer_config = NodeConfig.from_dict(nodes[proposer_id])
     quorum_slice = proposer_config.quorum_slice
 
-    votes = {node_id}
-    signatures = {node_id: sign_vote(node_id, block_data)}
+    votes = {proposer_id}
+    signatures = {proposer_id: sign_vote(proposer_id, block_data)}
     start_time = time.time()
+    ADJUST_RATE = 0.05
 
     for peer_id in quorum_slice:
         if time.time() - start_time > timeout:
@@ -66,69 +62,59 @@ def propose_block(node_id, block_data, timeout=5):
 
         peer_data = nodes.get(peer_id)
         if not peer_data:
-            log_node_activity(node_id, "Propose Block", f"[Propose] Peer {peer_id} not found in registry.")
+            log_node_activity(proposer_id, "Propose Block", f"Peer {peer_id} not found.")
             continue
 
         peer_config = NodeConfig.from_dict(peer_data)
-        trust_score = peer_config.trust_score
-        uptime_score = peer_config.uptime_score
-        online = random.random() < uptime_score  # simulate uptime
+        online = random.random() < peer_config.uptime_score
 
-        ADJUST_RATE = 0.05
-
-        if online:
-            if simulate_quorum_vote(peer_id, block_data):
-                votes.add(peer_id)
-                signatures[peer_id] = sign_vote(peer_id, block_data)
-                peer_data["trust_score"] = min(peer_data.get("trust_score", 0.5) + ADJUST_RATE, 1.0)
-                peer_data["uptime_score"] = min(peer_data.get("uptime_score", 0.5) + ADJUST_RATE, 1.0)
-            else:
-
-                peer_data["trust_score"] = max(peer_data.get("trust_score", 0.5) - ADJUST_RATE, 0.0)
+        if online and simulate_quorum_vote(peer_id, block_data):
+            votes.add(peer_id)
+            signatures[peer_id] = sign_vote(peer_id, block_data)
+            peer_data["trust_score"] = min(peer_data.get("trust_score", 0.5) + ADJUST_RATE, 1.0)
+            peer_data["uptime_score"] = min(peer_data.get("uptime_score", 0.5) + ADJUST_RATE, 1.0)
         else:
-
-            peer_data["uptime_score"] = max(peer_data.get("uptime_score", 0.5) - ADJUST_RATE, 0.0)
+            if not online:
+                peer_data["uptime_score"] = max(peer_data.get("uptime_score", 0.5) - ADJUST_RATE, 0.0)
+            else:
+                peer_data["trust_score"] = max(peer_data.get("trust_score", 0.5) - ADJUST_RATE, 0.0)
 
         nodes[peer_id] = peer_data
 
+    save_nodes(nodes)
     required_votes = (len(quorum_slice) // 2) + 1
 
     if len(votes) >= required_votes:
-        save_nodes(nodes)
-        log_node_activity(node_id, "Propose Block", f"[Propose] Consensus passed: {len(votes)} votes (required {required_votes}).")
+        log_node_activity(proposer_id, "Propose Block", f"Consensus passed with {len(votes)} votes.")
         return True
     else:
-        log_node_activity(node_id, "Propose Block", f"[Propose] Consensus failed: {len(votes)} votes (required {required_votes}).")
-        relay_pending_proposal(node_id, block_data)
-        save_nodes(nodes)
+        log_node_activity(proposer_id, "Propose Block", f"Consensus failed: {len(votes)} votes (need {required_votes}).")
+        relay_pending_proposal(proposer_id, block_data)
         return False
 
+
 def receive_block(block):
+    """Validates and appends a received block to the chain."""
     chain = load_chain()
     last_block = chain[-1]
 
     if block["index"] != last_block["index"]:
-        log_node_activity(node_id, "Recieve Block", "Rejected block: invalid index.")
+        log_node_activity(block.get("validator", "unknown"), "Receive Block", "Rejected: Invalid index.")
         return False
 
     if block["previous_hash"] != last_block["hash"]:
-        log_node_activity(node_id, "Recieve Block", "Rejected block: previous hash mismatch.")
-        log_node_activity(node_id, "Recieve Block", f"Expected: {last_block['hash']}, got: {block['previous_hash']}")
+        log_node_activity(block.get("validator", "unknown"), "Receive Block", "Rejected: Hash mismatch.")
         return False
 
-    recalculated_hash = calculate_hash(
-        block["index"],
-        block["previous_hash"],
-        block["timestamp"],
-        block["transactions"],
-        block.get("validator", ""),
-        block.get("merkle_root", ""),
-        block.get("nonce", 0),
+    recalculated = calculate_hash(
+        block["index"], block["previous_hash"], block["timestamp"],
+        block["transactions"], block.get("validator", ""),
+        block.get("merkle_root", ""), block.get("nonce", 0),
         block.get("metadata", {})
     )
 
-    if recalculated_hash != block["hash"]:
-        log_node_activity(node_id, "Recieve Block", "Rejected block: invalid hash.")
+    if recalculated != block["hash"]:
+        log_node_activity(block.get("validator", "unknown"), "Receive Block", "Rejected: Invalid hash.")
         return False
 
     chain.append(block)
@@ -137,26 +123,24 @@ def receive_block(block):
 
 
 def broadcast_block(block, sender_id=None):
+    """Broadcasts a block to all peers except the sender."""
     nodes = load_nodes()
     for node_id, info in nodes.items():
         if node_id == sender_id:
             continue
-        address = info.get("address")
-        port = info.get("port")
+        address, port = info.get("address"), info.get("port")
         if address and port:
-            full_address = f"{address}:{port}"
             try:
-                send_block(full_address, block)
+                send_block(f"{address}:{port}", block)
             except Exception as e:
-                log_node_activity(node_id, "Broadcast Block", f"Failed to send block to {node_id} at {full_address}: {e}")
+                log_node_activity(node_id, "Broadcast Block", f"Failed to send to {node_id}: {e}")
+
 
 def add_block(transactions, node_id="Node1"):
+    """Builds, proposes, and adds a block with transactions if consensus is achieved."""
     chain = load_chain()
     last_block = chain[-1]
-
     tx_objs = [TXConfig.Transaction.from_dict(tx) for tx in transactions]
-
-    # Generate Merkle root using transaction dicts
     tx_dicts = [tx.to_dict() for tx in tx_objs]
     merkle_root = generate_merkle_root(tx_dicts)
 
@@ -174,63 +158,48 @@ def add_block(transactions, node_id="Node1"):
     )
 
     new_block.hash = calculate_hash(
-        new_block.index,
-        new_block.previous_hash,
-        new_block.timestamp,
-        tx_dicts,
-        new_block.validator,
-        new_block.merkle_root,
-        new_block.nonce,
-        new_block.metadata
+        new_block.index, new_block.previous_hash, new_block.timestamp,
+        tx_dicts, new_block.validator, new_block.merkle_root,
+        new_block.nonce, new_block.metadata
     )
 
-    # Note: proposer is selected again to simulate dynamic leader
     if propose_block(new_block.validator, new_block):
         users = load_users()
-
         for tx in new_block.transactions:
-            tx_data = tx.to_dict() if hasattr(tx, "to_dict") else tx
-            sender = tx_data.get("sender")
-            recipient = tx_data.get("recipient")
-            amount = tx_data.get("amount", 0)
+            tx_data = tx.to_dict()
+            sender, recipient, amount = tx_data["sender"], tx_data["recipient"], tx_data.get("amount", 0)
 
             if sender not in users or recipient not in users:
-                log_node_activity(node_id, "Add Block", f"[TX Skipped] Sender or recipient unknown: {sender} → {recipient}")
+                log_node_activity(node_id, "Add Block", f"Skipped: Unknown user {sender} or {recipient}")
                 continue
 
             if users[sender]["balance"] >= amount:
                 users[sender]["balance"] -= amount
                 users[recipient]["balance"] += amount
             else:
-                log_node_activity(node_id, "Add Block", f"[TX Failed] Insufficient balance: {sender} has {users[sender]['balance']} Orbit")
+                log_node_activity(node_id, "Add Block", f"Failed: {sender} has insufficient balance.")
 
         save_users(users)
         save_chain(chain + [new_block.to_dict()])
         broadcast_block(new_block.to_dict(), sender_id=node_id)
-        log_node_activity(node_id, "Add Block", f"[Block Added] Block {new_block.index} added by {node_id}")
+        log_node_activity(node_id, "Add Block", f"Block {new_block.index} added.")
         return True
     else:
-        print("[Block Rejected] Consensus failed.")
+        log_node_activity(node_id, "Add Block", "Rejected by consensus.")
         return False
 
 
 def is_chain_valid():
+    """Validates the entire blockchain."""
     chain = load_chain()
     for i in range(1, len(chain)):
-        current = chain[i]
-        previous = chain[i - 1]
-        recalculated_hash = calculate_hash(
-            current["index"],
-            current["previous_hash"],
-            current["timestamp"],
-            current["transactions"],
-            current.get("validator", ""),
-            current.get("merkle_root", ""),
-            current.get("nonce", 0),
+        current, previous = chain[i], chain[i - 1]
+        recalculated = calculate_hash(
+            current["index"], current["previous_hash"], current["timestamp"],
+            current["transactions"], current.get("validator", ""),
+            current.get("merkle_root", ""), current.get("nonce", 0),
             current.get("metadata", {})
         )
-        if current["hash"] != recalculated_hash:
-            return False
-        if current["previous_hash"] != previous["hash"]:
+        if current["hash"] != recalculated or current["previous_hash"] != previous["hash"]:
             return False
     return True

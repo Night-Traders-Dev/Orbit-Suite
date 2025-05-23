@@ -32,7 +32,7 @@ def send_block(peer_address, block):
                 "type": "block",
                 "data": block.to_dict() if hasattr(block, "to_dict") else block,
             }
-            s.sendall(json.dumps(payload).encode())
+            s.sendall((json.dumps(payload) + "\n").encode())
             s.shutdown(socket.SHUT_WR)
     except (ConnectionRefusedError, socket.timeout, socket.error) as e:
         raise RuntimeError(f"Failed to send block to {peer_address}: {e}")
@@ -65,6 +65,8 @@ def handle_connection(conn, addr, node_id):
             if not chunk:
                 break
             data += chunk
+            if b"\n" in chunk:
+                break
 
         if not data:
             return
