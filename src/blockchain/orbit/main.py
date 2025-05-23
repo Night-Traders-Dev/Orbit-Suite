@@ -118,7 +118,7 @@ def wallet_menu(user):
         clear_screen()
         if choice == "1":
             available, locked = load_balance(user)
-            total = available + locked
+            total = abs(available + locked)
             print(f"Total: {total:.4f} | Locked: {locked:.4f} | Available: {available:.4f}")
         elif choice == "2":
             recipient = input("Recipient: ").strip()

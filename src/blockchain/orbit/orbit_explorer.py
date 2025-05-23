@@ -435,10 +435,9 @@ def address_detail(address):
                 tx_count += 1
 
     avg_tx_size = round((total_sent + total_received) / tx_count, 4) if tx_count else 0
-
+    balance = abs(total_received - total_sent)
     chart_data = []
     today = datetime.datetime.now(datetime.UTC)
-#    today = datetime.datetime.utcnow().date()
     for i in range(14):
         day = today - datetime.timedelta(days=i)
         label = day.strftime("%Y-%m-%d")

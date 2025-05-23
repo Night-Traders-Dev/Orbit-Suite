@@ -1,14 +1,16 @@
-import time, datetime
+import time
+from core.userutil import load_users, save_users
 from blockchain.blockutil import load_chain
 from config.configutil import TXConfig
 
 def load_balance(username):
+    from blockchain.stakeutil import get_user_lockups
+    users = load_users()
+    user_data = users.get(username, {"balance": 0, "locked": []})
+
     blockchain = load_chain(username)
     balance_from_ledger = 0
     locked_from_ledger = []
-    total_sent = 0
-    total_received = 0
-
 
     for block in blockchain:
         for tx_data in block.get("transactions", []):
@@ -16,10 +18,7 @@ def load_balance(username):
             note = tx.note if tx.note else ""
             is_sender = tx.sender == username
             is_recipient = tx.recipient == username
-            if tx.sender == username:
-                total_sent += tx.amount
-            if tx.recipient == username:
-                total_received += tx.amount
+
             # Handle transfer
             if not note or "transfer" in note:
                 if is_sender:
@@ -43,17 +42,35 @@ def load_balance(username):
                     })
                     balance_from_ledger -= tx.amount
 
-            # Handle claimed rewards
+            # Handle claimed rewards (do not double-count)
             elif "claimed reward" in note:
                 if is_recipient:
                     balance_from_ledger += tx.amount
 
+    # Recalculate available and locked balance
+    current_time = time.time()
+    active_locked = sum(
+        lock["amount"]
+        for lock in locked_from_ledger
+        if current_time < lock["start"] + lock["days"] * 86400
+    )
+    available = balance_from_ledger
+
+    # Compare ledger-derived data with user.json
+    user_balance = user_data.get("balance", 0)
+    user_locked = user_data.get("locked", [])
+
+    if abs(user_balance - available) > 1e-6 or user_locked != locked_from_ledger:
+        print("Ledger mismatch detected. Updating user data to match ledger.")
+        user_data["balance"] = round(available, 6)
+        user_data["locked"] = locked_from_ledger
+        users[username] = user_data
+        save_users(users)
+
     locked = 0
-    from blockchain.stakeutil import get_user_lockups
-    total_locked = get_user_lockups(username)
-    for i, lock in enumerate(total_locked):
+    active_locked = get_user_lockups(username)
+    for i, lock in enumerate(active_locked):
         locked += lock["amount"]
-    balance = abs(total_received - total_sent)
 
-    return balance, locked
 
+    return available, locked

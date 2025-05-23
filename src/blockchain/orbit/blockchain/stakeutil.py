@@ -41,15 +41,18 @@ def get_user_lockups(username):
             txdata = TXConfig.Transaction.from_dict(tx)
             note = txdata.note
             if txdata.sender == username and isinstance(note, dict):
-                lock_data = (txdata.note or {}).get("type", {}).get("lockup")
-                if lock_data and "start" in lock_data and "end" in lock_data:
-                    lockups.append({
-                        "amount": lock_data["amount"],
-                        "start": lock_data["start"],
-                        "end": lock_data["end"],
-                        "days": lock_data["days"]
-                    })
-    return lockups
+                try:
+                    lock_data = (txdata.note or {}).get("type", {}).get("lockup")
+                    if lock_data and "start" in lock_data and "end" in lock_data:
+                        lockups.append({
+                            "amount": lock_data["amount"],
+                            "start": lock_data["start"],
+                            "end": lock_data["end"],
+                            "days": lock_data["days"]
+                         })
+                except Exception as e:
+                   continue
+        return lockups
 
 def print_lockups(lockups):
     if not lockups:
@@ -125,8 +128,8 @@ def withdraw_lockup(username):
 
     for i, lock in enumerate(lockups):
         amount = lock["amount"]
-        duration = lock["duration"]
-        start = lock["start_time"]
+        duration = lock["days"]
+        start = lock["start"]
         lock_end = start + duration * 86400
 
         if now >= lock_end:

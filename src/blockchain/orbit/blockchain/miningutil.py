@@ -35,8 +35,8 @@ def get_lockup_reward(user_data):
     active_lockups = [
         lock for lock in locked
         if isinstance(lock, dict)
-        and "amount" in lock and "duration_days" in lock and "start_time" in lock
-        and current_time < lock["start_time"] + lock["duration_days"] * 86400
+        and "locked" in lock and "days" in lock and "start" in lock
+        and current_time < lock["start"] + lock["days"] * 86400
     ]
 
     n = len(active_lockups)
@@ -45,8 +45,8 @@ def get_lockup_reward(user_data):
 
     total = 0
     for lock in active_lockups:
-        Lc = lock["amount"]
-        Lt = lock["duration_days"]
+        Lc = lock["locked"]
+        Lt = lock["days"]
         if Lc > 0 and Lt > 0:
             total += (Lc / Lb) * Lt * math.log(n + 1)
 
@@ -129,4 +129,4 @@ def start_mining(username):
         rate_data = tx_metadata.rate_dict()
         tx_order = TXTypes.MiningTypes.mining_metadata(node_fee, rate_data)
         send_orbit("mining", username, user_payout, order=tx_order)
-        load_balance("mining")
+#        load_balance("mining")
