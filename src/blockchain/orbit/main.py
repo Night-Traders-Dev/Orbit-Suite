@@ -1,5 +1,4 @@
 from blockchain.orbitutil import load_nodes, save_nodes, register_node
-from blockchain.blockutil import start_listener
 from blockchain.stakeutil import view_lockups, lock_tokens, claim_lockup_rewards, withdraw_lockup
 from blockchain.miningutil import start_mining
 from blockchain.tokenutil import send_orbit
@@ -8,6 +7,7 @@ from blockchain.ledgerutil import (
     view_mining_rewards, view_transfers
 )
 from core.circleutil import view_security_circle, add_to_security_circle, remove_from_security_circle
+from core.networkutil import start_listener, handle_connection
 from core.termutil import clear_screen
 from core.walletutil import load_balance
 from core.userutil import login, logout, register
