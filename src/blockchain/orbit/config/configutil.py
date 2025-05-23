@@ -1,193 +1,112 @@
-import ipaddress
-import time
-import socket
-import hashlib
 import os
 import json
+import time
+import hashlib
 
-# ===== Default Constants =====
-DEFAULT_CHAIN_PATH = "data/orbit_chain.json"
-DEFAULT_NODE_DB = "data/nodes.json"
-DEFAULT_PORT = 5000
-DEFAULT_ADDRESS = "0.0.0.0"
-DEFAULT_USER_DB = USERS_FILE = "data/users.json"
-ACTIVE_SESSIONS_FILE = "data/active_sessions.json"
-PENDING_PROPOSALS_FILE = "data/pending_proposals.json"
+DATA_DIR = "data"
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
 
-# ===== Session Assignment (Global Active Sessions) =====
-
-
-def load_active_sessions():
-    if os.path.exists(ACTIVE_SESSIONS_FILE):
-        with open(ACTIVE_SESSIONS_FILE, "r") as f:
-            return json.load(f)
-    return {}
-
-def save_active_sessions(sessions):
-    with open(ACTIVE_SESSIONS_FILE, "w") as f:
-        json.dump(sessions, f, indent=4)
-
-def load_nodes():
-    if os.path.exists(DEFAULT_NODE_DB):
-        with open(DEFAULT_NODE_DB, "r") as f:
-            return json.load(f)
-    return []
-
-def assign_node_to_user(username):
-    sessions = load_active_sessions()
-    nodes = load_nodes()
-    assigned_nodes = set(sessions.values())
-
-    for node in nodes:
-        if node not in assigned_nodes:
-            sessions[username] = node
-            save_active_sessions(sessions)
-            return node
-    return None  # No unassigned node available
-
-def revoke_node_from_user(username):
-    sessions = load_active_sessions()
-    if username in sessions:
-        del sessions[username]
-        save_active_sessions(sessions)
-
-def get_node_for_user(username):
-    sessions = load_active_sessions()
-    return sessions.get(username)
-
-# ===== Node Configuration =====
-class NodeConfig:
+class OrbitDB:
     def __init__(self):
-        self.port: int = self.find_available_port(DEFAULT_PORT)
-        self.address = ipaddress.IPv4Address(DEFAULT_ADDRESS)
-        self.nodedb: str = DEFAULT_NODE_DB
-        self.quorum_slice = []
-        self.trust_score = 0.5  # Initial trust
-        self.uptime_score = 0.5  # Initial uptime
+        self.activesessiondb = os.path.join(DATA_DIR, "active_sessions.json")
+        self.blockchaindb = os.path.join(DATA_DIR, "orbit_chain.json")
+        self.nodedb = os.path.join(DATA_DIR, "nodes.json")
+        self.userdb = os.path.join(DATA_DIR, "users.json")
+        self.peerlog = os.path.join(DATA_DIR, "peers.log")
+        self.pendpropdb: str = os.path.join(DATA_DIR, "pending_proposals.json")
+        self.stakefile = os.path.join(DATA_DIR, "stake.json")
 
-    @staticmethod
-    def port_is_available(port):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.bind((DEFAULT_ADDRESS, port))
-                return True
-            except OSError:
-                return False
-
-    def find_available_port(self, start_port):
-        port = start_port
-        while not self.port_is_available(port):
-            port += 1
-        return port
-
-    def to_dict(self):
-        return {
-            "port": self.port,
-            "address": str(self.address),
-            "nodedb": self.nodedb,
-            "quorum_slice": self.quorum_slice,
-            "trust_score": self.trust_score,
-            "uptime_score": self.uptime_score
-        }
-
-    @classmethod
-    def from_dict(cls, data):
-        node_config = cls()
-        addr_port = data.get("address", DEFAULT_ADDRESS)
-
-        if ":" in addr_port:
-            ip_str, port_str = addr_port.split(":")
-            node_config.address = ipaddress.IPv4Address(ip_str)
-            node_config.port = int(port_str)
-        else:
-            node_config.address = ipaddress.IPv4Address(addr_port)
-            requested_port = data.get("port", DEFAULT_PORT)
-            node_config.port = node_config.find_available_port(requested_port)
-
-        node_config.nodedb = data.get("nodedb", DEFAULT_NODE_DB)
-        node_config.quorum_slice = data.get("quorum_slice", [])
-        node_config.trust_score = data.get("trust_score", 0.5)
-        node_config.uptime_score = data.get("uptime_score", 0.5)
-        return node_config
-
-    def __repr__(self):
-        return (
-            f"NodeConfig(port={self.port}, address={self.address}, nodedb={self.nodedb}, "
-            f"quorum_slice={self.quorum_slice}, trust_score={self.trust_score:.2f}, uptime_score={self.uptime_score:.2f})"
-        )
-
-# ===== Mining Configuration =====
 class MiningConfig:
-    def __init__(self):
-        self.mode: str = "simulation"
+    def init(self):
+        self.mode: str = "mainnet"
         self.base: float = 0.1
         self.decay: float = 0.0001
 
 
-class OrbitDB:
-    def __init__(self):
-        self.activesessiondb: str = ACTIVE_SESSIONS_FILE
-        self.blockchaindb: str = DEFAULT_CHAIN_PATH
-        self.nodedb: str = DEFAULT_NODE_DB
-        self.pendpropdb: str = PENDING_PROPOSALS_FILE
-        self.userdb: str = DEFAULT_USER_DB
+class NodeConfig:
+    def __init__(self, node_id, address, port, quorum_slice=None, trust_score=0.5, uptime_score=0.5, user=None):
+        self.node_id = node_id
+        self.address = address
+        self.port = port
+        self.quorum_slice = quorum_slice or []
+        self.trust_score = trust_score
+        self.uptime_score = uptime_score
+        self.user = user  # Optional field to link node to a user
 
-# ===== Transaction and Block Templates =====
+    def to_dict(self):
+        return {
+            "node_id": self.node_id,
+            "address": self.address,
+            "port": self.port,
+            "quorum_slice": self.quorum_slice,
+            "trust_score": self.trust_score,
+            "uptime_score": self.uptime_score,
+            "user": self.user
+        }
+
+    @staticmethod
+    def from_dict(data):
+        return NodeConfig(
+            node_id=data.get("node_id"),
+            address=data.get("address"),
+            port=data.get("port"),
+            quorum_slice=data.get("quorum_slice", []),
+            trust_score=data.get("trust_score", 0.5),
+            uptime_score=data.get("uptime_score", 0.5),
+            user=data.get("user")
+        )
+
 class TXConfig:
     class Transaction:
-        def __init__(self, sender, recipient, amount, note=None, timestamp=None):
-            if amount < 0:
-                raise ValueError("Transaction amount must be non-negative")
+        def __init__(self, sender, recipient, amount, timestamp=None, note="", **kwargs):
             self.sender = sender
             self.recipient = recipient
             self.amount = amount
+            self.timestamp = timestamp or time.time()
             self.note = note if note is not None else {}
-            self.timestamp = timestamp if timestamp is not None else time.time()
+            self.extra = kwargs  # Any additional fields
 
         def to_dict(self):
-            return {
+            tx = {
                 "sender": self.sender,
                 "recipient": self.recipient,
                 "amount": self.amount,
-                "note": self.note,
-                "timestamp": self.timestamp
+                "timestamp": self.timestamp,
+                "note": self.note
             }
+            tx.update(self.extra)
+            return tx
 
         @staticmethod
         def from_dict(data):
-            sender = data.get("from", data.get("sender"))
-            recipient = data.get("to", data.get("recipient"))
-            amount = data["amount"]
-            note = data.get("note", {})
-            timestamp = data.get("timestamp", time.time())
-            return TXConfig.Transaction(sender, recipient, amount, note, timestamp)
-
-        def __repr__(self):
-            return f"Transaction({self.sender} -> {self.recipient}: {self.amount}, Timestamp: {self.timestamp}, Note: {self.note})"
+            return TXConfig.Transaction(
+                sender=data.get("sender", ""),
+                recipient=data.get("recipient", ""),
+                amount=data.get("amount", 0),
+                timestamp=data.get("timestamp", time.time()),
+                note=data.get("note", ""),
+                **{k: v for k, v in data.items() if k not in {"sender", "recipient", "amount", "tx_type", "timestamp", "note"}}
+            )
 
     class Block:
-        def __init__(self, index, timestamp, transactions, previous_hash, hash,
-                     validator="", signatures=None, merkle_root="", nonce=0, metadata=None):
+        def __init__(self, index, timestamp, transactions, previous_hash, hash, validator, signatures, merkle_root, nonce, metadata=None):
             self.index = index
             self.timestamp = timestamp
-            self.transactions = transactions  # List of TXConfig.Transaction or dicts
+            self.transactions = transactions
             self.previous_hash = previous_hash
             self.hash = hash
             self.validator = validator
-            self.signatures = signatures if signatures else {}
-            self.transactions = [
-                tx if isinstance(tx, TXConfig.Transaction) else TXConfig.Transaction.from_dict(tx)
-                for tx in transactions
-            ]
-            self.merkle_root = merkle_root or self.compute_merkle_root()
+            self.signatures = signatures
+            self.merkle_root = merkle_root
             self.nonce = nonce
-            self.metadata = metadata if metadata else {}
+            self.metadata = metadata or {}
 
         def to_dict(self):
             return {
                 "index": self.index,
                 "timestamp": self.timestamp,
-                "transactions": [tx.to_dict() for tx in self.transactions],
+                "transactions": [tx.to_dict() if hasattr(tx, "to_dict") else tx for tx in self.transactions],
                 "previous_hash": self.previous_hash,
                 "hash": self.hash,
                 "validator": self.validator,
@@ -199,13 +118,14 @@ class TXConfig:
 
         @staticmethod
         def from_dict(data):
-            txs = [TXConfig.Transaction.from_dict(tx) for tx in data["transactions"]]
+            txs = data.get("transactions", [])
+            tx_objs = [TXConfig.Transaction.from_dict(tx) for tx in txs]
             return TXConfig.Block(
-                index=data["index"],
-                timestamp=data["timestamp"],
-                transactions=txs,
-                previous_hash=data["previous_hash"],
-                hash=data["hash"],
+                index=data.get("index"),
+                timestamp=data.get("timestamp"),
+                transactions=tx_objs,
+                previous_hash=data.get("previous_hash"),
+                hash=data.get("hash"),
                 validator=data.get("validator", ""),
                 signatures=data.get("signatures", {}),
                 merkle_root=data.get("merkle_root", ""),
@@ -213,20 +133,34 @@ class TXConfig:
                 metadata=data.get("metadata", {})
             )
 
-        def compute_merkle_root(self):
-            tx_hashes = [self.hash_transaction(tx) for tx in self.transactions]
+        def generate_merkle_root(self):
+            tx_hashes = [hashlib.sha256(json.dumps(tx.to_dict(), sort_keys=True).encode()).hexdigest()
+                         for tx in self.transactions]
             while len(tx_hashes) > 1:
-                if len(tx_hashes) % 2 != 0:
-                    tx_hashes.append(tx_hashes[-1])  # duplicate last if odd
-                tx_hashes = [
-                    hashlib.sha256((tx_hashes[i] + tx_hashes[i + 1]).encode()).hexdigest()
-                    for i in range(0, len(tx_hashes), 2)
-                ]
+                if len(tx_hashes) % 2 == 1:
+                    tx_hashes.append(tx_hashes[-1])
+                tx_hashes = [hashlib.sha256((tx_hashes[i] + tx_hashes[i + 1]).encode()).hexdigest()
+                             for i in range(0, len(tx_hashes), 2)]
             return tx_hashes[0] if tx_hashes else ""
 
-        def hash_transaction(self, tx):
-            raw = f"{tx.sender}->{tx.recipient}:{tx.amount}:{tx.timestamp}"
-            return hashlib.sha256(raw.encode()).hexdigest()
-
-        def __repr__(self):
-            return f"Block(Index: {self.index}, TXs: {len(self.transactions)}, Validator: {self.validator})"
+def get_node_for_user(user_id):
+    path = os.path.join(DATA_DIR, "nodes.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r") as f:
+            nodes = json.load(f)
+        for node_id, config in nodes.items():
+            if config.get("user") == user_id:
+                return node_id
+        # Otherwise, find an unused node
+        for node_id, config in nodes.items():
+            if not config.get("user"):
+                config["user"] = user_id
+                nodes[node_id] = config
+                with open(path, "w") as f:
+                    json.dump(nodes, f, indent=4)
+                return node_id
+    except Exception as e:
+        print(f"[get_node_for_user] Error: {e}")
+    return None

@@ -5,13 +5,12 @@ import rsa
 import sys
 import time
 from cryptography.fernet import Fernet
-from config.configutil import assign_node_to_user, load_active_sessions, OrbitDB
+from config.configutil import OrbitDB
+from blockchain.orbitutil import load_nodes, save_nodes, assign_node_to_user
 from core.termutil import clear_screen
 
 orbit_db = OrbitDB()
 
-USERS_FILE = orbit_db.userdb
-SESSIONS_FILE = orbit_db.activesessiondb
 KEY_SIZE = 2048  # Use strong RSA key
 AES_KEY_FILE = "data/aes.key"
 
@@ -35,14 +34,24 @@ def decrypt_private_key(cipher_text):
     return fernet.decrypt(cipher_text.encode()).decode()
 
 # ===================== USER FUNCS =====================
+def load_active_sessions():
+    if os.path.exists(orbit_db.activesessiondb):
+        with open(orbit_db.activesessiondb, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_active_sessions(sessions):
+    with open(orbit_db.activesessiondb, "w") as f:
+        json.dump(sessions, f, indent=4)
+
 def load_users():
-    if os.path.exists(USERS_FILE):
-        with open(USERS_FILE, "r") as f:
+    if os.path.exists(orbit_db.userdb):
+        with open(orbit_db.userdb, "r") as f:
             return json.load(f)
     return {}
 
 def save_users(users):
-    with open(USERS_FILE, "w") as f:
+    with open(orbit_db.userdb, "w") as f:
         json.dump(users, f, indent=4)
 
 def hash_password(password):
@@ -112,7 +121,7 @@ def login():
         print(f"{username} is already logged in on node {sessions[username]}.")
         return username
 
-    node_id = assign_node_to_user(username)
+    node_id = assign_node_to_user(username, sessions)
     if not node_id:
         print("No available nodes at the moment. Try again later.")
         sys.exit()
@@ -121,15 +130,15 @@ def login():
     return username, node_id
 
 def logout(user_id):
-    if not os.path.exists(SESSIONS_FILE):
+    if not os.path.exists(orbit_db.activesessiondb):
         return
 
-    with open(SESSIONS_FILE, "r") as f:
+    with open(orbit_db.activesessiondb, "r") as f:
         sessions = json.load(f)
 
     if user_id in sessions:
         del sessions[user_id]
-        with open(SESSIONS_FILE, "w") as f:
+        with open(orbit_db.activesessiondb, "w") as f:
             json.dump(sessions, f, indent=4)
         log_event("LOGOUT", user_id)
     else:
@@ -213,15 +222,15 @@ def web_login(username=None, password=None):
     return username, node_id
 
 def web_logout(user_id):
-    if not os.path.exists(SESSIONS_FILE):
+    if not os.path.exists(orbit_db.activesessiondb):
         return
 
-    with open(SESSIONS_FILE, "r") as f:
+    with open(orbit_db.activesessiondb, "r") as f:
         sessions = json.load(f)
 
     if user_id in sessions:
         del sessions[user_id]
-        with open(SESSIONS_FILE, "w") as f:
+        with open(orbit_db.activesessiondb, "w") as f:
             json.dump(sessions, f, indent=4)
         log_event("LOGOUT", user_id)
     else:
