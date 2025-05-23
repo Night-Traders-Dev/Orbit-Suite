@@ -1,39 +1,15 @@
 import json
 import os
-import hashlib
-import rsa
 import sys
 import time
 import threading
-from cryptography.fernet import Fernet
 from config.configutil import OrbitDB
 from blockchain.orbitutil import load_nodes, save_nodes, assign_node_to_user
+from core.hashutil import load_aes_key, encrypt_private_key, decrypt_private_key, hash_password
 from core.termutil import clear_screen
 from core.networkutil import start_listener
 
 orbit_db = OrbitDB()
-
-KEY_SIZE = 2048  # Use strong RSA key
-AES_KEY_FILE = "data/aes.key"
-
-# ===================== AES UTILS =====================
-def load_aes_key():
-    if not os.path.exists(AES_KEY_FILE):
-        key = Fernet.generate_key()
-        with open(AES_KEY_FILE, "wb") as f:
-            f.write(key)
-    with open(AES_KEY_FILE, "rb") as f:
-        return f.read()
-
-def encrypt_private_key(plain_text):
-    key = load_aes_key()
-    fernet = Fernet(key)
-    return fernet.encrypt(plain_text.encode()).decode()
-
-def decrypt_private_key(cipher_text):
-    key = load_aes_key()
-    fernet = Fernet(key)
-    return fernet.decrypt(cipher_text.encode()).decode()
 
 # ===================== USER FUNCS =====================
 def load_active_sessions():
@@ -55,9 +31,6 @@ def load_users():
 def save_users(users):
     with open(orbit_db.userdb, "w") as f:
         json.dump(users, f, indent=4)
-
-def hash_password(password):
-    return hashlib.sha256(password.encode()).hexdigest()
 
 def log_event(action, username):
     with open("user_activity.log", "a") as f:

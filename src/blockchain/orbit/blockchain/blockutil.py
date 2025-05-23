@@ -9,38 +9,14 @@ import platform
 
 from blockchain.orbitutil import update_trust, update_uptime, save_nodes, load_nodes, simulate_peer_vote, sign_vote, relay_pending_proposal, simulate_quorum_vote, select_next_validator, log_node_activity
 from config.configutil import OrbitDB, NodeConfig, TXConfig, get_node_for_user
+from core.hashutil import generate_merkle_root, calculate_hash
 from core.userutil import load_users, save_users
 from core.networkutil import start_listener, handle_connection, send_block
 
 orbit_db = OrbitDB()
 
 CHAIN_FILE = orbit_db.blockchaindb
-
-
-def generate_merkle_root(transaction_dicts):
-    def hash_pair(a, b):
-        return hashlib.sha256((a + b).encode()).hexdigest()
-
-    tx_hashes = [hashlib.sha256(json.dumps(tx, sort_keys=True).encode()).hexdigest() for tx in transaction_dicts]
-    while len(tx_hashes) > 1:
-        if len(tx_hashes) % 2 == 1:
-            tx_hashes.append(tx_hashes[-1])  # duplicate last hash if odd
-        tx_hashes = [hash_pair(tx_hashes[i], tx_hashes[i+1]) for i in range(0, len(tx_hashes), 2)]
-    return tx_hashes[0] if tx_hashes else ""
-
-def calculate_hash(index, previous_hash, timestamp, transactions, validator="", merkle_root="", nonce=0, metadata=None):
-    block_content = {
-        "index": index,
-        "previous_hash": previous_hash,
-        "timestamp": timestamp,
-        "transactions": transactions,
-        "validator": validator,
-        "merkle_root": merkle_root,
-        "nonce": nonce,
-        "metadata": metadata or {}
-    }
-    block_string = json.dumps(block_content, sort_keys=True)
-    return hashlib.sha256(block_string.encode()).hexdigest()
+LOCK_FILE = CHAIN_FILE + ".lock"
 
 def create_genesis_block():
     genesis_block = TXConfig.Block(
@@ -67,7 +43,6 @@ def create_genesis_block():
     )
     return genesis_block.to_dict()
 
-LOCK_FILE = CHAIN_FILE + ".lock"
 
 def acquire_soft_lock(owner_id, timeout=5):
     start = time.time()
