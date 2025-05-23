@@ -4,35 +4,37 @@ from config.configutil import TXConfig
 
 def load_balance(username):
     blockchain = load_chain(username)
-    balance_from_ledger = 0
+    balance = 0
     locked_from_ledger = []
     total_sent = 0
     total_received = 0
 
-
     for block in blockchain:
         for tx_data in block.get("transactions", []):
             tx = TXConfig.Transaction.from_dict(tx_data)
-            note = tx.note if tx.note else ""
+            note = (tx.note or "")
             is_sender = tx.sender == username
             is_recipient = tx.recipient == username
-            if tx.sender == username:
+
+            # Tally totals
+            if is_sender:
                 total_sent += tx.amount
-            if tx.recipient == username:
+            if is_recipient:
                 total_received += tx.amount
-            # Handle transfer
+
+            # Transfer logic (default if note is empty or includes "transfer")
             if not note or "transfer" in note:
                 if is_sender:
-                    balance_from_ledger -= tx.amount
+                    balance -= tx.amount
                 if is_recipient:
-                    balance_from_ledger += tx.amount
+                    balance += tx.amount
 
-            # Handle mining reward
+            # Mining reward
             elif "mining reward" in note:
                 if is_recipient:
-                    balance_from_ledger += tx.amount
+                    balance += tx.amount
 
-            # Handle lockup
+            # Lockup transaction
             elif "lockup" in note:
                 if is_sender:
                     locked_from_ledger.append({
@@ -41,19 +43,19 @@ def load_balance(username):
                         "days": tx.lock_duration,
                         "locked": tx.claim_until or (tx.timestamp + tx.lock_duration * 86400),
                     })
-                    balance_from_ledger -= tx.amount
+                    balance -= tx.amount
 
-            # Handle claimed rewards
+            # Claimed reward
             elif "claimed reward" in note:
                 if is_recipient:
-                    balance_from_ledger += tx.amount
+                    balance += tx.amount
 
-    locked = 0
-    from blockchain.stakeutil import get_user_lockups
-    total_locked = get_user_lockups(username)
-    for i, lock in enumerate(total_locked):
-        locked += lock["amount"]
-    balance = abs(total_received - total_sent)
+    # Calculate currently locked amount from ledger
+    current_time = time.time()
+    active_locked = sum(
+        lock["amount"]
+        for lock in locked_from_ledger
+        if current_time < lock["start"] + lock["days"] * 86400
+    )
 
-    return balance, locked
-
+    return round(balance, 6), round(active_locked, 6)
