@@ -7,7 +7,7 @@ import socket
 import threading
 import platform
 
-from blockchain.orbitutil import update_trust, update_uptime, save_nodes, load_nodes, simulate_peer_vote, sign_vote, relay_pending_proposal, simulate_quorum_vote, select_next_validator
+from blockchain.orbitutil import update_trust, update_uptime, save_nodes, load_nodes, simulate_peer_vote, sign_vote, relay_pending_proposal, simulate_quorum_vote, select_next_validator, log_node_activity
 from config.configutil import OrbitDB, NodeConfig, TXConfig, get_node_for_user
 from core.userutil import load_users, save_users
 from core.networkutil import start_listener, handle_connection, send_block
@@ -168,7 +168,7 @@ def propose_block(node_id, block_data, timeout=5):
     nodes = load_nodes()
 
     if node_id not in nodes:
-        print(f"Node {node_id} is not registered.")
+        log_node_activity(node_id, "Propose Block", f"Node {node_id} is not registered.")
         return False
 
     node_id = select_next_validator()
@@ -185,7 +185,7 @@ def propose_block(node_id, block_data, timeout=5):
 
         peer_data = nodes.get(peer_id)
         if not peer_data:
-            print(f"[Propose] Peer {peer_id} not found in registry.")
+            log_node_activity(node_id, "Propose Block", f"[Propose] Peer {peer_id} not found in registry.")
             continue
 
         peer_config = NodeConfig.from_dict(peer_data)
@@ -214,26 +214,25 @@ def propose_block(node_id, block_data, timeout=5):
 
     if len(votes) >= required_votes:
         save_nodes(nodes)
-        print(f"[Propose] Consensus passed: {len(votes)} votes (required {required_votes}).")
+        log_node_activity(node_id, "Propose Block", f"[Propose] Consensus passed: {len(votes)} votes (required {required_votes}).")
         return True
     else:
-        print(f"[Propose] Consensus failed: {len(votes)} votes (required {required_votes}).")
+        log_node_activity(node_id, "Propose Block", f"[Propose] Consensus failed: {len(votes)} votes (required {required_votes}).")
         relay_pending_proposal(node_id, block_data)
         save_nodes(nodes)
         return False
 
 def receive_block(block):
-    print("Receiving Block")
     chain = load_chain()
     last_block = chain[-1]
 
     if block["index"] != last_block["index"]:
-        print("Rejected block: invalid index.")
+        log_node_activity(node_id, "Recieve Block", "Rejected block: invalid index.")
         return False
 
     if block["previous_hash"] != last_block["hash"]:
-        print("Rejected block: previous hash mismatch.")
-        print(f"Expected: {last_block['hash']}, got: {block['previous_hash']}")
+        log_node_activity(node_id, "Recieve Block", "Rejected block: previous hash mismatch.")
+        log_node_activity(node_id, "Recieve Block", f"Expected: {last_block['hash']}, got: {block['previous_hash']}")
         return False
 
     recalculated_hash = calculate_hash(
@@ -248,7 +247,7 @@ def receive_block(block):
     )
 
     if recalculated_hash != block["hash"]:
-        print("Rejected block: invalid hash.")
+        log_node_activity(node_id, "Recieve Block", "Rejected block: invalid hash.")
         return False
 
     chain.append(block)
@@ -268,7 +267,7 @@ def broadcast_block(block, sender_id=None):
             try:
                 send_block(full_address, block)
             except Exception as e:
-                print(f"Failed to send block to {node_id} at {full_address}: {e}")
+                log_node_activity(node_id, "Broadcast Block", f"Failed to send block to {node_id} at {full_address}: {e}")
 
 def add_block(transactions, node_id="Node1"):
     chain = load_chain()
@@ -276,8 +275,9 @@ def add_block(transactions, node_id="Node1"):
 
     tx_objs = [TXConfig.Transaction.from_dict(tx) for tx in transactions]
 
-    # Calculate Merkle root from transaction dicts
-    merkle_root = generate_merkle_root([tx.to_dict() for tx in tx_objs])
+    # Generate Merkle root using transaction dicts
+    tx_dicts = [tx.to_dict() for tx in tx_objs]
+    merkle_root = generate_merkle_root(tx_dicts)
 
     new_block = TXConfig.Block(
         index=len(chain),
@@ -292,49 +292,45 @@ def add_block(transactions, node_id="Node1"):
         metadata={"lockup_rewards": [], "version": "1.0"}
     )
 
-    # Calculate hash for the new block
     new_block.hash = calculate_hash(
         new_block.index,
         new_block.previous_hash,
         new_block.timestamp,
-        [tx.to_dict() for tx in new_block.transactions],
+        tx_dicts,
         new_block.validator,
         new_block.merkle_root,
         new_block.nonce,
         new_block.metadata
     )
 
-    # Propose block to consensus
-    if propose_block(node_id, new_block):
+    # Note: proposer is selected again to simulate dynamic leader
+    if propose_block(new_block.validator, new_block):
         users = load_users()
 
         for tx in new_block.transactions:
-            tx_dict = tx.to_dict() if hasattr(tx, "to_dict") else tx
-            sender = tx_dict.get("sender")
-            recipient = tx_dict.get("recipient")
-            amount = tx_dict.get("amount", 0)
+            tx_data = tx.to_dict() if hasattr(tx, "to_dict") else tx
+            sender = tx_data.get("sender")
+            recipient = tx_data.get("recipient")
+            amount = tx_data.get("amount", 0)
 
-            # Handle unknown accounts
-            if sender not in users:
-                print(f"Unknown sender {sender}, skipping transaction.")
-                continue
-            if recipient not in users:
-                print(f"Unknown recipient {recipient}, skipping transaction.")
+            if sender not in users or recipient not in users:
+                log_node_activity(node_id, "Add Block", f"[TX Skipped] Sender or recipient unknown: {sender} → {recipient}")
                 continue
 
-            # Perform the transfer if balance is sufficient
             if users[sender]["balance"] >= amount:
                 users[sender]["balance"] -= amount
                 users[recipient]["balance"] += amount
             else:
-                print(f"Insufficient funds for {sender}, skipping transaction.")
-                continue
+                log_node_activity(node_id, "Add Block", f"[TX Failed] Insufficient balance: {sender} has {users[sender]['balance']} Orbit")
 
-        # Save updated user balances
         save_users(users)
-
-        # Broadcast new block to network
-        broadcast_block(new_block, node_id)
+        save_chain(chain + [new_block.to_dict()])
+        broadcast_block(new_block.to_dict(), sender_id=node_id)
+        log_node_activity(node_id, "Add Block", f"[Block Added] Block {new_block.index} added by {node_id}")
+        return True
+    else:
+        print("[Block Rejected] Consensus failed.")
+        return False
 
 
 def is_chain_valid():
