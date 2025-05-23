@@ -2,12 +2,6 @@ import time, datetime
 from blockchain.blockutil import load_chain
 from config.configutil import TXConfig
 
-chain = load_chain()
-for block in chain:
-    for tx in block.get("transactions", {}):
-        if tx["sender"] == "blmvxer" and tx["recipient"] == "lockup_rewards":
-            print(tx["note"]["type"]["lockup"]["amount"])
-
 def load_balance(username):
     blockchain = load_chain(username)
     balance = 0

@@ -281,7 +281,7 @@ def locked():
                 if locked and start and end:
                     days_remaining = max(0, int((end - now) / 86400))
                     entry = {
-                        "username": tx.get("recipient", ""),
+                        "username": tx.get("sender", ""),
                         "amount": float(locked),
                         "duration": round(days, 1),
                         "days_remaining": days_remaining,
@@ -344,14 +344,13 @@ def tx_detail(txid):
                 # Search this block for a node fee transaction
                 fee_applied = None
                 for other_tx in txs:
-                    note = other_tx.get("note")
-                    if (isinstance(note, dict) and 
-                        note.get("type", {}).get("gas", {}) and 
-                        other_tx.get("recipient") == "nodefeecollector"):
+                    if other_tx["recipient"] == "nodefeecollector":
+                        tx_fee = other_tx['note']['type']['gas']['fee']
+                        tx_node = other_tx['note']['type']['gas']['node']
                         fee_applied = {
-                            "amount": other_tx.get("amount"),
-                            "node": note.get("node"),
-                            "type": note.get("type")
+                            "amount": tx_fee,
+                            "node": tx_node,
+                            "type": "gas"
                         }
                         break
 

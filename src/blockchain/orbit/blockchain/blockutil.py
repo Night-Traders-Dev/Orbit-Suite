@@ -7,7 +7,7 @@ import socket
 import threading
 import platform
 
-from blockchain.orbitutil import save_nodes, load_nodes, simulate_peer_vote, sign_vote, relay_pending_proposal, simulate_quorum_vote
+from blockchain.orbitutil import update_trust, update_uptime, save_nodes, load_nodes, simulate_peer_vote, sign_vote, relay_pending_proposal, simulate_quorum_vote, select_next_validator
 from config.configutil import OrbitDB, NodeConfig, TXConfig, get_node_for_user
 from core.userutil import load_users, save_users
 
@@ -46,6 +46,8 @@ def handle_connection(conn, addr, node_id):
 
             # Skip if block already exists
             if any(b["hash"] == block_data["hash"] for b in chain):
+                update_trust(node_id, success=False)
+                update_uptime(node_id, is_online=True)
                 return
 
             # First-time use: accept block if chain is empty and index is 0
@@ -57,6 +59,8 @@ def handle_connection(conn, addr, node_id):
             if chain and block_data["previous_hash"] == chain[-1]["hash"]:
                 chain.append(block_data)
                 save_chain(chain)
+                update_trust(node_id, success=True)
+                update_uptime(node_id, is_online=True)
 
     except Exception as e:
         print(f"[{node_id}] Error handling connection from {addr}: {e}")
@@ -207,6 +211,7 @@ def propose_block(node_id, block_data, timeout=5):
         print(f"Node {node_id} is not registered.")
         return False
 
+    node_id = select_next_validator()
     proposer_config = NodeConfig.from_dict(nodes[node_id])
     quorum_slice = proposer_config.quorum_slice
 

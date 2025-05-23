@@ -90,27 +90,8 @@ def select_next_validator():
         log_node_activity(selected, "select_next_validator", "Selected as next validator")
     return selected
 
+
 def relay_pending_proposal(node_id, block_data):
-    if not os.path.exists(PENDING_PROPOSALS_FILE):
-        proposals = []
-    else:
-        with open(PENDING_PROPOSALS_FILE, "r") as f:
-            proposals = json.load(f)
-
-    proposals.append({
-        "node_id": node_id,
-        "block_data": block_data,
-        "timestamp": time.time()
-    })
-
-    with open(PENDING_PROPOSALS_FILE, "w") as f:
-        json.dump(proposals, f, indent=2)
-
-    log_node_activity(node_id, "relay_pending_proposal", f"Block {block_data} queued")
-    print("[Relay] Proposal added to retry queue.")
-
-
-def relay_pending_proposal_new(node_id, block_data):
     nodes = load_nodes()
     quorum = nodes.get(node_id, {}).get("quorum_slice", [])
 
