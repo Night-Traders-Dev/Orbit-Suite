@@ -129,4 +129,3 @@ def start_mining(username):
         rate_data = tx_metadata.rate_dict()
         tx_order = TXTypes.MiningTypes.mining_metadata(node_fee, rate_data)
         send_orbit("mining", username, user_payout, order=tx_order)
-#        load_balance("mining")

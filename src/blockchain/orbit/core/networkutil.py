@@ -1,4 +1,3 @@
-# networkutil.py
 import json
 import requests
 import socket
@@ -25,19 +24,19 @@ def send_block(peer_address, block):
 
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(5)  # Avoid hangs on unresponsive nodes
+            s.settimeout(5)
             s.connect((host, port))
             payload = {
                 "type": "block",
-                "data": block.to_dict() if hasattr(block, "to_dict") else block
+                "data": block.to_dict() if hasattr(block, "to_dict") else block,
             }
             s.sendall(json.dumps(payload).encode())
-
             s.shutdown(socket.SHUT_WR)
     except (ConnectionRefusedError, socket.timeout, socket.error) as e:
         raise RuntimeError(f"Failed to send block to {peer_address}: {e}")
 
 def start_listener(node_id):
+    from blockchain.orbitutil import load_nodes
     node_data = load_nodes().get(node_id)
     if not node_data:
         print(f"No config found for node {node_id}")
@@ -57,9 +56,16 @@ def start_listener(node_id):
 
 def handle_connection(conn, addr, node_id):
     try:
-        from blockchain.blockutil import load_chain, save_chain
+        from blockchain.blockutil import load_chain, save_chain, receive_block
         from blockchain.orbitutil import update_trust, update_uptime
-        data = conn.recv(4096)
+
+        data = b""
+        while True:
+            chunk = conn.recv(4096)
+            if not chunk:
+                break
+            data += chunk
+
         if not data:
             return
 
@@ -70,19 +76,41 @@ def handle_connection(conn, addr, node_id):
             chain = load_chain()
 
             if any(b["hash"] == block_data["hash"] for b in chain):
+                print(f"[{node_id}] Duplicate block {block_data['hash']}, ignoring.")
                 update_trust(node_id, success=False)
                 update_uptime(node_id, is_online=True)
                 return
 
             if not chain and block_data["index"] == 0:
+                print(f"[{node_id}] Genesis block accepted.")
                 save_chain([block_data])
                 return
 
             if chain and block_data["previous_hash"] == chain[-1]["hash"]:
+                print(f"[{node_id}] Block accepted at index {block_data['index']}.")
                 chain.append(block_data)
                 save_chain(chain)
                 update_trust(node_id, success=True)
                 update_uptime(node_id, is_online=True)
+                receive_block(block_data)
+                return
+
+            # Attempt backtrack
+            for i in range(len(chain) - 1, -1, -1):
+                if chain[i]["hash"] == block_data["previous_hash"]:
+                    print(f"[{node_id}] Block attached after backtracking to index {i}.")
+                    new_chain = chain[:i+1] + [block_data]
+                    save_chain(new_chain)
+                    update_trust(node_id, success=True)
+                    update_uptime(node_id, is_online=True)
+                    receive_block(block_data)
+                    return
+
+            print(f"[{node_id}] Rejected block: previous hash mismatch.\n"
+                  f"Expected: {chain[-1]['hash'] if chain else 'None'}, "
+                  f"got: {block_data['previous_hash']}")
+            update_trust(node_id, success=False)
+            update_uptime(node_id, is_online=True)
 
     except Exception as e:
         print(f"[{node_id}] Error handling connection from {addr}: {e}")

@@ -18,7 +18,7 @@ class OrbitDB:
         self.stakefile = os.path.join(DATA_DIR, "stake.json")
 
 class MiningConfig:
-    def init(self):
+    def __init__(self):
         self.mode: str = "mainnet"
         self.base: float = 0.1
         self.decay: float = 0.0001

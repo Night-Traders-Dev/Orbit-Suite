@@ -7,12 +7,10 @@ from blockchain.ledgerutil import (
     view_mining_rewards, view_transfers
 )
 from core.circleutil import view_security_circle, add_to_security_circle, remove_from_security_circle
-from core.networkutil import start_listener, handle_connection
 from core.termutil import clear_screen
 from core.walletutil import load_balance
 from core.userutil import login, logout, register
 import sys
-import threading
 from colorama import Fore, Style, init
 
 init(autoreset=True)
@@ -31,11 +29,8 @@ def pre_login_menu():
         choice = input(PROMPT).strip()
         clear_screen()
         if choice == "1":
-            result = login()
-            if result:
-                user, node_id = result
-                threading.Thread(target=start_listener, args=(node_id,), daemon=True).start()
-                post_login_menu(user)
+            user, node_id = login()
+            post_login_menu(user)
         elif choice == "2":
             register()
         elif choice == "3":

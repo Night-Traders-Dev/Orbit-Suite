@@ -214,6 +214,7 @@ def propose_block(node_id, block_data, timeout=5):
 
     if len(votes) >= required_votes:
         save_nodes(nodes)
+        print(f"[Propose] Consensus passed: {len(votes)} votes (required {required_votes}).")
         return True
     else:
         print(f"[Propose] Consensus failed: {len(votes)} votes (required {required_votes}).")
@@ -222,10 +223,11 @@ def propose_block(node_id, block_data, timeout=5):
         return False
 
 def receive_block(block):
+    print("Receiving Block")
     chain = load_chain()
     last_block = chain[-1]
 
-    if block["index"] != last_block["index"] + 1:
+    if block["index"] != last_block["index"]:
         print("Rejected block: invalid index.")
         return False
 
@@ -271,7 +273,6 @@ def broadcast_block(block, sender_id=None):
 def add_block(transactions, node_id="Node1"):
     chain = load_chain()
     last_block = chain[-1]
-    node_id = select_next_validator()
 
     tx_objs = [TXConfig.Transaction.from_dict(tx) for tx in transactions]
 

@@ -4,10 +4,12 @@ import hashlib
 import rsa
 import sys
 import time
+import threading
 from cryptography.fernet import Fernet
 from config.configutil import OrbitDB
 from blockchain.orbitutil import load_nodes, save_nodes, assign_node_to_user
 from core.termutil import clear_screen
+from core.networkutil import start_listener
 
 orbit_db = OrbitDB()
 
@@ -94,7 +96,7 @@ def register():
         "locked": [],
         "security_circle": [],
         "referrals": [],
-        "mining_start_time": time.time()
+        "mining_start_time": time.time() - 3600
     }
 
     save_users(users)
@@ -125,7 +127,7 @@ def login():
     if not node_id:
         print("No available nodes at the moment. Try again later.")
         sys.exit()
-
+    threading.Thread(target=start_listener, args=(node_id,), daemon=True).start()
     log_event("LOGIN", username)
     return username, node_id
 
