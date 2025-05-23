@@ -38,24 +38,22 @@ def handle_connection(conn, addr, node_id):
         data = conn.recv(4096)
         if not data:
             return
+
         msg = json.loads(data.decode())
 
         if msg.get("type") == "block":
             block_data = msg["data"]
             chain = load_chain()
 
-            # Skip if block already exists
             if any(b["hash"] == block_data["hash"] for b in chain):
                 update_trust(node_id, success=False)
                 update_uptime(node_id, is_online=True)
                 return
 
-            # First-time use: accept block if chain is empty and index is 0
             if not chain and block_data["index"] == 0:
                 save_chain([block_data])
                 return
 
-            # Normal validation
             if chain and block_data["previous_hash"] == chain[-1]["hash"]:
                 chain.append(block_data)
                 save_chain(chain)
@@ -66,7 +64,6 @@ def handle_connection(conn, addr, node_id):
         print(f"[{node_id}] Error handling connection from {addr}: {e}")
     finally:
         conn.close()
-
 
 
 def generate_merkle_root(transaction_dicts):
@@ -309,10 +306,20 @@ def send_block(peer_address, block):
     host, port = peer_address.split(":")
     port = int(port)
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((host, port))
-        data = json.dumps({"type": "block", "data": block.to_dict()})
-        s.sendall(data.encode())
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(5)  # Avoid hangs on unresponsive nodes
+            s.connect((host, port))
+            payload = {
+                "type": "block",
+                "data": block.to_dict() if hasattr(block, "to_dict") else block
+            }
+            s.sendall(json.dumps(payload).encode())
+
+            s.shutdown(socket.SHUT_WR)
+    except (ConnectionRefusedError, socket.timeout, socket.error) as e:
+        raise RuntimeError(f"Failed to send block to {peer_address}: {e}")
+
 
 def broadcast_block(block, sender_id=None):
     nodes = load_nodes()
