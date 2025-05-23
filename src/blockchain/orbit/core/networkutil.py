@@ -3,7 +3,7 @@ import requests
 import socket
 import threading
 from core.ioutil import load_chain, save_chain, load_nodes
-
+from core.logutil import log_node_activity
 
 def ping_node(address):
     try:
@@ -40,7 +40,7 @@ def send_block(peer_address, block):
 def start_listener(node_id):
     node_data = load_nodes().get(node_id)
     if not node_data:
-        print(f"No config found for node {node_id}")
+        log_node_activity(node_id, "Start Listener", f"No config found for node {node_id}")
         return
 
     address = node_data["address"]
@@ -49,7 +49,7 @@ def start_listener(node_id):
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind((address, port))
     server.listen()
-    print(f"[Listener] {node_id} listening on {address}:{port}...")
+    log_node_activity(node_id, "Start Listener", f"[Listener] {node_id} listening on {address}:{port}...")
 
     while True:
         conn, addr = server.accept()
@@ -76,18 +76,18 @@ def handle_connection(conn, addr, node_id):
             chain = load_chain()
 
             if any(b["hash"] == block_data["hash"] for b in chain):
-                print(f"[{node_id}] Duplicate block {block_data['hash']}, ignoring.")
+                log_node_activity(node_id, "Handle Connection", f"[{node_id}] Duplicate block {block_data['hash']}, ignoring.")
                 update_trust(node_id, success=False)
                 update_uptime(node_id, is_online=True)
                 return
 
             if not chain and block_data["index"] == 0:
-                print(f"[{node_id}] Genesis block accepted.")
+                log_node_activity(node_id, "Handle Connection", f"[{node_id}] Genesis block accepted.")
                 save_chain([block_data])
                 return
 
             if chain and block_data["previous_hash"] == chain[-1]["hash"]:
-                print(f"[{node_id}] Block accepted at index {block_data['index']}.")
+                log_node_activity(node_id, "Handle Connection", f"[{node_id}] Block accepted at index {block_data['index']}.")
                 chain.append(block_data)
                 save_chain(chain)
                 update_trust(node_id, success=True)
@@ -98,7 +98,7 @@ def handle_connection(conn, addr, node_id):
             # Attempt backtrack
             for i in range(len(chain) - 1, -1, -1):
                 if chain[i]["hash"] == block_data["previous_hash"]:
-                    print(f"[{node_id}] Block attached after backtracking to index {i}.")
+                    log_node_activity(node_id, "Handle Connection", f"[{node_id}] Block attached after backtracking to index {i}.")
                     new_chain = chain[:i+1] + [block_data]
                     save_chain(new_chain)
                     update_trust(node_id, success=True)
@@ -106,7 +106,7 @@ def handle_connection(conn, addr, node_id):
                     receive_block(block_data)
                     return
 
-            print(f"[{node_id}] Rejected block: previous hash mismatch.\n"
+            log_node_activity(node_id, "Handle Connection", f"[{node_id}] Rejected block: previous hash mismatch.\n"
                   f"Expected: {chain[-1]['hash'] if chain else 'None'}, "
                   f"got: {block_data['previous_hash']}")
             update_trust(node_id, success=False)
