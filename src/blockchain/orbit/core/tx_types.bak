@@ -11,23 +11,27 @@ class TXTypes:
 
     def get_value(self, tx_key):
         self.tx_key = tx_key
-        if self.tx_class and self.tx_data:
-            return self.tx_data.get("type", {}).get(self.tx_class, {}).get(self.tx_key)
+        if self.tx_class == "staking":
+            metadata = self.tx_data or {}
+            key = metadata.get("type", {}).get(self.tx_type, {})
+            if self.tx_key in key:
+                return key[self.tx_key]
         return None
 
     def tx_types(self):
-        if not self.tx_class or not self.tx_type or not self.tx_data:
-            return None
-        if self.tx_value == "string":
-            return json.dumps(self.tx_data, indent=2)
-        elif self.tx_value == "dict":
-            return self.tx_data
+        if self.tx_class == "staking":
+            if not self.tx_value or not self.tx_type or not self.tx_data:
+                return None
+            if self.tx_value == "string":
+                return json.dumps(self.tx_data, indent=2)
+            elif self.tx_value == "dict":
+                return self.tx_data
         return None
 
-    # --- Mining ---
     class MiningTypes:
         def __init__(self, mined=0.0, base=0.0, security=0.0, lockup=0.0, referral=0.0, now=None):
             self.mined = mined
+
             self.rate = {
                 "base": base,
                 "security": security,
@@ -46,7 +50,7 @@ class TXTypes:
 
         @staticmethod
         def mining_metadata(node_fee, rate_metadata):
-            return {
+            tx = {
                 "type": {
                     "mining": {
                         "fee": node_fee,
@@ -54,8 +58,8 @@ class TXTypes:
                     }
                 }
             }
+            return tx
 
-    # --- Staking ---
     class StakingTypes:
         def __init__(self, duration=None, amount=None):
             duration = duration or {}
@@ -63,9 +67,9 @@ class TXTypes:
 
             self.init_days = duration.get("init_days", 0)
             self.start = duration.get("start", time.time())
-            self.end = duration.get("end", self.start + self.init_days * 86400)
+            self.end = duration.get("end", (self.start + self.init_days * 86400))
             self.now = duration.get("now", time.time())
-            self.days = (self.end - self.now) / 86400
+            self.days = ((self.end - self.now) / 86400)
             self.claim = amount.get("claim", 0.0)
             self.lock = amount.get("lock", 0.0)
             self.metadata = {}
@@ -79,15 +83,15 @@ class TXTypes:
                             "start": self.start,
                             "end": self.end,
                             "days": self.days
-                        }
                     }
                 }
-                return self.metadata
-            elif build == "claim":
+            }
+            return self.metadata
+            if build == "claim":
                 self.metadata = {
                     "type": {
                         "claim": {
-                            "amount": self.claim,
+                           "amount": self.claim,
                             "start": self.start,
                             "end": self.end,
                             "days": self.days,
@@ -95,20 +99,18 @@ class TXTypes:
                         }
                     }
                 }
-                return self.metadata
-            return {}
+            return self.metadata
 
-        @staticmethod
         def from_dict(data):
             lockup = data.get("type", {}).get("lockup", {})
-            return (
-                lockup.get("start"),
-                lockup.get("end"),
-                lockup.get("days"),
-                lockup.get("amount")
-            )
+            start = lockup.get("start")
+            end = lockup.get("end")
+            days = lockup.get("days")
+            locked = lockup.get("amount")
+            return start, end, days, locked
 
-    # --- Gas ---
+
+
     class GasTypes:
         def __init__(self, node_fee, node_id, sender, recipient):
             self.node_fee = node_fee
@@ -129,63 +131,3 @@ class TXTypes:
                 }
             }
             return self.metadata
-
-    # --- Basic Metadata Utilities ---
-    @staticmethod
-    def transfer_metadata(purpose="standard"):
-        return {
-            "type": {
-                "transfer": {
-                    "purpose": purpose,
-                    "timestamp": time.time()
-                }
-            }
-        }
-
-    @staticmethod
-    def reward_metadata(reason="contribution", bonus=0.0):
-        return {
-            "type": {
-                "reward": {
-                    "reason": reason,
-                    "amount": bonus,
-                    "timestamp": time.time()
-                }
-            }
-        }
-
-    @staticmethod
-    def airdrop_metadata(source="foundation", campaign=None):
-        return {
-            "type": {
-                "airdrop": {
-                    "source": source,
-                    "campaign": campaign,
-                    "timestamp": time.time()
-                }
-            }
-        }
-
-    @staticmethod
-    def penalty_metadata(reason="misconduct", penalty=0.0):
-        return {
-            "type": {
-                "penalty": {
-                    "reason": reason,
-                    "amount": penalty,
-                    "timestamp": time.time()
-                }
-            }
-        }
-
-    @staticmethod
-    def delegation_metadata(delegate_to, amount=0.0):
-        return {
-            "type": {
-                "delegation": {
-                    "to": delegate_to,
-                    "amount": amount,
-                    "timestamp": time.time()
-                }
-            }
-        }

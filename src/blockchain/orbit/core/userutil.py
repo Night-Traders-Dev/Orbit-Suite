@@ -13,7 +13,7 @@ orbit_db = OrbitDB()
 USERS_FILE = orbit_db.userdb
 SESSIONS_FILE = orbit_db.activesessiondb
 KEY_SIZE = 2048  # Use strong RSA key
-AES_KEY_FILE = "aes.key"
+AES_KEY_FILE = "data/aes.key"
 
 # ===================== AES UTILS =====================
 def load_aes_key():
