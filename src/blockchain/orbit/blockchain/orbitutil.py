@@ -3,37 +3,14 @@ import os
 import time
 import random
 from config.configutil import NodeConfig, OrbitDB
+from core.ioutil import load_nodes, save_nodes, session_util
+from core.logutil import log_node_activity
 from core.networkutil import send_block_to_node
 
 orbit_db = OrbitDB()
-NODES_FILE = orbit_db.nodedb
 PENDING_PROPOSALS_FILE = orbit_db.pendpropdb
 
 TRUST_BLACKLIST_THRESHOLD = 0.2
-
-def log_node_activity(node_id, action, detail=""):
-    with open("node_activity.log", "a") as log:
-        log.write(f"{time.time()} | Node {node_id} | {action} | {detail}\n")
-
-def load_nodes():
-    if not os.path.exists(NODES_FILE):
-        return {}
-    with open(NODES_FILE, "r") as f:
-        return json.load(f)
-
-def save_nodes(nodes):
-    with open(NODES_FILE, "w") as f:
-        json.dump(nodes, f, indent=2)
-
-def session_util(option, sessions=None):
-    from core.userutil import load_active_sessions, save_active_sessions
-    if option == "load":
-        return load_active_sessions()
-    elif option == "save":
-        if sessions is not None:
-            save_active_sessions(sessions)
-    else:
-        return None
 
 def assign_node_to_user(username, sessions):
     sessions = session_util("load")

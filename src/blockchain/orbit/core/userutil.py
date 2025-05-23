@@ -3,38 +3,15 @@ import os
 import sys
 import time
 import threading
-from config.configutil import OrbitDB
 from blockchain.orbitutil import load_nodes, save_nodes, assign_node_to_user
 from core.hashutil import load_aes_key, encrypt_private_key, decrypt_private_key, hash_password
+from core.ioutil import load_active_sessions, save_active_sessions, load_users, save_users
+from core.logutil import log_event
 from core.termutil import clear_screen
 from core.networkutil import start_listener
+from config.configutil import OrbitDB
 
 orbit_db = OrbitDB()
-
-# ===================== USER FUNCS =====================
-def load_active_sessions():
-    if os.path.exists(orbit_db.activesessiondb):
-        with open(orbit_db.activesessiondb, "r") as f:
-            return json.load(f)
-    return {}
-
-def save_active_sessions(sessions):
-    with open(orbit_db.activesessiondb, "w") as f:
-        json.dump(sessions, f, indent=4)
-
-def load_users():
-    if os.path.exists(orbit_db.userdb):
-        with open(orbit_db.userdb, "r") as f:
-            return json.load(f)
-    return {}
-
-def save_users(users):
-    with open(orbit_db.userdb, "w") as f:
-        json.dump(users, f, indent=4)
-
-def log_event(action, username):
-    with open("user_activity.log", "a") as f:
-        f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} | {action} | {username}\n")
 
 def validate_username(username):
     return username.isalnum() and 3 <= len(username) <= 20

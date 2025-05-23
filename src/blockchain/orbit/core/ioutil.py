@@ -1,0 +1,146 @@
+import os
+import time
+import json
+import platform
+from config.configutil import OrbitDB
+
+orbit_db = OrbitDB()
+CHAIN_FILE = orbit_db.blockchaindb
+LOCK_FILE = CHAIN_FILE + ".lock"
+NODES_FILE = orbit_db.nodedb
+PENDING_PROPOSALS_FILE = orbit_db.pendpropdb
+
+# ===================== USER FUNCS =====================
+
+def load_active_sessions():
+    if os.path.exists(orbit_db.activesessiondb):
+        with open(orbit_db.activesessiondb, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_active_sessions(sessions):
+    with open(orbit_db.activesessiondb, "w") as f:
+        json.dump(sessions, f, indent=4)
+
+def load_users():
+    if os.path.exists(orbit_db.userdb):
+        with open(orbit_db.userdb, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_users(users):
+    with open(orbit_db.userdb, "w") as f:
+        json.dump(users, f, indent=4)
+
+# ===================== NODE FUNCS =====================
+
+def load_nodes():
+    if not os.path.exists(NODES_FILE):
+        return {}
+    with open(NODES_FILE, "r") as f:
+        return json.load(f)
+
+def save_nodes(nodes):
+    with open(NODES_FILE, "w") as f:
+        json.dump(nodes, f, indent=2)
+
+def session_util(option, sessions=None):
+    if option == "load":
+        return load_active_sessions()
+    elif option == "save":
+        if sessions is not None:
+            save_active_sessions(sessions)
+    else:
+        return None
+
+# ===================== CHAIN FUNCS =====================
+
+def acquire_soft_lock(owner_id, timeout=5):
+    start = time.time()
+    while os.path.exists(LOCK_FILE):
+        try:
+            with open(LOCK_FILE, "r") as f:
+                current_owner = f.read().strip()
+        except (OSError, IOError) as e:
+            print(f"[Soft Lock] Warning: Failed to read lock file: {e}")
+            time.sleep(0.1)
+            continue
+
+        if time.time() - start > timeout:
+            print(f"[Soft Lock] Timeout waiting for lock held by {current_owner}")
+            return False
+        time.sleep(0.1)
+
+    try:
+        with open(LOCK_FILE, "w") as f:
+            f.write(owner_id)
+        return True
+    except (OSError, IOError) as e:
+        print(f"[Soft Lock] Failed to create lock file: {e}")
+        return False
+
+def release_soft_lock(owner_id):
+    if os.path.exists(LOCK_FILE):
+        with open(LOCK_FILE, "r") as f:
+            current_owner = f.read().strip()
+        if current_owner == owner_id:
+            os.remove(LOCK_FILE)
+
+if platform.system() == 'Windows':
+    import msvcrt
+else:
+    try:
+        import fcntl
+        FILE_LOCK_SUPPORTED = True
+    except ImportError:
+        FILE_LOCK_SUPPORTED = False
+
+
+def load_chain(owner_id="explorer", wait_time=5):
+    start = time.time()
+    while os.path.exists(LOCK_FILE):
+        try:
+            with open(LOCK_FILE, "r") as f:
+                lock_holder = f.read().strip()
+        except:
+            lock_holder = "unknown"
+
+        if time.time() - start > wait_time:
+            print(f"[Soft Lock] Timeout: chain locked by {lock_holder}. Returning fallback empty chain.")
+            return []  # <-- instead of None
+        time.sleep(0.1)
+
+    try:
+        with open(LOCK_FILE, "w") as f:
+            f.write(owner_id)
+
+        if not os.path.exists(CHAIN_FILE):
+            return [create_genesis_block()]
+
+        with open(CHAIN_FILE, "r") as f:
+            return json.load(f)
+
+    except Exception as e:
+        print(f"[load_chain] Failed: {e}")
+        return []
+
+    finally:
+        if os.path.exists(LOCK_FILE):
+            try:
+                with open(LOCK_FILE, "r") as f:
+                    current = f.read().strip()
+                if current == owner_id:
+                    os.remove(LOCK_FILE)
+            except:
+                pass
+
+
+def save_chain(chain, owner_id="default"):
+    if not acquire_soft_lock(owner_id):
+        return False
+    try:
+        with open(CHAIN_FILE, "w") as f:
+            json.dump(chain, f, indent=4)
+        return True
+    finally:
+        release_soft_lock(owner_id)

@@ -8,15 +8,12 @@ import threading
 import platform
 
 from blockchain.orbitutil import update_trust, update_uptime, save_nodes, load_nodes, simulate_peer_vote, sign_vote, relay_pending_proposal, simulate_quorum_vote, select_next_validator, log_node_activity
-from config.configutil import OrbitDB, NodeConfig, TXConfig, get_node_for_user
+from config.configutil import NodeConfig, TXConfig, get_node_for_user
+from core.ioutil import load_chain, save_chain
 from core.hashutil import generate_merkle_root, calculate_hash
 from core.userutil import load_users, save_users
 from core.networkutil import start_listener, handle_connection, send_block
 
-orbit_db = OrbitDB()
-
-CHAIN_FILE = orbit_db.blockchaindb
-LOCK_FILE = CHAIN_FILE + ".lock"
 
 def create_genesis_block():
     genesis_block = TXConfig.Block(
@@ -42,97 +39,6 @@ def create_genesis_block():
         genesis_block.metadata
     )
     return genesis_block.to_dict()
-
-
-def acquire_soft_lock(owner_id, timeout=5):
-    start = time.time()
-    while os.path.exists(LOCK_FILE):
-        try:
-            with open(LOCK_FILE, "r") as f:
-                current_owner = f.read().strip()
-        except (OSError, IOError) as e:
-            print(f"[Soft Lock] Warning: Failed to read lock file: {e}")
-            time.sleep(0.1)
-            continue
-
-        if time.time() - start > timeout:
-            print(f"[Soft Lock] Timeout waiting for lock held by {current_owner}")
-            return False
-        time.sleep(0.1)
-
-    try:
-        with open(LOCK_FILE, "w") as f:
-            f.write(owner_id)
-        return True
-    except (OSError, IOError) as e:
-        print(f"[Soft Lock] Failed to create lock file: {e}")
-        return False
-
-def release_soft_lock(owner_id):
-    if os.path.exists(LOCK_FILE):
-        with open(LOCK_FILE, "r") as f:
-            current_owner = f.read().strip()
-        if current_owner == owner_id:
-            os.remove(LOCK_FILE)
-
-if platform.system() == 'Windows':
-    import msvcrt
-else:
-    try:
-        import fcntl
-        FILE_LOCK_SUPPORTED = True
-    except ImportError:
-        FILE_LOCK_SUPPORTED = False
-
-
-def load_chain(owner_id="explorer", wait_time=5):
-    start = time.time()
-    while os.path.exists(LOCK_FILE):
-        try:
-            with open(LOCK_FILE, "r") as f:
-                lock_holder = f.read().strip()
-        except:
-            lock_holder = "unknown"
-
-        if time.time() - start > wait_time:
-            print(f"[Soft Lock] Timeout: chain locked by {lock_holder}. Returning fallback empty chain.")
-            return []  # <-- instead of None
-        time.sleep(0.1)
-
-    try:
-        with open(LOCK_FILE, "w") as f:
-            f.write(owner_id)
-
-        if not os.path.exists(CHAIN_FILE):
-            return [create_genesis_block()]
-
-        with open(CHAIN_FILE, "r") as f:
-            return json.load(f)
-
-    except Exception as e:
-        print(f"[load_chain] Failed: {e}")
-        return []
-
-    finally:
-        if os.path.exists(LOCK_FILE):
-            try:
-                with open(LOCK_FILE, "r") as f:
-                    current = f.read().strip()
-                if current == owner_id:
-                    os.remove(LOCK_FILE)
-            except:
-                pass
-
-
-def save_chain(chain, owner_id="default"):
-    if not acquire_soft_lock(owner_id):
-        return False
-    try:
-        with open(CHAIN_FILE, "w") as f:
-            json.dump(chain, f, indent=4)
-        return True
-    finally:
-        release_soft_lock(owner_id)
 
 
 def get_last_block():

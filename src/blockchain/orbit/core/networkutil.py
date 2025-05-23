@@ -2,6 +2,8 @@ import json
 import requests
 import socket
 import threading
+from core.ioutil import load_chain, save_chain, load_nodes
+
 
 def ping_node(address):
     try:
@@ -36,7 +38,6 @@ def send_block(peer_address, block):
         raise RuntimeError(f"Failed to send block to {peer_address}: {e}")
 
 def start_listener(node_id):
-    from blockchain.orbitutil import load_nodes
     node_data = load_nodes().get(node_id)
     if not node_data:
         print(f"No config found for node {node_id}")
@@ -56,7 +57,6 @@ def start_listener(node_id):
 
 def handle_connection(conn, addr, node_id):
     try:
-        from blockchain.blockutil import load_chain, save_chain, receive_block
         from blockchain.orbitutil import update_trust, update_uptime
 
         data = b""
