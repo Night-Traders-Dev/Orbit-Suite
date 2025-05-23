@@ -54,6 +54,7 @@ def get_user_lockups(username):
                    continue
         return lockups
 
+
 def print_lockups(lockups):
     if not lockups:
         print("No active lockups.")
