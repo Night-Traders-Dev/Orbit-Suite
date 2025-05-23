@@ -11,48 +11,36 @@ LOCK_REWARD_RATE_PER_DAY = 0.05
 MIN_LOCK_AMOUNT = 0.0001
 MAX_LOCK_DURATION_DAYS = 365 * 5  # 5 years max
 
+
 def get_all_lockups():
-    locked = 0
-    stakes = 0
-    blockchain = load_chain()
+    chain = load_chain()
     lockups = []
-    for block in blockchain:
-        for tx in block.get("transactions", []):  # use list default
-            txdata = TXConfig.Transaction.from_dict(tx)
-            try:
-                lock_data = (txdata.note or {}).get("type", {}).get("lockup")
-                if lock_data and "start" in lock_data and "end" in lock_data:
-                    locked += lock_data["amount"]
-                    stakes += 1
-                    lockups.append({
-                        "amount": lock_data["amount"],
-                        "days": lock_data["days"],
-                        "stakes": stakes
-                    })
-            except Exception as e:
-                continue
+    stakes = 0
+    for block in chain:
+        for tx in block['transactions']:
+            if tx["recipient"] == "lockup_rewards":
+                stakes += 1
+                lockups.append({
+                    "amount": tx["note"]["type"]["lockup"]["amount"],
+                    "days": tx["note"]["type"]["lockup"]["days"],
+                    "stakes": stakes
+                 })
     return lockups
 
 def get_user_lockups(username):
-    blockchain = load_chain()
+    chain = load_chain()
     lockups = []
-    for block in blockchain:
-        for tx in block.get("transactions", []):
-            txdata = TXConfig.Transaction.from_dict(tx)
-            note = txdata.note
-            if txdata.sender == username and isinstance(note, dict):
-                try:
-                    lock_data = (txdata.note or {}).get("type", {}).get("lockup")
-                    if lock_data and "start" in lock_data and "end" in lock_data:
-                        lockups.append({
-                            "amount": lock_data["amount"],
-                            "start": lock_data["start"],
-                            "end": lock_data["end"],
-                            "days": lock_data["days"]
-                         })
-                except Exception as e:
-                   continue
-        return lockups
+    for block in chain:
+        for tx in block['transactions']:
+            if tx["sender"] == username and tx["recipient"] == "lockup_rewards":
+                lockups.append({
+                    "amount": tx["note"]["type"]["lockup"]["amount"],
+                    "start": tx["note"]["type"]["lockup"]["start"],
+                    "end": tx["note"]["type"]["lockup"]["end"],
+                    "days": tx["note"]["type"]["lockup"]["days"]
+                 })
+    return lockups
+
 
 
 def print_lockups(lockups):
