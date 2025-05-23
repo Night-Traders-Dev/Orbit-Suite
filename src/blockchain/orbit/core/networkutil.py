@@ -19,6 +19,24 @@ def send_block_to_node(address, block_data):
         print(f"Failed to send block to {address}: {e}")
         return False
 
+def send_block(peer_address, block):
+    host, port = peer_address.split(":")
+    port = int(port)
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(5)  # Avoid hangs on unresponsive nodes
+            s.connect((host, port))
+            payload = {
+                "type": "block",
+                "data": block.to_dict() if hasattr(block, "to_dict") else block
+            }
+            s.sendall(json.dumps(payload).encode())
+
+            s.shutdown(socket.SHUT_WR)
+    except (ConnectionRefusedError, socket.timeout, socket.error) as e:
+        raise RuntimeError(f"Failed to send block to {peer_address}: {e}")
+
 def start_listener(node_id):
     node_data = load_nodes().get(node_id)
     if not node_data:
@@ -39,6 +57,8 @@ def start_listener(node_id):
 
 def handle_connection(conn, addr, node_id):
     try:
+        from blockchain.blockutil import load_chain, save_chain
+        from blockchain.orbitutil import update_trust, update_uptime
         data = conn.recv(4096)
         if not data:
             return

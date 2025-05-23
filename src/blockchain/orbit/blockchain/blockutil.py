@@ -10,7 +10,7 @@ import platform
 from blockchain.orbitutil import update_trust, update_uptime, save_nodes, load_nodes, simulate_peer_vote, sign_vote, relay_pending_proposal, simulate_quorum_vote, select_next_validator
 from config.configutil import OrbitDB, NodeConfig, TXConfig, get_node_for_user
 from core.userutil import load_users, save_users
-from core.networkutil import start_listener, handle_connection
+from core.networkutil import start_listener, handle_connection, send_block
 
 orbit_db = OrbitDB()
 
@@ -252,24 +252,6 @@ def receive_block(block):
     chain.append(block)
     save_chain(chain)
     return True
-
-def send_block(peer_address, block):
-    host, port = peer_address.split(":")
-    port = int(port)
-
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(5)  # Avoid hangs on unresponsive nodes
-            s.connect((host, port))
-            payload = {
-                "type": "block",
-                "data": block.to_dict() if hasattr(block, "to_dict") else block
-            }
-            s.sendall(json.dumps(payload).encode())
-
-            s.shutdown(socket.SHUT_WR)
-    except (ConnectionRefusedError, socket.timeout, socket.error) as e:
-        raise RuntimeError(f"Failed to send block to {peer_address}: {e}")
 
 
 def broadcast_block(block, sender_id=None):
