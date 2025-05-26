@@ -6,6 +6,7 @@ from blockchain.orbitutil import (
     sign_vote, relay_pending_proposal, simulate_quorum_vote, select_next_validator,
     log_node_activity
 )
+from blockchain.voteutil import record_vote
 from config.configutil import NodeConfig, TXConfig
 from core.ioutil import load_chain, save_chain
 from core.hashutil import generate_merkle_root, calculate_hash
@@ -178,6 +179,11 @@ def add_block(transactions, node_id="Node1"):
                 users[recipient]["balance"] += amount
             else:
                 log_node_activity(node_id, "Add Block", f"Failed: {sender} has insufficient balance.")
+                continue
+
+            if sender == recipient:
+                tx_data.pop()
+                record_vote(new_block.validator, new_block.hash, "nominate")
 
         save_users(users)
         save_chain(chain + [new_block.to_dict()])

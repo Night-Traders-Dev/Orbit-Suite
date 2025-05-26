@@ -7,28 +7,21 @@ db = OrbitDB()
 VOTE_TYPES = ["nominate", "vote", "accept", "confirm"]
 
 def record_vote(node_id, block_hash, state):
+    from blockchain.tokenutil import send_orbit
     if state not in VOTE_TYPES:
         return False
 
     vote_tx = {
-        "type": "vote",
-        "block_hash": block_hash,
-        "state": state,
-        "voter": node_id,
-        "timestamp": int(time.time())
+        "type": {
+            "vote": {
+                "block_hash": block_hash,
+                "state": state,
+                "voter": node_id,
+                "timestamp": int(time.time())
+            }
+        }
     }
-
-    chain = load_chain()
-    if not chain:
-        return False
-
-    # Append to the most recent block’s votes or create a new vote block
-    latest_block = chain[-1]
-    if "transactions" not in latest_block:
-        latest_block["transactions"] = []
-
-    latest_block["transactions"].append(vote_tx)
-    save_chain(chain)
+    send_orbit("nodefeecollector", "lockup_rewards", 0.1, vote_tx)
     log_node_activity(node_id, state, f"{state.title()} vote for block {block_hash}")
     return True
 
@@ -37,8 +30,8 @@ def get_votes(block_hash, state=None):
     result = []
     for block in chain:
         for tx in block.get("transactions", []):
-            if tx.get("type") == "vote" and tx.get("block_hash") == block_hash:
-                if state is None or tx.get("state") == state:
+            if tx["type"]["vote"] and tx["type"]["vote"]["block_hash"] == block_hash:
+                if state is None or tx["type"]["vote"]["state"] == state:
                     result.append(tx)
     return result
 

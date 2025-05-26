@@ -79,7 +79,7 @@ def handle_connection(conn, addr, node_id):
 
             if any(b["hash"] == block_data["hash"] for b in chain):
                 log_node_activity(node_id, "Handle Connection", f"[{node_id}] Duplicate block {block_data['hash']}, ignoring.")
-                update_trust(node_id, success=False)
+                update_trust(node_id, success=True)
                 update_uptime(node_id, is_online=True)
                 return
 

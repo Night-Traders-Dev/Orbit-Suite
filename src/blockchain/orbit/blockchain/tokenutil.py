@@ -59,7 +59,6 @@ def send_orbit(sender, recipient, amount, order=None):
         )
 
 
-
         add_block([tx1.to_dict(), tx2.to_dict()])
         print(f"Sent {amount:.6f} Orbit to {recipient} | Fee: {fee:.6f} Orbit burned.")
 

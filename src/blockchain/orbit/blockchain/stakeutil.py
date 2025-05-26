@@ -33,12 +33,15 @@ def get_user_lockups(username):
     for block in chain:
         for tx in block['transactions']:
             if tx["sender"] == username and tx["recipient"] == "lockup_rewards":
-                lockups.append({
-                    "amount": tx["note"]["type"]["lockup"]["amount"],
-                    "start": tx["note"]["type"]["lockup"]["start"],
-                    "end": tx["note"]["type"]["lockup"]["end"],
-                    "days": tx["note"]["type"]["lockup"]["days"]
-                 })
+                try:
+                    lockups.append({
+                        "amount": tx["note"]["type"]["lockup"]["amount"],
+                        "start": tx["note"]["type"]["lockup"]["start"],
+                        "end": tx["note"]["type"]["lockup"]["end"],
+                        "days": tx["note"]["type"]["lockup"]["days"]
+                     })
+                except Exception:
+                    continue
     return lockups
 
 
@@ -255,7 +258,7 @@ def claim_lockup_rewards(username):
             note=tx_fee.gas_tx(),
             timestamp=now
         ).to_dict())
-        add_block(reward_txs, node_id)
+        add_block(reward_txs)
 
     if matured_total > 0:
         user["balance"] += round(matured_total, 6)
@@ -283,7 +286,7 @@ def claim_lockup_rewards(username):
                     note={"duration": duration},
                     timestamp=time.time()
                 )
-                add_block([relock_tx.to_dict()], node_id)
+                add_block([relock_tx.to_dict()])
                 print(f"Re-locked {net_reward:.6f} Orbit for {duration} days.")
             except ValueError:
                 print("Invalid duration.")

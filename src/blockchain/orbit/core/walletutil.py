@@ -18,8 +18,10 @@ def load_balance(username):
             is_recipient = tx.recipient == username
             for txdata in block.get("transactions", {}):
                 if txdata["sender"] == username and txdata["recipient"] == "lockup_rewards":
-                    total_locked += int((txdata["note"]["type"]["lockup"]["amount"]))
-
+                    try:
+                        total_locked += int((txdata["note"]["type"]["lockup"]["amount"]))
+                    except Exception:
+                        continue
 
             # Tally totals
             if is_sender:
