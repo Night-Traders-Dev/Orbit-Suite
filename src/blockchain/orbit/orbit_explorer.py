@@ -11,6 +11,7 @@ from core.tx_types import TXTypes
 
 from explorer.api.volume import tx_volume_14d, block_volume_14d, orbit_volume_14d
 from explorer.routes.locked import locked
+from explorer.routes.home import home
 from explorer.routes.node import node_profile
 from explorer.routes.orbitstats import orbit_stats
 from explorer.util.util import search_chain, last_transactions, get_validator_stats, get_chain_summary
@@ -19,7 +20,6 @@ orbit_db = OrbitDB()
 app = Flask(__name__)
 
 CHAIN_PATH = orbit_db.blockchaindb
-PAGE_SIZE = 5
 PORT = 7000
 
 
@@ -34,20 +34,19 @@ def format_timestamp(value):
 
 
 @app.route("/")
-def home():
-    query = request.args.get("q", "").strip()
-    if query:
-        return search_chain(query)
-
-    page = int(request.args.get("page", 1))
+def get_home():
     chain = load_chain()
-    total_pages = max(1, math.ceil(len(chain) / PAGE_SIZE))
-    start = (page - 1) * PAGE_SIZE
-    end = start + PAGE_SIZE
-    blocks = chain[::-1][start:end]
-    summary = get_chain_summary()
+    (
+        html,
+        chain,
+        query,
+        page,
+        total_pages,
+        blocks,
+        summary
+    ) = home(chain)
 
-    return render_template("home.html",
+    return render_template(html,
                            chain=chain,
                            query=query,
                            page=page,
