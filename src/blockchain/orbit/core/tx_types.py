@@ -1,5 +1,6 @@
 import time
 import json
+from core.hashutil import generate_lock_id
 
 class TXTypes:
     def __init__(self, tx_class=None, tx_type=None, tx_data=None, tx_value=None):
@@ -57,6 +58,7 @@ class TXTypes:
 
     # --- Staking ---
     class StakingTypes:
+        from core.hashutil import generate_lock_id
         def __init__(self, duration=None, amount=None):
             duration = duration or {}
             amount = amount or {}
@@ -70,6 +72,7 @@ class TXTypes:
             self.lock = amount.get("lock", 0.0)
             self.metadata = {}
 
+
         def tx_build(self, build="claim"):
             if build == "lockup":
                 self.metadata = {
@@ -78,7 +81,8 @@ class TXTypes:
                             "amount": self.lock,
                             "start": self.start,
                             "end": self.end,
-                            "days": self.days
+                            "days": self.days,
+                            "uuid": generate_lock_id(self.start, self.lock, self.end)
                         }
                     }
                 }
@@ -91,7 +95,22 @@ class TXTypes:
                             "start": self.start,
                             "end": self.end,
                             "days": self.days,
-                            "locked": self.lock
+                            "locked": self.lock,
+                            "last_claim": time.time() 
+                        }
+                    }
+                }
+                return self.metadata
+            elif build == "withdraw":
+                self.metadata = {
+                    "type": {
+                        "withdraw": {
+                            "amount": self.claim,
+                            "start": self.start,
+                            "end": self.end,
+                            "days": self.days,
+                            "locked": self.lock,
+                            "uuid": generate_lock_id(time.time(), self.claim, self.end)
                         }
                     }
                 }

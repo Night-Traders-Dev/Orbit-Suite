@@ -148,13 +148,16 @@ def withdraw_lockup(username):
         return
 
     now = time.time()
+    lockup_times = {"init_days": duration, "start": start, "end": lock_end}
+    lockup_amount = {"lock": amount}
+    staking = TXTypes.StakingTypes(lockup_times, lockup_amount)
 
     # Main withdrawal transaction
     txs.append(TXConfig.Transaction(
         sender="lockup_rewards",
         recipient=username,
         amount=payout,
-        note={"type": "withdrawal", "total_locked": matured_total},
+        note=staking.tx_build("withdraw"),
         timestamp=now
     ).to_dict())
 
@@ -222,8 +225,8 @@ def claim_lockup_rewards(username):
             seconds_eligible = claim_until - last_claim
             reward = (amount * LOCK_REWARD_RATE_PER_DAY / 86400) * seconds_eligible
             reward = round(reward, 6)
-            lockup_times = {"start": lock_start, "end": lock["end"], "days": duration,}
-            lockup_amount = {"amount": reward,"locked": amount}
+            lockup_times = {"start": lock_start, "end": lock["end"], "days": duration, "last_claim": last_claim}
+            lockup_amount = {"amount": reward,"lock": amount, "claim": reward}
             staking = TXTypes.StakingTypes(lockup_times, lockup_amount)
             lock_metadata = TXTypes(
                 tx_class="staking",

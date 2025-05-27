@@ -73,3 +73,9 @@ def calculate_hash(index, previous_hash, timestamp, transactions, validator="", 
     }
     block_string = json.dumps(block_content, sort_keys=True)
     return hashlib.sha256(block_string.encode()).hexdigest()
+
+
+# ===================== STAKE UTILS =====================
+
+def generate_lock_id(start, amount, days):
+    return hashlib.sha256(f"{start}:{amount}:{days}".encode()).hexdigest()
