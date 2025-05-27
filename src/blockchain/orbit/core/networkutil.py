@@ -4,6 +4,16 @@ import socket
 import threading
 from core.ioutil import fetch_chain, save_chain, load_nodes
 from core.logutil import log_node_activity
+import requests
+from urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
+
+session = requests.Session()
+retries = Retry(total=3, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
+adapter = HTTPAdapter(max_retries=retries, pool_connections=10, pool_maxsize=20)
+session.mount("http://", adapter)
+session.mount("https://", adapter)
+
 
 def ping_node(address):
     try:
@@ -38,7 +48,6 @@ def send_block(peer_address, block):
         raise RuntimeError(f"Failed to send block to {peer_address}: {e}")
 
 def start_listener(node_id):
-    node_data = load_nodes().get(node_id)
     if not node_data:
         log_node_activity(node_id, "Start Listener", f"No config found for node {node_id}")
         return

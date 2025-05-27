@@ -21,17 +21,12 @@ app = Flask(__name__)
 
 CHAIN_PATH = orbit_db.blockchaindb
 PORT = 7000
-
-node_registry = {}
+NodeRegistry = orbit_db.NodeRegistry
 
 
 @app.before_request
 def load_chain_once():
     g.chain = load_chain()
-
-@app.before_request
-def load_nodes_once():
-    g.nodes = load_nodes()
 
 @app.template_filter('ts')
 def format_timestamp(value):
@@ -41,18 +36,25 @@ def format_timestamp(value):
         return str(value)
 
 
-def register_node(node_id, ip, port):
-    node_registry[node_id] = {
-        "ip": ip,
-        "port": port,
-        "last_seen": datetime.datetime.utcnow()
+def register_node(node_id, ip, port, last_seen):
+    return {
+        "node": {
+            "id": node_id,
+            "address": ip,
+            "port": port,
+            "quorum_slice": [],
+            "trust_score": 1.0,
+            "uptime_score": 1.0,
+            "last_seen": last_seen
+        }
     }
 
+
 def get_active_nodes(timeout_seconds=60):
-    now = datetime.datetime.utcnow()
+    now = time.time()
     return {
-        nid: data for nid, data in node_registry.items()
-        if (now - data["last_seen"]).total_seconds() < timeout_seconds
+        nid: data for nid, data in NodeRegistry.items()
+        if (now - data["last_seen"]) < timeout_seconds
     }
 
 
@@ -197,7 +199,7 @@ def load_node(node_id):
         total_blocks,
         total_orbit,
         avg_block_size
-    ) = node_profile(node_id, g.nodes, g.chain)
+    ) = node_profile(node_id, node_registry, g.chain)
 
     return render_template(
         html,
@@ -260,27 +262,27 @@ def node_ping():
     data = request.get_json()
     node_id = data.get("node_id")
     port = data.get("port", 7000)
+    address = "127.0.0.1"
 
     if not node_id:
         return jsonify({"error": "Missing node_id"}), 400
 
-    register_node(node_id, port)
+#    NodeRegistry.append(register_node(node_id, address, port, time.time()))
     return jsonify({"status": "ok"}), 200
+
 
 @app.route("/active_nodes", methods=["GET"])
 def active_nodes():
-
-    # Optional: remove stale nodes (older than 5 mins)
+    active = []
     now = time.time()
-    active = {
-        node_id: info
-        for node_id, info in g.nodes.items()
-        if now - info["last_ping"] < 300
-    }
+
+    for node in NodeRegistry:
+        last_seen = node["node"]["last_seen"]
+
+        if (now - last_seen) < 300:
+            active.append(node)
 
     return jsonify(active)
-
-
 
 @app.route("/receive_block", methods=["POST"])
 def receive_block():

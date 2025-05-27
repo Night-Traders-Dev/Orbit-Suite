@@ -4,7 +4,7 @@ import threading
 import json
 import os
 from flask import Flask, request, jsonify
-from config.configutil import TXConfig, NodeConfig
+from config.configutil import TXConfig, NodeConfig, OrbitDB
 from core.ioutil import load_nodes, save_nodes, fetch_chain, save_chain
 from blockchain.blockutil import validate_block
 from blockchain.orbitutil import get_node_for_user
@@ -13,43 +13,56 @@ FETCH_INTERVAL = 30
 NODE_LEDGER = "data/orbit_chain.node"
 EXPLORER = "http://127.0.0.1:7000/node_ping"
 
+orbit_db = OrbitDB()
+
+NodeRegistry = orbit_db.NodeRegistry
+
+
 class OrbitNode:
     def __init__(self, address):
         self.address = address
         self.port = 0
-        self.node_id = get_node_for_user(address)
+        self.node_id = "Node1"
         self.chain = []
         self.running = True
         self.nodes = load_nodes()
+
+        if len(self.nodes) != 0:
+            self.assign_unique_node_id()
         self.register_node()
 
-    def register_node(self):
-        self.node_id = get_node_for_user(self.address)
+    def assign_unique_node_id(self):
+        existing_ids = [int(n.replace("Node", "")) for n in self.nodes.keys()
+                        if n.startswith("Node") and n.replace("Node", "").isdigit()]
+        next_id = max(existing_ids, default=0) + 1
+        self.node_id = f"Node{next_id}"
+        self.port = 5000 + next_id
 
-        if not self.node_id:
-            existing_ids = [int(n.replace("Node", "")) for n in self.nodes.keys() if n.startswith("Node") and n.replace("Node", "").isdigit()]
-            next_id = max(existing_ids, default=0) + 1
-            self.node_id = f"Node{next_id}"
-
-        try:
-            node_num = int(self.node_id.replace("Node", ""))
-        except ValueError:
-            node_num = 0
-        self.port = 5000 + node_num
-
-        if self.node_id not in self.nodes:
-            self.nodes[self.node_id] = {
-                "address": "127.0.0.1",
-                "port": self.port,
-                "quorum_slice": [n for n in list(self.nodes) if n != self.node_id][:2],
+    def format_node(self, node_id, ip, port, last_seen):
+        return {
+            "node": {
+                "id": node_id,
+                "address": ip,
+                "port": port,
+                "quorum_slice": [],
                 "trust_score": 1.0,
                 "uptime_score": 1.0,
-                "user": self.address
+                "last_seen": last_seen
             }
-            save_nodes(self.nodes)
-            print(f"Registered new node {self.node_id} for user {self.address}")
-        else:
-            print(f"Node {self.node_id} already registered for user {self.address}")
+        }
+
+    def register_node(self):
+        NodeRegistry[self.node_id] = self.format_node(
+            self.node_id, self.address, self.port, time.time()
+        )
+        print(f"Registered new node: {self.node_id} at {self.address}:{self.port}")
+#            NodeRegistry[self.node_id]["node"]["last_seen"] = time.time()
+#            print(f"Updated existing node: {self.node_id}")
+
+        save_nodes(self.nodes)
+
+
+        print(f"Registered node {self.node_id} for user {self.address}")
 
 
     def fetch_latest_chain(self):

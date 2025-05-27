@@ -1,4 +1,5 @@
 import os
+import fcntl
 import time
 import json
 import platform
@@ -36,7 +37,7 @@ def save_users(users):
 
 # ===================== NODE FUNCS =====================
 
-EXPLORER_API = "http://127.0.0.1:7000"
+EXPLORER_API = "http://localhost:7000"
 
 def load_nodes():
     try:
@@ -46,22 +47,26 @@ def load_nodes():
         else:
             print(f"[load_nodes] Failed with status {response.status_code}")
             return {}
+    except requests.Timeout as e:
+        print(f"[load_nodes] Timeout")
     except Exception as e:
         print(f"[load_nodes] Explorer unreachable: {e}")
         return {}
 
 def save_nodes(nodes, exclude_id=None):
-    for node_id, info in nodes.items():
-        if node_id == exclude_id:
+    for node in nodes:
+        if node["node"]["id"] == exclude_id:
             continue
         try:
-            payload = {"node_id": node_id}
+            payload = {"node_id": node["node"]["id"]}
             payload.update(info)
             requests.post(
                 f"{EXPLORER_API}/node_ping",
                 json=payload,
                 timeout=3
             )
+        except requests.Timeout as e:
+            print(f"[save_nodes] Timeout")
         except Exception as e:
             print(f"[save_nodes] Failed to ping explorer for node {node_id}: {e}")
 
@@ -89,6 +94,7 @@ def session_util(option, sessions=None):
 
 def acquire_soft_lock(owner_id, timeout=5):
     start = time.time()
+
     while os.path.exists(LOCK_FILE):
         try:
             with open(LOCK_FILE, "r") as f:
@@ -104,11 +110,20 @@ def acquire_soft_lock(owner_id, timeout=5):
         time.sleep(0.1)
 
     try:
-        with open(LOCK_FILE, "w") as f:
-            f.write(owner_id)
+        f = open(LOCK_FILE, "w")
+        if FILE_LOCK_SUPPORTED:
+            try:
+                fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                f.close()
+                print("[Soft Lock] Could not acquire file lock via fcntl.")
+                return False
+
+        f.write(owner_id)
+        f.close()
         return True
     except (OSError, IOError) as e:
-        print(f"[Soft Lock] Failed to create lock file: {e}")
+        print(f"[Soft Lock] Failed to create or lock file: {e}")
         return False
 
 def release_soft_lock(owner_id):

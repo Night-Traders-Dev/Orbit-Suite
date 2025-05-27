@@ -35,7 +35,7 @@ def get_node_for_user(username):
     return sessions.get(username)
 
 def register_node(node_id, quorum_slice, address, port):
-    nodes = load_nodes()
+#    nodes = load_nodes()
     node_config = NodeConfig()
     node_config.address = address
     node_config.port = port
@@ -43,8 +43,9 @@ def register_node(node_id, quorum_slice, address, port):
     node_config.trust_score = 1.0
     node_config.uptime_score = 1.0
     nodes[node_id] = node_config.to_dict()
-    save_nodes(nodes)
+#    save_nodes(nodes)
     log_node_activity(node_id, "register_node", f"Registered with quorum {quorum_slice}")
+    return nodes
 
 def update_uptime(node_id, is_online=True):
     nodes = load_nodes()
