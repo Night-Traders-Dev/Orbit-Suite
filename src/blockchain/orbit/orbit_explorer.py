@@ -1,13 +1,8 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, g
-import json, os, datetime, math
+import json, os, datetime, math, time
+
 from config.configutil import OrbitDB
-from blockchain.stakeutil import get_user_lockups, get_all_lockups
-from core.walletutil import load_balance
-from blockchain.blockutil import load_chain
-from blockchain.orbitutil import load_nodes
-import time
-from collections import defaultdict
-from core.tx_types import TXTypes
+from core.ioutil import load_chain, load_nodes
 
 from explorer.api.latest import latest_block, latest_txs
 from explorer.api.volume import tx_volume_14d, block_volume_14d, orbit_volume_14d
@@ -31,6 +26,10 @@ PORT = 7000
 @app.before_request
 def load_chain_once():
     g.chain = load_chain()
+
+@app.before_request
+def load_nodes_once():
+    g.nodes = load_nodes()
 
 @app.template_filter('ts')
 def format_timestamp(value):
@@ -173,7 +172,6 @@ def validators():
 
 @app.route("/node/<node_id>")
 def load_node(node_id):
-    nodes = load_nodes()
     (
         html,
         blocks,
@@ -182,7 +180,7 @@ def load_node(node_id):
         total_blocks,
         total_orbit,
         avg_block_size
-    ) = node_profile(node_id, nodes, g.chain)
+    ) = node_profile(node_id, g.nodes, g.chain)
 
     return render_template(
         html,

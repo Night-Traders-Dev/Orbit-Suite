@@ -243,9 +243,12 @@ def claim_lockup_rewards(username):
             still_locked.append(lock)  # still in progress
 
         if now < last_claim + 86400:
+
+            remaining = int((last_claim + 86400) - now)
+            hours = remaining // 3600
+            minutes = (remaining % 3600) // 60
+            print(f"Next claim in {hours}h {minutes}m")
             claimed += 1
-            print("Can only claim once every 24 hours")
-            print(f"{claimed}:{lock_count}")
             continue
 
             if claimed == lock_count:
