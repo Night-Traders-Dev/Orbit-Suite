@@ -147,6 +147,7 @@ def broadcast_block(block, sender_id=None):
 def add_block(transactions, node_id="Node1"):
     """Builds, proposes, and adds a block with transactions if consensus is achieved."""
     chain = fetch_chain()
+    node_id = select_next_validator()
     last_block = chain[-1]
     tx_objs = [TXConfig.Transaction.from_dict(tx) for tx in transactions]
     tx_dicts = [tx.to_dict() for tx in tx_objs]

@@ -22,6 +22,23 @@ app = Flask(__name__)
 CHAIN_PATH = orbit_db.blockchaindb
 PORT = 7000
 
+node_registry = {}
+
+def register_node(node_id, ip, port):
+    node_registry[node_id] = {
+        "ip": ip,
+        "port": port,
+        "last_seen": datetime.datetime.utcnow()
+    }
+
+def get_active_nodes(timeout_seconds=60):
+    now = datetime.datetime.utcnow()
+    timeout_seconds=300
+    return {
+        nid: data for nid, data in node_registry.items()
+        if (now - data["last_seen"]).total_seconds() < timeout_seconds
+    }
+
 
 @app.before_request
 def load_chain_once():
@@ -237,6 +254,26 @@ def api_summary():
 @app.route("/ping")
 def ping():
     return "pong", 200
+
+
+@app.route("/node_ping", methods=["POST"])
+def node_ping():
+    data = request.get_json()
+    node_id = data.get("node_id")
+    port = data.get("port")
+    ip = request.remote_addr  # auto-detect IP from requester
+
+    if not node_id or not port:
+        return jsonify({"error": "Missing node_id or port"}), 400
+
+    register_node(node_id, ip, port)
+    return jsonify({"status": "ok", "ip": ip})
+
+@app.route("/active_nodes", methods=["GET"])
+def active_nodes():
+    nodes = get_active_nodes()
+    return jsonify(nodes)
+
 
 @app.route("/receive_block", methods=["POST"])
 def receive_block():

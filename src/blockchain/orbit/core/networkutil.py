@@ -94,7 +94,6 @@ def handle_connection(conn, addr, node_id):
                 save_chain(chain)
                 update_trust(node_id, success=True)
                 update_uptime(node_id, is_online=True)
-                receive_block(block_data)
                 return
 
             # Attempt backtrack
@@ -105,7 +104,6 @@ def handle_connection(conn, addr, node_id):
                     save_chain(new_chain)
                     update_trust(node_id, success=True)
                     update_uptime(node_id, is_online=True)
-                    receive_block(block_data)
                     return
 
             log_node_activity(node_id, "Handle Connection", f"[{node_id}] Rejected block: previous hash mismatch.\n"

@@ -1,4 +1,4 @@
-import time
+import time, datetime
 import requests
 import threading
 import json
@@ -11,11 +11,12 @@ from blockchain.orbitutil import get_node_for_user
 
 FETCH_INTERVAL = 30
 NODE_LEDGER = "data/orbit_chain.node"
-
+EXPLORER = "http://127.0.0.1:7000/node_ping"
 
 class OrbitNode:
     def __init__(self, address):
         self.address = address
+        self.port = 0
         self.node_id = get_node_for_user(address)
         self.chain = []
         self.running = True
@@ -34,12 +35,12 @@ class OrbitNode:
             node_num = int(self.node_id.replace("Node", ""))
         except ValueError:
             node_num = 0
-        port = 5000 + node_num
+        self.port = 5000 + node_num
 
         if self.node_id not in self.nodes:
             self.nodes[self.node_id] = {
                 "address": "127.0.0.1",
-                "port": port,
+                "port": self.port,
                 "quorum_slice": [n for n in list(self.nodes) if n != self.node_id][:2],
                 "trust_score": 1.0,
                 "uptime_score": 1.0,
@@ -102,10 +103,28 @@ class OrbitNode:
             kwargs={"port": 5000 + int(self.node_id[-1]), "debug": False, "use_reloader": False}
         ).start()
 
+
+    def ping_explorer(self, node_id, EXPLORER, port):
+        try:
+            requests.post(EXPLORER, json={"node_id": self.node_id, "port": self.port})
+        except Exception as e:
+            print("Explorer ping failed:", e)
+
+
+    def get_known_nodes(self, explorer_url="http://127.0.0.1:7000/active_nodes"):
+        try:
+            response = requests.get(explorer_url)
+            return response.json()
+        except Exception as e:
+            print("Failed to get active nodes:", e)
+            return {}
+
     def run(self):
         print(f"Starting Orbit Node for {self.address} ({self.node_id})")
         self.start_receiver_server()
         while self.running:
+            self.ping_explorer(self.node_id, EXPLORER, self.port)
+            self.get_known_nodes()
             self.update_chain()
             time.sleep(FETCH_INTERVAL)
 
