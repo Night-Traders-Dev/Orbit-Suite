@@ -1,8 +1,7 @@
-@app.route("/orbit-stats")
-def orbit_stats():
+def orbit_stats(chain):
     from collections import defaultdict
     from datetime import datetime
-    chain = load_chain()
+
     accounts = defaultdict(float)
     tx_count = 0
     tx_volume = 0.0
@@ -16,25 +15,33 @@ def orbit_stats():
     tx_per_day = defaultdict(int)
 
     for block in chain:
-        date = datetime.fromtimestamp(block["timestamp"]).strftime("%Y-%m-%d")
+        timestamp = block.get("timestamp", 0)
+        validator = block.get("validator", "unknown")
+        date = datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d")
         block_tx_count = 0
-        validators[block["validator"]]["blocks"] += 1
+
+        validators[validator]["blocks"] += 1
+
         for tx in block.get("transactions", []):
+            amount = float(tx.get("amount", 0))
+            sender = tx.get("sender", "")
+            recipient = tx.get("recipient", "")
+
             tx_count += 1
             block_tx_count += 1
-            validators[block["validator"]]["orbit_processed"] += tx["amount"]
-            validators[block["validator"]]["txs_validated"] += 1
-            accounts[tx["recipient"]] += tx["amount"]
-            accounts[tx["sender"]] -= tx["amount"]
-            tx_volume += tx["amount"]
-            orbit_per_day[date] += tx["amount"]
+            validators[validator]["orbit_processed"] += amount
+            validators[validator]["txs_validated"] += 1
+            accounts[recipient] += amount
+            accounts[sender] -= amount
+            tx_volume += amount
+            orbit_per_day[date] += amount
             tx_per_day[date] += 1
+
         block_sizes.append(block_tx_count)
 
-    total_orbit = sum([v for v in accounts.values() if v > 0])
+    total_orbit = sum(v for v in accounts.values() if v > 0)
     avg_block_size = sum(block_sizes) / len(block_sizes) if block_sizes else 0
-
-    return render_template("orbit_stats.html", stats={
+    stats = {
         "blocks": len(chain),
         "transactions": tx_count,
         "accounts": len([k for k, v in accounts.items() if v > 0]),
@@ -44,4 +51,6 @@ def orbit_stats():
         "validators": dict(validators),
         "orbit_per_day": dict(orbit_per_day),
         "tx_per_day": dict(tx_per_day),
-    })
+    }
+
+    return "orbit_stats.html", stats
