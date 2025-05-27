@@ -1,5 +1,5 @@
 import time
-from core.ioutil import load_chain, save_chain, load_nodes
+from core.ioutil import fetch_chain, save_chain, load_nodes
 from core.logutil import log_node_activity
 from blockchain.voteutil import record_vote, get_votes, has_quorum
 from config.configutil import OrbitDB
@@ -49,7 +49,7 @@ def consensus_progression(node_id, block_data):
         return "confirmed"
 
     # Final confirmation: add block to chain if not already added
-    chain = load_chain()
+    chain = fetch_chain()
     if not any(b["hash"] == block_hash for b in chain):
         chain.append(block_data)
         save_chain(chain)

@@ -1,9 +1,9 @@
 import time
 from config.configutil import TXConfig, get_node_for_user
-from blockchain.blockutil import add_block, load_chain
+from blockchain.blockutil import add_block
 from blockchain.tokenutil import send_orbit
+from core.ioutil import fetch_chain, load_users, save_users
 from core.tx_types import TXTypes
-from core.userutil import load_users, save_users
 from core.walletutil import load_balance
 import json
 
@@ -13,7 +13,7 @@ MAX_LOCK_DURATION_DAYS = 365 * 5  # 5 years max
 
 
 def get_all_lockups():
-    chain = load_chain()
+    chain = fetch_chain()
     lockups = []
     stakes = 0
     for block in chain:
@@ -28,7 +28,7 @@ def get_all_lockups():
     return lockups
 
 def get_user_lockups(username: str = "all"):
-    chain = load_chain()
+    chain = fetch_chain()
     lockups = []
 
     for block in chain:
@@ -207,7 +207,7 @@ def claim_lockup_rewards(username):
     user = users[username]
     user_lockups = get_user_lockups(username)
     now = int(time.time())
-    chain = load_chain()
+    chain = fetch_chain()
 
     # Step 1: Extract most recent claim_until per lock_start from chain
     claim_map = {}

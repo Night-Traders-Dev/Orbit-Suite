@@ -1,7 +1,7 @@
 import math
 import time
 from core.tx_types import TXTypes
-from core.userutil import load_users, save_users
+from core.ioutil import load_users, save_users
 from core.walletutil import load_balance
 from blockchain.blockutil import add_block
 from config.configutil import MiningConfig, TXConfig, get_node_for_user

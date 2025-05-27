@@ -8,9 +8,8 @@ from blockchain.orbitutil import (
 )
 from blockchain.voteutil import record_vote
 from config.configutil import NodeConfig, TXConfig
-from core.ioutil import load_chain, save_chain
+from core.ioutil import load_chain, save_chain, fetch_chain, load_users, save_users
 from core.hashutil import generate_merkle_root, calculate_hash
-from core.userutil import load_users, save_users
 from core.networkutil import send_block
 
 
@@ -38,7 +37,7 @@ def create_genesis_block():
 
 def get_last_block():
     """Returns the latest block in the chain."""
-    return load_chain()[-1]
+    return fetch_chain()[-1]
 
 
 def propose_block(node_id, block_data, timeout=5):
@@ -96,7 +95,7 @@ def propose_block(node_id, block_data, timeout=5):
 
 def receive_block(block):
     """Validates and appends a received block to the chain."""
-    chain = load_chain()
+    chain = fetch_chain()
     last_block = chain[-1]
 
     if block["index"] != last_block["index"]:
@@ -139,7 +138,7 @@ def broadcast_block(block, sender_id=None):
 
 def add_block(transactions, node_id="Node1"):
     """Builds, proposes, and adds a block with transactions if consensus is achieved."""
-    chain = load_chain()
+    chain = fetch_chain()
     last_block = chain[-1]
     tx_objs = [TXConfig.Transaction.from_dict(tx) for tx in transactions]
     tx_dicts = [tx.to_dict() for tx in tx_objs]
@@ -197,7 +196,7 @@ def add_block(transactions, node_id="Node1"):
 
 def is_chain_valid():
     """Validates the entire blockchain."""
-    chain = load_chain()
+    chain = fetch_chain()
     for i in range(1, len(chain)):
         current, previous = chain[i], chain[i - 1]
         recalculated = calculate_hash(

@@ -2,6 +2,7 @@ import os
 import time
 import json
 import platform
+import requests
 from functools import wraps
 from config.configutil import OrbitDB
 
@@ -96,6 +97,18 @@ else:
     except ImportError:
         FILE_LOCK_SUPPORTED = False
 
+def fetch_chain(url="localhost", port="7000"):
+    chainurl=(f"http://{url}:{port}/api/chain")
+    try:
+        response = requests.get(chainurl, timeout=5)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"Failed to fetch chain. Status code: {response.status_code}")
+            return []
+    except Exception as e:
+        print(f"Error fetching chain: {e}")
+        return []
 
 def load_chain(owner_id="explorer", wait_time=5):
     start = time.time()

@@ -2,8 +2,7 @@ import json
 import os
 from datetime import datetime
 from config.configutil import TXConfig
-from blockchain.blockutil import load_chain
-
+from core.ioutil import fetch_chain
 
 
 def format_transaction(tx):
@@ -22,7 +21,7 @@ def format_transaction(tx):
         return "Invalid transaction data"
 
 def view_all_transactions():
-    blockchain = load_chain()
+    blockchain = fetch_chain()
     print("\n=== Full Orbit Ledger ===")
     for block in blockchain:
         for tx in block.get("transactions", []):
@@ -30,7 +29,7 @@ def view_all_transactions():
             print(format_transaction(tx_obj.to_dict()))
 
 def view_user_transactions(username):
-    blockchain = load_chain()
+    blockchain = fetch_chain()
     print(f"\n=== Transactions for {username} ===")
     found = False
     for block in blockchain:
@@ -43,7 +42,7 @@ def view_user_transactions(username):
         print("No transactions found for this user.")
 
 def view_mining_rewards(username):
-    blockchain = load_chain()
+    blockchain = fetch_chain()
     print(f"\n=== Mining Rewards for {username} ===")
     found = False
     for block in blockchain:
@@ -56,7 +55,7 @@ def view_mining_rewards(username):
         print("No mining rewards found.")
 
 def view_transfers(username):
-    blockchain = load_chain()
+    blockchain = fetch_chain()
     print(f"\n=== Transfers by/to {username} ===")
     found = False
     for block in blockchain:

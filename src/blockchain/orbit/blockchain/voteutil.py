@@ -1,7 +1,7 @@
 import time
 from config.configutil import OrbitDB
 from core.logutil import log_node_activity
-from core.ioutil import load_chain, save_chain
+from core.ioutil import fetch_chain, save_chain
 
 db = OrbitDB()
 VOTE_TYPES = ["nominate", "vote", "accept", "confirm"]
@@ -26,7 +26,7 @@ def record_vote(node_id, block_hash, state):
     return True
 
 def get_votes(block_hash, state=None):
-    chain = load_chain()
+    chain = fetch_chain()
     result = []
     for block in chain:
         for tx in block.get("transactions", []):
