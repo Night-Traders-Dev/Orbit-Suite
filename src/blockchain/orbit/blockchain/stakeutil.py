@@ -27,24 +27,35 @@ def get_all_lockups():
                  })
     return lockups
 
-def get_user_lockups(username):
+def get_user_lockups(username: str = "all"):
     chain = load_chain()
     lockups = []
-    for block in chain:
-        for tx in block['transactions']:
-            if tx["sender"] == username and tx["recipient"] == "lockup_rewards":
-                try:
-                    lockups.append({
-                        "amount": tx["note"]["type"]["lockup"]["amount"],
-                        "start": tx["note"]["type"]["lockup"]["start"],
-                        "end": tx["note"]["type"]["lockup"]["end"],
-                        "days": tx["note"]["type"]["lockup"]["days"],
-                        "uuid": tx["note"]["type"]["lockup"]["uuid"]
-                     })
-                except Exception:
-                    continue
-    return lockups
 
+    for block in chain:
+        for tx in block.get("transactions", []):
+            if tx.get("recipient") != "lockup_rewards":
+                continue
+
+            sender = tx.get("sender")
+
+            if username != "all" and sender != username:
+                continue
+
+            try:
+                note = tx.get("note", {})
+                lock = note.get("type", {}).get("lockup", {})
+                lockups.append({
+                    "amount": lock.get("amount"),
+                    "start": lock.get("start"),
+                    "end": lock.get("end"),
+                    "days": lock.get("days"),
+                    "uuid": lock.get("uuid"),
+                    "user": sender  # useful when "all" is selected
+                })
+            except Exception:
+                continue
+
+    return lockups
 
 
 def print_lockups(lockups):
