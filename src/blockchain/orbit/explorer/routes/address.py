@@ -1,12 +1,18 @@
-@app.route("/address/<address>")
-def address_detail(address):
+from blockchain.stakeutil import get_user_lockups
+from core.walletutil import load_balance
+from explorer.util.util import last_transactions
+
+import datetime, json
+from collections import defaultdict
+from flask import request
+
+def address_detail(address, chain):
     balance, active_locks = load_balance(address)
     locks = get_user_lockups(address)
     last10 = last_transactions(address)
     pending = [l for l in locks if not l.get("matured")]
     matured = [l for l in locks if l.get("matured")]
 
-    chain = load_chain()
     tx_count = 0
     total_sent = 0
     total_received = 0
@@ -56,4 +62,7 @@ def address_detail(address):
     if request.args.get("json") == "1":
         return jsonify(data)
 
-    return render_template("address.html", address_data=data)
+    return (
+        "address.html",
+        data
+    )

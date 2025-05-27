@@ -1,5 +1,5 @@
 import time, datetime
-from blockchain.blockutil import load_chain
+from core.ioutil import load_chain
 from config.configutil import TXConfig
 
 def load_balance(username):
