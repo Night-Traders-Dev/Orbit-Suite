@@ -1,6 +1,4 @@
-@app.route("/tx/<txid>")
-def tx_detail(txid):
-    chain = load_chain()
+def tx_detail(txid, chain):
     for block in chain:
         txs = block.get("transactions", [])
         for tx in txs:
@@ -22,14 +20,15 @@ def tx_detail(txid):
                 note_type = tx.get("note") or tx.get("metadata", {}).get("note")
                 confirmations = len(chain) - block["index"] - 1
 
-                return render_template("tx_detail.html",
-                    tx=tx,
-                    note_type=note_type,
-                    confirmations=confirmations,
-                    status="Success" if tx.get("valid", True) else "Fail",
-                    fee=tx.get("fee", 0),
-                    proof=tx.get("signature", "N/A"),
-                    block_index=block["index"],
-                    node_fee=fee_applied
+                return (
+                    "tx_detail.html",
+                    tx,
+                    note_type,
+                    confirmations,
+                    "Success" if tx.get("valid", True) else "Fail",
+                    tx.get("fee", 0),
+                    tx.get("signature", "N/A"),
+                    block["index"],
+                    fee_applied
                 )
-    return "Transaction not found", 404
+    return "404"

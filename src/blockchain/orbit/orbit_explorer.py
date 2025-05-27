@@ -9,11 +9,13 @@ import time
 from collections import defaultdict
 from core.tx_types import TXTypes
 
+from explorer.api.latest import latest_block, latest_txs
 from explorer.api.volume import tx_volume_14d, block_volume_14d, orbit_volume_14d
 from explorer.routes.locked import locked
 from explorer.routes.home import home
 from explorer.routes.node import node_profile
 from explorer.routes.orbitstats import orbit_stats
+from explorer.routes.tx import tx_detail
 from explorer.util.util import search_chain, last_transactions, get_validator_stats, get_chain_summary
 
 orbit_db = OrbitDB()
@@ -91,58 +93,40 @@ def route_locked():
 
 @app.route("/api/latest-block")
 def api_latest_block():
-    if g.chain:
-        return jsonify(g.chain[-1])
-    return jsonify({"error": "No blocks found"}), 404
-
+    result = latest_block(g.chain)
+    return jsonify(result)
 
 @app.route("/api/latest-transactions")
 def api_latest_transactions():
-    limit = int(request.args.get("limit", 5))
-    txs = []
-    for block in reversed(g.chain):
-        for tx in reversed(block.get("transactions", [])):
-            tx["block"] = block["index"]
-            txs.append(tx)
-            if len(txs) >= limit:
-                return jsonify(txs)
-    return jsonify(txs)
-
+    result = latest_txs(g.chain)
+    return jsonify(result)
 @app.route("/tx/<txid>")
-def tx_detail(txid):
-    for block in g.chain:
-        txs = block.get("transactions", [])
-        for tx in txs:
-            current_id = f"{tx.get('sender')}-{tx.get('recipient')}-{tx.get('timestamp')}"
-            if current_id == txid:
-                # Search this block for a node fee transaction
-                fee_applied = None
-                for other_tx in txs:
-                    if other_tx["recipient"] == "nodefeecollector":
-                        tx_fee = other_tx['note']['type']['gas']['fee']
-                        tx_node = other_tx['note']['type']['gas']['node']
-                        fee_applied = {
-                            "amount": tx_fee,
-                            "node": tx_node,
-                            "type": "gas"
-                        }
-                        break
-
-                note_type = tx.get("note") or tx.get("metadata", {}).get("note")
-                confirmations = len(g.chain) - block["index"] - 1
-
-                return render_template("tx_detail.html",
-                    tx=tx,
-                    note_type=note_type,
-                    confirmations=confirmations,
-                    status="Success" if tx.get("valid", True) else "Fail",
-                    fee=tx.get("fee", 0),
-                    proof=tx.get("signature", "N/A"),
-                    block_index=block["index"],
-                    node_fee=fee_applied
-                )
-    return "Transaction not found", 404
-
+def get_tx(txid):
+    result = tx_detail(txid, g.chain)
+    if result == "404":
+        return "Transaction not found", 404
+    else:
+        (
+            html,
+            tx,
+            note_type,
+            confirmations,
+            status,
+            fee,
+            proof,
+            block_index,
+            node_fee
+        ) = result
+        return render_template(html,
+            tx=tx,
+            note_type=note_type,
+            confirmations=confirmations,
+            status=status,
+            fee=fee,
+            proof=proof,
+            block_index=block_index,
+            node_fee=node_fee
+        )
 
 @app.route("/top-wallets")
 def top_wallets():
