@@ -124,7 +124,10 @@ class OrbitNode:
         self.start_receiver_server()
         while self.running:
             self.ping_explorer(self.node_id, EXPLORER, self.port)
-            self.get_known_nodes()
+            updated_nodes = self.get_known_nodes()
+            if updated_nodes:
+                self.nodes.update(updated_nodes)
+
             self.update_chain()
             time.sleep(FETCH_INTERVAL)
 

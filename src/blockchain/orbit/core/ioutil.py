@@ -36,13 +36,43 @@ def save_users(users):
 
 # ===================== NODE FUNCS =====================
 
+EXPLORER_API = "http://127.0.0.1:7000"
+
 def load_nodes():
+    try:
+        response = requests.get(f"{EXPLORER_API}/active_nodes", timeout=5)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"[load_nodes] Failed with status {response.status_code}")
+            return {}
+    except Exception as e:
+        print(f"[load_nodes] Explorer unreachable: {e}")
+        return {}
+
+def save_nodes(nodes, exclude_id=None):
+    for node_id, info in nodes.items():
+        if node_id == exclude_id:
+            continue
+        try:
+            payload = {"node_id": node_id}
+            payload.update(info)
+            requests.post(
+                f"{EXPLORER_API}/node_ping",
+                json=payload,
+                timeout=3
+            )
+        except Exception as e:
+            print(f"[save_nodes] Failed to ping explorer for node {node_id}: {e}")
+
+
+def load_nodes2():
     if not os.path.exists(NODES_FILE):
         return {}
     with open(NODES_FILE, "r") as f:
         return json.load(f)
 
-def save_nodes(nodes):
+def save_nodes2(nodes):
     with open(NODES_FILE, "w") as f:
         json.dump(nodes, f, indent=2)
 
