@@ -42,12 +42,14 @@ def get_last_block():
 
 def propose_block(node_id, block_data, timeout=5):
     """Attempts to propose a block and achieve quorum consensus."""
+    if not validate_block(block_data, node_id):
+        log_node_activity(node_id, "Propose Block", "Block could not be validated.")
+        return False
     nodes = load_nodes()
     if node_id not in nodes:
         log_node_activity(node_id, "Propose Block", "Node is not registered.")
         return False
-
-    proposer_id = select_next_validator()
+    proposer_id = node_id
     proposer_config = NodeConfig.from_dict(nodes[proposer_id])
     quorum_slice = proposer_config.quorum_slice
 
@@ -193,6 +195,43 @@ def add_block(transactions, node_id="Node1"):
         log_node_activity(node_id, "Add Block", "Rejected by consensus.")
         return False
 
+
+def validate_block(block, node_id):
+    chain = fetch_chain()
+    if not chain:
+        log_node_activity(node_id, "Validate Block", f"Blockchain couldn't be loaded")
+        return False
+
+    last_block = chain[-1]
+
+    prev_hash = calculate_hash(
+        last_block["index"],
+        last_block["previous_hash"],
+        last_block["timestamp"],
+        last_block["transactions"],
+        last_block["validator"],
+        last_block["merkle_root"],
+        last_block["nonce"],
+        last_block["metadata"]
+    )
+
+    block = block.to_dict()
+    current_hash = calculate_hash(
+        block["index"],
+        block["previous_hash"],
+        block["timestamp"],
+        block["transactions"],
+        block["validator"],
+        block["merkle_root"],
+        block["nonce"],
+        block["metadata"]
+    )
+    if current_hash != prev_hash:
+        log_node_activity(node_id, "Validate Block", f"Block {block['index']} valid")
+        return True
+    else:
+        log_node_activity(node_id, "Validate Block", f"Block {block['index']} not valid")
+        return False
 
 def is_chain_valid():
     """Validates the entire blockchain."""

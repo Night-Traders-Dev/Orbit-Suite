@@ -8,7 +8,7 @@ from config.configutil import OrbitDB
 
 orbit_db = OrbitDB()
 USERS_FILE = orbit_db.userdb
-AES_KEY_FILE = "aes.key"
+AES_KEY_FILE = "data/aes.key"
 KEY_SIZE = 2048
 
 # ===== AES Setup =====

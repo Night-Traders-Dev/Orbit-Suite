@@ -149,11 +149,11 @@ def load_chain(owner_id="explorer", wait_time=5):
                 pass
 
 
-def save_chain(chain, owner_id="default"):
+def save_chain(chain, owner_id="default", chain_file=CHAIN_FILE):
     if not acquire_soft_lock(owner_id):
         return False
     try:
-        with open(CHAIN_FILE, "w") as f:
+        with open(chain_file, "w") as f:
             json.dump(chain, f, indent=4)
         return True
     finally:
