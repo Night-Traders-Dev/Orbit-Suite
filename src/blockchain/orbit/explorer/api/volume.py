@@ -1,7 +1,7 @@
-@app.route("/api/orbit_volume_14d")
-def orbit_volume_14d():
-    chain = load_chain()
-    now = datetime.datetime.utcnow()
+from collections import defaultdict
+import time, datetime, json
+
+def orbit_volume_14d(chain, now):
     volume_by_day = {}
 
     # Initialize the last 14 days with zero volume
@@ -23,16 +23,10 @@ def orbit_volume_14d():
 
     # Return sorted ascending
     result = [{"date": day, "volume": round(volume_by_day[day], 4)} for day in sorted(volume_by_day)]
-    return jsonify(result)
+    return result
 
 
-@app.route("/api/tx_volume_14d")
-def tx_volume_14d():
-    from collections import defaultdict
-    import time
-
-    chain = load_chain()
-    now = int(time.time())
+def tx_volume_14d(chain, now):
     one_day = 86400
 
     tx_by_day = defaultdict(int)
@@ -50,13 +44,10 @@ def tx_volume_14d():
             "count": tx_by_day.get(day, 0)
         })
 
-    return jsonify(data)
+    return data
 
 
-@app.route("/api/block_volume_14d")
-def block_volume_14d():
-    chain = load_chain()
-    now = datetime.datetime.utcnow()
+def block_volume_14d(chain, now):
     counts = {}
 
     # Initialize past 14 days
@@ -74,4 +65,4 @@ def block_volume_14d():
 
     # Return sorted by date ascending
     result = [{"date": day, "count": counts[day]} for day in sorted(counts)]
-    return jsonify(result)
+    return result
