@@ -2,6 +2,7 @@ import os
 import time
 import json
 import platform
+from functools import wraps
 from config.configutil import OrbitDB
 
 orbit_db = OrbitDB()
@@ -144,3 +145,27 @@ def save_chain(chain, owner_id="default"):
         return True
     finally:
         release_soft_lock(owner_id)
+
+# ===================== DECORATORS =====================
+
+def with_chain(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        chain = load_chain()
+        return func(chain, *args, **kwargs)
+    return wrapper
+
+
+def with_nodes(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        nodes = load_nodes()
+        return func(nodes, *args, **kwargs)
+    return wrapper
+
+def with_users(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        users = load_users()
+        return func(users, *args, **kwargs)
+    return wrapper

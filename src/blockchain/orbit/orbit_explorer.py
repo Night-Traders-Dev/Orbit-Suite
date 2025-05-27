@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, g
 import json, os, datetime, math
 from config.configutil import OrbitDB
 from blockchain.stakeutil import get_user_lockups, get_all_lockups
@@ -23,6 +23,9 @@ CHAIN_PATH = orbit_db.blockchaindb
 PORT = 7000
 
 
+@app.before_request
+def load_chain_once():
+    g.chain = load_chain()
 
 @app.template_filter('ts')
 def format_timestamp(value):
@@ -35,7 +38,6 @@ def format_timestamp(value):
 
 @app.route("/")
 def get_home():
-    chain = load_chain()
     (
         html,
         chain,
@@ -44,7 +46,7 @@ def get_home():
         total_pages,
         blocks,
         summary
-    ) = home(chain)
+    ) = home(g.chain)
 
     return render_template(html,
                            chain=chain,
@@ -58,8 +60,7 @@ def get_home():
 
 @app.route("/orbit-stats")
 def get_orbit_stats():
-    chain = load_chain()
-    html, stats = orbit_stats(chain)
+    html, stats = orbit_stats(g.chain)
 
     return render_template(html, stats=stats)
 
@@ -67,22 +68,19 @@ def get_orbit_stats():
 
 @app.route("/api/orbit_volume_14d")
 def orbit_volumed():
-    chain = load_chain()
-    result = orbit_volume_14d(chain, datetime.datetime.utcnow())
+    result = orbit_volume_14d(g.chain, datetime.datetime.utcnow())
     return jsonify(result)
 
 
 @app.route("/api/tx_volume_14d")
 def tx_volume():
-    chain = load_chain()
-    data = tx_volume_14d(chain, int(time.time()))
+    data = tx_volume_14d(g.chain, int(time.time()))
     return jsonify(data)
 
 
 @app.route("/api/block_volume_14d")
 def block_volume():
-    chain = load_chain()
-    result = block_volume_14d(chain, datetime.datetime.utcnow())
+    result = block_volume_14d(g.chain, datetime.datetime.utcnow())
     return jsonify(result)
 
 @app.route("/locked")
@@ -93,9 +91,8 @@ def route_locked():
 
 @app.route("/api/latest-block")
 def api_latest_block():
-    chain = load_chain()
-    if chain:
-        return jsonify(chain[-1])
+    if g.chain:
+        return jsonify(g.chain[-1])
     return jsonify({"error": "No blocks found"}), 404
 
 
@@ -103,7 +100,7 @@ def api_latest_block():
 def api_latest_transactions():
     limit = int(request.args.get("limit", 5))
     txs = []
-    for block in reversed(load_chain()):
+    for block in reversed(g.chain):
         for tx in reversed(block.get("transactions", [])):
             tx["block"] = block["index"]
             txs.append(tx)
@@ -113,8 +110,7 @@ def api_latest_transactions():
 
 @app.route("/tx/<txid>")
 def tx_detail(txid):
-    chain = load_chain()
-    for block in chain:
+    for block in g.chain:
         txs = block.get("transactions", [])
         for tx in txs:
             current_id = f"{tx.get('sender')}-{tx.get('recipient')}-{tx.get('timestamp')}"
@@ -133,7 +129,7 @@ def tx_detail(txid):
                         break
 
                 note_type = tx.get("note") or tx.get("metadata", {}).get("note")
-                confirmations = len(chain) - block["index"] - 1
+                confirmations = len(g.chain) - block["index"] - 1
 
                 return render_template("tx_detail.html",
                     tx=tx,
@@ -150,10 +146,9 @@ def tx_detail(txid):
 
 @app.route("/top-wallets")
 def top_wallets():
-    chain = load_chain()
     balances = {}
 
-    for block in chain:
+    for block in g.chain:
         for tx in block.get("transactions", []):
             sender = tx.get("sender")
             recipient = tx.get("recipient")
@@ -170,8 +165,7 @@ def top_wallets():
 
 @app.route("/block/<int:index>")
 def block_detail(index):
-    chain = load_chain()
-    for block in chain:
+    for block in g.chain:
         if block["index"] == index:
             txs = block.get("transactions", [])
             fee_txs = [tx for tx in txs if isinstance(tx.get("note"), dict) and "burn" in json.dumps(tx["note"])]
@@ -193,13 +187,12 @@ def address_detail(address):
     pending = [l for l in locks if not l.get("matured")]
     matured = [l for l in locks if l.get("matured")]
 
-    chain = load_chain()
     tx_count = 0
     total_sent = 0
     total_received = 0
     volume_by_day = defaultdict(lambda: {"in": 0, "out": 0})
 
-    for block in chain:
+    for block in g.chain:
         for tx in block.get("transactions", []):
             ts = datetime.datetime.fromtimestamp(tx["timestamp"]).strftime("%Y-%m-%d")
             if tx["sender"] == address:
@@ -253,7 +246,6 @@ def validators():
 @app.route("/node/<node_id>")
 def load_node(node_id):
     nodes = load_nodes()
-    chain = load_chain()
     (
         html,
         blocks,
@@ -262,7 +254,7 @@ def load_node(node_id):
         total_blocks,
         total_orbit,
         avg_block_size
-    ) = node_profile(node_id, nodes, chain)
+    ) = node_profile(node_id, nodes, g.chain)
 
     return render_template(
         html,
@@ -282,7 +274,7 @@ def api_docs():
 
 @app.route("/api/chain")
 def api_chain():
-    return jsonify(load_chain())
+    return jsonify(g.chain)
 
 
 @app.route("/api/address/<address>")
@@ -296,8 +288,7 @@ def api_address(address):
 
 @app.route("/api/block/<int:index>")
 def api_block(index):
-    chain = load_chain()
-    for block in chain:
+    for block in g.chain:
         if block["index"] == index:
             return jsonify(block)
     return jsonify({"error": "Block not found"}), 404
@@ -305,8 +296,7 @@ def api_block(index):
 
 @app.route("/api/tx/<txid>")
 def api_tx(txid):
-    chain = load_chain()
-    for block in chain:
+    for block in g.chain:
         for tx in block.get("transactions", []):
             current_id = f"{tx.get('sender')}-{tx.get('recipient')}-{tx.get('timestamp')}"
             if current_id == txid:
