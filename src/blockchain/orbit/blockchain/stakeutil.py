@@ -38,7 +38,8 @@ def get_user_lockups(username):
                         "amount": tx["note"]["type"]["lockup"]["amount"],
                         "start": tx["note"]["type"]["lockup"]["start"],
                         "end": tx["note"]["type"]["lockup"]["end"],
-                        "days": tx["note"]["type"]["lockup"]["days"]
+                        "days": tx["note"]["type"]["lockup"]["days"],
+                        "uuid": tx["note"]["type"]["lockup"]["uuid"]
                      })
                 except Exception:
                     continue
@@ -108,10 +109,11 @@ def lock_tokens(username):
 
 
 def withdraw_lockup(username):
+    from core.hashutil import generate_lock_id
     users = load_users()
     user = users[username]
     lockups = get_user_lockups(username)
-    now = time.time()
+    now = int(time.time())
 
     matured_total = 0.0
     txs = []
@@ -122,12 +124,18 @@ def withdraw_lockup(username):
         amount = lock["amount"]
         duration = lock["days"]
         start = lock["start"]
+        uuid =  lock["uuid"]
         lock_end = start + duration * 86400
+        tuid = generate_lock_id(start, lock, lock_end)
 
         if now >= lock_end:
             matured_total += amount
         else:
             remaining_locked.append(lock)
+
+    if uuid == tuid:
+        print(f"lockup: {uuid} already claimed.")
+        return
 
     if matured_total == 0:
         print("No matured lockups available to withdraw.")
@@ -187,7 +195,7 @@ def claim_lockup_rewards(username):
     users = load_users()
     user = users[username]
     user_lockups = get_user_lockups(username)
-    now = time.time()
+    now = int(time.time())
     chain = load_chain()
 
     # Step 1: Extract most recent claim_until per lock_start from chain
@@ -205,13 +213,16 @@ def claim_lockup_rewards(username):
     total_reward = 0.0
     reward_txs = []
     still_locked = []
+    claimed = 0
+    lock_count = 0
 
     for lock in user_lockups:
+        lock_count += 1
         lock_start = lock["start"]
         duration = lock["days"]
         amount = lock["amount"]
         lock_end = lock_start + duration * 86400
-        last_claim = claim_map.get(str(lock_start), lock_start)
+        last_claim = int(claim_map.get(str(lock_start), lock_start))
         claim_until = min(now, lock_end)
 
         # Unlock matured principal if reward has been claimed through or past lock_end
@@ -219,6 +230,15 @@ def claim_lockup_rewards(username):
             matured_total += amount
         else:
             still_locked.append(lock)  # still in progress
+
+        if now < last_claim + 86400:
+            claimed += 1
+            print("Can only claim once every 24 hours")
+            print(f"{claimed}:{lock_count}")
+            continue
+
+            if claimed == lock_count:
+                return
 
         # Calculate eligible reward
         if last_claim < claim_until:
