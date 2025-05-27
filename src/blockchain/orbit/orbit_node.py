@@ -22,20 +22,33 @@ class OrbitNode:
         self.nodes = load_nodes()
         self.register_node()
 
-
     def register_node(self):
-        port = 5000 + int(self.node_id[-1])  # Simple port logic based on node_id
+        self.node_id = get_node_for_user(self.address)
+
+        if not self.node_id:
+            existing_ids = [int(n.replace("Node", "")) for n in self.nodes.keys() if n.startswith("Node") and n.replace("Node", "").isdigit()]
+            next_id = max(existing_ids, default=0) + 1
+            self.node_id = f"Node{next_id}"
+
+        try:
+            node_num = int(self.node_id.replace("Node", ""))
+        except ValueError:
+            node_num = 0
+        port = 5000 + node_num
+
         if self.node_id not in self.nodes:
             self.nodes[self.node_id] = {
                 "address": "127.0.0.1",
                 "port": port,
-                "quorum_slice": [n for n in self.nodes if n != self.node_id][:2],
+                "quorum_slice": [n for n in list(self.nodes) if n != self.node_id][:2],
                 "trust_score": 1.0,
                 "uptime_score": 1.0,
                 "user": self.address
             }
             save_nodes(self.nodes)
-            print(f"Registered node {self.node_id} for user {self.address}")
+            print(f"Registered new node {self.node_id} for user {self.address}")
+        else:
+            print(f"Node {self.node_id} already registered for user {self.address}")
 
 
     def fetch_latest_chain(self):

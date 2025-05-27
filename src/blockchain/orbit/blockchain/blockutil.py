@@ -36,9 +36,15 @@ def create_genesis_block():
 
 
 def get_last_block():
-    """Returns the latest block in the chain."""
-    return fetch_chain()[-1]
-
+    try:
+        chain = fetch_chain()
+        if isinstance(chain, list) and len(chain) > 0:
+            return chain[-1]
+        else:
+            print("Chain is empty or invalid format.")
+    except Exception as e:
+        print(f"Error fetching last block: {e}")
+    return None
 
 def propose_block(node_id, block_data, timeout=5):
     """Attempts to propose a block and achieve quorum consensus."""
@@ -156,7 +162,7 @@ def add_block(transactions, node_id="Node1"):
         signatures={},
         merkle_root=merkle_root,
         nonce=0,
-        metadata={"lockup_rewards": [], "version": "1.0"}
+        metadata={"version": "1.0"}
     )
 
     new_block.hash = calculate_hash(
@@ -195,14 +201,18 @@ def add_block(transactions, node_id="Node1"):
         log_node_activity(node_id, "Add Block", "Rejected by consensus.")
         return False
 
-
 def validate_block(block, node_id):
     chain = fetch_chain()
     if not chain:
-        log_node_activity(node_id, "Validate Block", f"Blockchain couldn't be loaded")
+        log_node_activity(node_id, "Validate Block", "Blockchain couldn't be loaded")
         return False
 
-    last_block = chain[-1]
+    last_block = get_last_block()
+    if not last_block:
+        return False
+
+    if last_block["index"] == 0:
+        return True
 
     prev_hash = calculate_hash(
         last_block["index"],
@@ -216,22 +226,12 @@ def validate_block(block, node_id):
     )
 
     block = block.to_dict()
-    current_hash = calculate_hash(
-        block["index"],
-        block["previous_hash"],
-        block["timestamp"],
-        block["transactions"],
-        block["validator"],
-        block["merkle_root"],
-        block["nonce"],
-        block["metadata"]
-    )
-    if current_hash != prev_hash:
-        log_node_activity(node_id, "Validate Block", f"Block {block['index']} valid")
-        return True
-    else:
-        log_node_activity(node_id, "Validate Block", f"Block {block['index']} not valid")
+    if block["previous_hash"] != prev_hash:
+        log_node_activity(node_id, "Validate Block", f"Block {block['index']} not valid: incorrect previous_hash")
         return False
+
+    log_node_activity(node_id, "Validate Block", f"Block {block['index']} is valid")
+    return True
 
 def is_chain_valid():
     """Validates the entire blockchain."""
