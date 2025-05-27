@@ -8,6 +8,9 @@ from blockchain.orbitutil import load_nodes
 import time
 from collections import defaultdict
 from core.tx_types import TXTypes
+from explorer.util.util import search_chain, last_transactions, get_validator_stats, get_chain_summary
+from explorer.routes.locked import locked
+from explorer.routes.node import node_profile
 
 orbit_db = OrbitDB()
 app = Flask(__name__)
@@ -17,80 +20,6 @@ PAGE_SIZE = 5
 PORT = 7000
 
 
-def search_chain(query):
-    query = query.lower()
-    if query.isdigit():
-        return redirect(url_for('block_detail', index=int(query)))
-    if len(query) >= 50:
-        return redirect(url_for('tx_detail', txid=query))
-    return redirect(url_for('address_detail', address=query))
-
-
-def last_transactions(address, limit=10):
-    txs = []
-    for block in reversed(load_chain()):
-        for tx in block.get("transactions", []):
-            if tx["sender"] == address or tx["recipient"] == address:
-                txs.append(tx)
-                if len(txs) >= limit:
-                    return txs
-    return txs
-
-
-def get_validator_stats():
-    nodes = load_nodes()
-    chain = load_chain()
-
-    # Count blocks produced per validator
-    block_counts = {}
-    for block in chain:
-        val = block.get("validator")
-        if val:
-            block_counts[val] = block_counts.get(val, 0) + 1
-
-    total_blocks = sum(block_counts.values())
-    all_validators = set(block_counts.keys()).union(nodes.keys())
-
-    stats = []
-    for validator in sorted(all_validators):
-        blocks = block_counts.get(validator, 0)
-        percent = round(100 * blocks / total_blocks, 2) if total_blocks else 0
-        node_info = nodes.get(validator, {})
-        trust = round(node_info.get("trust_score", 0.0), 3)
-        uptime = round(node_info.get("uptime_score", 0.0), 3)
-
-        stats.append({
-            "validator": validator,
-            "blocks": blocks,
-            "percent": percent,
-            "trust": trust,
-            "uptime": uptime
-        })
-
-    # Optional: Sort by blocks produced
-    stats.sort(key=lambda x: x["blocks"], reverse=True)
-    return stats
-
-def get_chain_summary():
-    chain = load_chain()
-    tx_count = sum(len(b.get("transactions", [])) for b in chain)
-    account_set = set()
-    total_orbit = 100000000
-    circulating = (0 - total_orbit)
-    for b in chain:
-        for tx in b.get("transactions", []):
-            account_set.add(tx["sender"])
-            account_set.add(tx["recipient"])
-            circulating += tx["amount"]
-    return {
-        "blocks": len(chain),
-        "transactions": tx_count,
-        "accounts": len(account_set),
-        "circulating": circulating,
-        "total_orbit": total_orbit
-    }
-
-
 
 @app.template_filter('ts')
 def format_timestamp(value):
@@ -98,9 +27,6 @@ def format_timestamp(value):
         return datetime.datetime.fromtimestamp(value).strftime('%Y-%m-%d %H:%M:%S')
     except:
         return str(value)
-
-
-
 
 
 
@@ -254,63 +180,10 @@ def block_volume_14d():
     result = [{"date": day, "count": counts[day]} for day in sorted(counts)]
     return jsonify(result)
 
-
 @app.route("/locked")
-def locked():
-    chain = load_chain()
-    now = time.time()
-    user_filter = request.args.get("user", "").strip().lower()
-    min_amount = float(request.args.get("min_amount", 0))
-    min_days = int(request.args.get("min_days", 0))
-    sort = request.args.get("sort", "date")
-
-    locks = []
-    total_claimed = 0.0
-
-    for block in chain:
-        for tx in block.get("transactions", []):
-            note = tx.get("note", {})
-
-            # Track claimed rewards
-            if tx.get("sender") == "lockup_reward":
-                total_claimed += float(tx.get("amount", 0))
-
-            # Extract lockup metadata using TXTypes
-            try:
-                start, end, days, locked = TXTypes.StakingTypes.from_dict(note)
-                if locked and start and end:
-                    days_remaining = max(0, int((end - now) / 86400))
-                    entry = {
-                        "username": tx.get("sender", ""),
-                        "amount": float(locked),
-                        "duration": round(days, 1),
-                        "days_remaining": days_remaining,
-                        "timestamp": tx.get("timestamp", 0)
-                    }
-                    if (
-                        (not user_filter or user_filter in entry["username"].lower())
-                        and entry["amount"] >= min_amount
-                        and entry["duration"] >= min_days
-                    ):
-                        locks.append(entry)
-            except Exception:
-                continue
-
-    if sort == "amount":
-        locks.sort(key=lambda x: -x["amount"])
-    elif sort == "user":
-        locks.sort(key=lambda x: x["username"])
-    else:
-        locks.sort(key=lambda x: x["timestamp"])
-
-    totals = {
-        "total_locked": sum(lock["amount"] for lock in locks),
-        "count": len(locks),
-        "avg_days": round(sum(lock["duration"] for lock in locks) / len(locks), 1) if locks else 0,
-        "total_claimed": round(total_claimed, 4)
-    }
-
-    return render_template("locked.html", locks=locks, totals=totals, sort=sort)
+def route_locked():
+    html, locks, totals, sort = locked()
+    return render_template(html, locks=locks, totals=totals, sort=sort)
 
 
 @app.route("/api/latest-block")
@@ -473,38 +346,30 @@ def validators():
     return render_template("validators.html", validator_data=stats)
 
 @app.route("/node/<node_id>")
-def node_profile(node_id):
+def load_node(node_id):
     nodes = load_nodes()
     chain = load_chain()
+    (
+        html,
+        blocks,
+        trust,
+        uptime,
+        total_blocks,
+        total_orbit,
+        avg_block_size
+    ) = node_profile(node_id, nodes, chain)
 
-    node_data = nodes.get(node_id)
-    if not node_data:
-        return "Node not found", 404
+    return render_template(
+        html,
+        node_id=node_id,
+        blocks=blocks,
+        trust=trust,
+        uptime=uptime,
+        total_blocks=total_blocks,
+        total_orbit=total_orbit,
+        avg_block_size=avg_block_size
+    )
 
-    # Filter blocks validated by this node
-    blocks_validated = [b for b in chain if b.get("validator") == node_id]
-    total_blocks = len(blocks_validated)
-    trust = node_data.get("trust_score", 0)
-    uptime = node_data.get("uptime_score", 0)
-
-    total_orbit = 0
-    total_tx_count = 0
-    for block in blocks_validated:
-        txs = block.get("transactions", [])
-        total_tx_count += len(txs)
-        for tx in txs:
-            total_orbit += tx.get("amount", 0)
-
-    avg_block_size = round(total_tx_count / total_blocks, 2) if total_blocks else 0
-
-    return render_template("node_profile.html",
-                           node_id=node_id,
-                           blocks=blocks_validated,
-                           trust=trust,
-                           uptime=uptime,
-                           total_blocks=total_blocks,
-                           total_orbit=round(total_orbit, 4),
-                           avg_block_size=avg_block_size)
 
 @app.route("/api/docs")
 def api_docs():
