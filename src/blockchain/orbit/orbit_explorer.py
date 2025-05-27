@@ -11,10 +11,12 @@ from core.tx_types import TXTypes
 
 from explorer.api.latest import latest_block, latest_txs
 from explorer.api.volume import tx_volume_14d, block_volume_14d, orbit_volume_14d
+from explorer.routes.block import block_detail
 from explorer.routes.locked import locked
 from explorer.routes.home import home
 from explorer.routes.node import node_profile
 from explorer.routes.orbitstats import orbit_stats
+from explorer.routes.topwallets import top_wallets
 from explorer.routes.tx import tx_detail
 from explorer.util.util import search_chain, last_transactions, get_validator_stats, get_chain_summary
 
@@ -100,6 +102,7 @@ def api_latest_block():
 def api_latest_transactions():
     result = latest_txs(g.chain)
     return jsonify(result)
+
 @app.route("/tx/<txid>")
 def get_tx(txid):
     result = tx_detail(txid, g.chain)
@@ -129,37 +132,28 @@ def get_tx(txid):
         )
 
 @app.route("/top-wallets")
-def top_wallets():
-    balances = {}
-
-    for block in g.chain:
-        for tx in block.get("transactions", []):
-            sender = tx.get("sender")
-            recipient = tx.get("recipient")
-            amount = tx.get("amount", 0)
-
-            if sender != "genesis":
-                balances[sender] = balances.get(sender, 0) - amount
-            balances[recipient] = balances.get(recipient, 0) + amount
-
-    top_10 = sorted(balances.items(), key=lambda x: x[1], reverse=True)[:10]
-    wallet_data = [{"address": addr, "balance": round(balance, 6)} for addr, balance in top_10]
-
-    return render_template("top_wallets.html", wallets=wallet_data)
+def get_top_wallets():
+    html, wallet_data = top_wallets(g.chain)
+    return render_template(html, wallets=wallet_data)
 
 @app.route("/block/<int:index>")
-def block_detail(index):
-    for block in g.chain:
-        if block["index"] == index:
-            txs = block.get("transactions", [])
-            fee_txs = [tx for tx in txs if isinstance(tx.get("note"), dict) and "burn" in json.dumps(tx["note"])]
-            return render_template(
-                "block_detail.html",
-                block=block,
-                txs=txs,
-                fee_txs=fee_txs
-            )
-    return "Block not found", 404
+def get_block(index):
+    result = block_detail(index, g.chain)
+    if result == "404":
+        return "Transaction not found", 404
+    else:
+        (
+            html,
+            block,
+            txs,
+            fee_txs
+        ) = result
+        return render_template(
+            html,
+            block=block,
+            txs=txs,
+            fee_txs=fee_txs
+        )
 
 
 

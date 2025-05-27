@@ -1,6 +1,4 @@
-@app.route("/top-wallets")
-def top_wallets():
-    chain = load_chain()
+def top_wallets(chain):
     balances = {}
 
     for block in chain:
@@ -16,4 +14,7 @@ def top_wallets():
     top_10 = sorted(balances.items(), key=lambda x: x[1], reverse=True)[:10]
     wallet_data = [{"address": addr, "balance": round(balance, 6)} for addr, balance in top_10]
 
-    return render_template("top_wallets.html", wallets=wallet_data)
+    return (
+        "top_wallets.html", 
+        wallet_data
+    )
