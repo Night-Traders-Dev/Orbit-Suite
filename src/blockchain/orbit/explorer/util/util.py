@@ -26,12 +26,10 @@ def last_transactions(address, limit=10):
                     return txs
     return txs
 
-
-
 def get_validator_stats():
-    nodes = load_nodes()
+    nodes = {}
+    nodes = load_nodes()  # dict: {"Node1": {node data}, ...}
     chain = fetch_chain()
-
     block_counts = {}
     for block in chain:
         val = block.get("validator")
@@ -41,13 +39,15 @@ def get_validator_stats():
     total_blocks = sum(block_counts.values())
 
     stats = []
-    for node in nodes:
-        node_id = node.get("node").get("id")
+    for node_data in nodes:
+        print(node_data, type(node_data))
+        node_info = node_data.get("node", {})
+        node_id = node_info.get("id")
 
         blocks = block_counts.get(node_id, 0)
         percent = round(100 * blocks / total_blocks, 2) if total_blocks else 0
-        trust = round(node_id.get("trust_score", 0.0), 3)
-        uptime = round(node_id.get("uptime_score", 0.0), 3)
+        trust = round(node_info.get("trust_score", 0.0), 3)
+        uptime = round(node_info.get("uptime_score", 0.0), 3)
 
         stats.append({
             "validator": node_id,
@@ -59,6 +59,7 @@ def get_validator_stats():
 
     stats.sort(key=lambda x: x["blocks"], reverse=True)
     return stats
+
 
 
 def get_chain_summary():

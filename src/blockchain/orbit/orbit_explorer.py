@@ -234,22 +234,26 @@ def api_summary():
 def ping():
     return "pong", 200
 
-active_node_registry = {}  # In-memory storage for simplicity
+active_node_registry = {}
 
 @app.route("/node_ping", methods=["POST"])
 def node_ping():
     data = request.get_json()
-    if not data or "node" not in data:
-        return jsonify({"error": "Invalid node data"}), 400
+    node = data.get("node", {})
+    node_id = node.get("id")
+    last_seen = time.time()
 
-    node_data = data["node"]
-    node_id = node_data.get("id")
-    if node_id:
-        node_data["last_seen"] = time.time()
-        active_node_registry[node_id] = node_data
-        return jsonify({"status": "registered", "node": node_data}), 200
-    else:
+    if not node_id:
         return jsonify({"error": "Missing node ID"}), 400
+
+    # Store by node_id
+    active_node_registry[node_id] = {
+        "node": node,
+        "last_seen": last_seen
+    }
+
+    return jsonify({"status": "registered", "node": node}), 200
+
 
 @app.route("/active_nodes", methods=["GET"])
 def active_nodes():
@@ -260,6 +264,7 @@ def active_nodes():
         if data.get("last_seen", 0) > cutoff
     }
     return jsonify(fresh_nodes), 200
+
 
 @app.route("/receive_block", methods=["POST"])
 def receive_block():

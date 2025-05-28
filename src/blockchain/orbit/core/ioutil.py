@@ -43,7 +43,12 @@ def load_nodes():
     try:
         response = requests.get(f"{EXPLORER_API}/active_nodes", timeout=5)
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            if isinstance(data, dict):
+                return data
+            else:
+                print(f"[load_nodes] Unexpected format: {type(data)}")
+                return {}
         else:
             print(f"[load_nodes] Failed with status {response.status_code}")
             return {}

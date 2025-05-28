@@ -3,6 +3,7 @@ import requests
 import threading
 import json
 import os
+import random
 from flask import Flask, request, jsonify
 from config.configutil import TXConfig, NodeConfig, OrbitDB
 from core.ioutil import load_nodes, save_nodes, fetch_chain, save_chain
@@ -11,7 +12,7 @@ from blockchain.orbitutil import get_node_for_user
 
 FETCH_INTERVAL = 30
 NODE_LEDGER = "data/orbit_chain.node"
-EXPLORER = "http://127.0.0.1:7000/node_ping"
+EXPLORER = "http://127.0.0.1:7000"
 
 orbit_db = OrbitDB()
 
@@ -20,10 +21,10 @@ app = Flask(__name__)
 class OrbitNode:
     def __init__(self, address):
         self.address = address
-        self.port = 0
-        self.node_id = "Node1"
+        self.port = 5000 + random.randint(0, 999)
+        self.node_id = "Node" + str(random.randint(0, 999))
         self.running = True
-        self.nodes = load_nodes()  # Should return list of node dicts
+        self.nodes = load_nodes()
         self.register_node()
         self.NodeRegistry = {}
 
@@ -82,9 +83,8 @@ class OrbitNode:
             except Exception as e:
                 print(f"Failed to send block to {node_id}: {e}")
 
-    def start_receiver_server(self):
+    def start_receiver_server(self, new_node_port):
         app = Flask(__name__)
-
         @app.route("/receive_block", methods=["POST"])
         def receive_block():
             block = request.get_json()
@@ -94,42 +94,50 @@ class OrbitNode:
 
         threading.Thread(
             target=app.run,
-            kwargs={"port": 5000 + int(self.node_id[-1]), "debug": False, "use_reloader": False}
+            kwargs={"port": new_node_port, "debug": False, "use_reloader": False}
         ).start()
 
 
-    def ping_explorer(self, explorer_url="http://127.0.0.1:7000/node_ping"):
+    def ping_explorer(self, EXPLORER, new_node, new_node_id):
         try:
-            new_node = self.register_node()
+            try:
+                active_response = requests.get(f"{EXPLORER}/active_nodes", timeout=5)
+                if active_response.status_code != 200:
+                    print(f"[EXPLORER PING] Failed to fetch active nodes (status: {active_response.status_code})")
+                    return
+
+                active_nodes = active_response.json()
+            except Exception as e:
+                print(f"[EXPLORER PING] Failed to fetch active nodes: {e}")
+                return
+
+            if new_node_id in active_nodes:
+                print(f"[EXPLORER PING] Node {new_node_id} already registered.")
+                return
 
             response = requests.post(
-                explorer_url,
+                f"{EXPLORER}/node_ping",
                 json=new_node,
                 headers={'Content-Type': 'application/json'},
                 timeout=5
             )
             if response.status_code == 200:
-                print(f"[EXPLORER PING] Success: {response.json()}")
+                print(f"[EXPLORER PING] Registered new node: {response.json()}")
             else:
-                print(f"[EXPLORER PING] Failed with status code: {response.status_code}")
+                print(f"[EXPLORER PING] Registration failed (status: {response.status_code})")
+
         except requests.exceptions.RequestException as e:
             print(f"[EXPLORER PING] Request exception: {e}")
 
-
-    def get_known_nodes(self, explorer_url="http://127.0.0.1:7000/active_nodes"):
-        try:
-            response = requests.post(explorer_url, json=new_node, headers={'Content-Type': 'application/json'}, timeout=5)
-            return response.json()
-        except Exception as e:
-            print("Failed to get active nodes:", e)
-            return {}
-
     def run(self):
         print(f"Starting Orbit Node for {self.address} ({self.node_id})")
-        self.start_receiver_server()
+        new_node = self.register_node()
+        new_node_id = new_node["node"]["id"]
+        new_node_port = new_node["node"]["port"]
+        new_node_address = new_node["node"]["address"]
+        self.start_receiver_server(new_node_port)
         while self.running:
-            self.ping_explorer(EXPLORER)
-            updated_nodes = self.get_known_nodes()
+            self.ping_explorer(EXPLORER, new_node, new_node_id)
             self.update_chain()
             time.sleep(FETCH_INTERVAL)
 
