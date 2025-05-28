@@ -23,7 +23,6 @@ CHAIN_PATH = orbit_db.blockchaindb
 PORT = 7000
 NodeRegistry = orbit_db.NodeRegistry
 
-
 @app.before_request
 def load_chain_once():
     g.chain = load_chain()
@@ -34,28 +33,6 @@ def format_timestamp(value):
         return datetime.datetime.fromtimestamp(value).strftime('%Y-%m-%d %H:%M:%S')
     except:
         return str(value)
-
-
-def register_node(node_id, ip, port, last_seen):
-    return {
-        "node": {
-            "id": node_id,
-            "address": ip,
-            "port": port,
-            "quorum_slice": [],
-            "trust_score": 1.0,
-            "uptime_score": 1.0,
-            "last_seen": last_seen
-        }
-    }
-
-
-def get_active_nodes(timeout_seconds=60):
-    now = time.time()
-    return {
-        nid: data for nid, data in NodeRegistry.items()
-        if (now - data["last_seen"]) < timeout_seconds
-    }
 
 
 
@@ -259,30 +236,35 @@ def ping():
 
 @app.route("/node_ping", methods=["POST"])
 def node_ping():
-    data = request.get_json()
-    node_id = data.get("node_id")
-    port = data.get("port", 7000)
-    address = "127.0.0.1"
+    data = request.get_json(force=True)
+    print(data)
+    return jsonify({"error": "test"}), 400
 
-    if not node_id:
-        return jsonify({"error": "Missing node_id"}), 400
+#    node_id = data.get("node_id")
+#    address = data.get("address")
+#    port = data.get("port")
 
-#    NodeRegistry.append(register_node(node_id, address, port, time.time()))
-    return jsonify({"status": "ok"}), 200
+#    if not node_id or not address or not port:
+#        return jsonify({"error": "Missing node_id, address, or port"}), 400
+
+#    for node in NodeRegistry:
+#        if node.get("node_id") == node_id:
+#            node.get("last_seen")  
+#            return jsonify({"status": "updated"}), 200
+
+#    last_seen = time.time()
+#    new_node = format_node(node_id, address, port, last_seen)
+#    NodeRegistry.append(new_node)
+#    return jsonify({"status": "registered", "node": new_node}), 201
 
 
 @app.route("/active_nodes", methods=["GET"])
 def active_nodes():
-    active = []
     now = time.time()
-
-    for node in NodeRegistry:
-        last_seen = node["node"]["last_seen"]
-
-        if (now - last_seen) < 300:
-            active.append(node)
-
+    active = [node for node in NodeRegistry if now - node["node"]["last_seen"] < 300]
     return jsonify(active)
+
+
 
 @app.route("/receive_block", methods=["POST"])
 def receive_block():

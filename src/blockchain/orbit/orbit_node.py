@@ -15,7 +15,6 @@ EXPLORER = "http://127.0.0.1:7000/node_ping"
 
 orbit_db = OrbitDB()
 
-NodeRegistry = orbit_db.NodeRegistry
 
 
 class OrbitNode:
@@ -23,23 +22,13 @@ class OrbitNode:
         self.address = address
         self.port = 0
         self.node_id = "Node1"
-        self.chain = []
         self.running = True
-        self.nodes = load_nodes()
-
-        if len(self.nodes) != 0:
-            self.assign_unique_node_id()
+        self.nodes = load_nodes()  # Should return list of node dicts
         self.register_node()
-
-    def assign_unique_node_id(self):
-        existing_ids = [int(n.replace("Node", "")) for n in self.nodes.keys()
-                        if n.startswith("Node") and n.replace("Node", "").isdigit()]
-        next_id = max(existing_ids, default=0) + 1
-        self.node_id = f"Node{next_id}"
-        self.port = 5000 + next_id
+        self.NodeRegistry = {}
 
     def format_node(self, node_id, ip, port, last_seen):
-        return {
+        self.NodeRegistry = {
             "node": {
                 "id": node_id,
                 "address": ip,
@@ -47,22 +36,23 @@ class OrbitNode:
                 "quorum_slice": [],
                 "trust_score": 1.0,
                 "uptime_score": 1.0,
-                "last_seen": last_seen
+                "last_seen": time.time()
             }
         }
-
+        return self.NodeRegistry
     def register_node(self):
-        NodeRegistry[self.node_id] = self.format_node(
-            self.node_id, self.address, self.port, time.time()
-        )
+        new_node = self.format_node(self.node_id, self.address, self.port, time.time())
+        if new_node.get("node").get("id") in self.get_known_nodes():
+            numeric_ids = [int(n.get("node").get("node_id").replace("Node", "")) for n in self.nodes if n.get("node").get("node_id").startswith("Node")]
+            next_id = max(numeric_ids, default=0) + 1
+            self.node_id = f"Node{next_id}"
+            self.port = 5000 + next_id
+        else:
+            self.port = 5000 + int(self.node_id.replace("Node", ""))
+
+        save_nodes(self.NodeRegistry)
+
         print(f"Registered new node: {self.node_id} at {self.address}:{self.port}")
-#            NodeRegistry[self.node_id]["node"]["last_seen"] = time.time()
-#            print(f"Updated existing node: {self.node_id}")
-
-        save_nodes(self.nodes)
-
-
-        print(f"Registered node {self.node_id} for user {self.address}")
 
 
     def fetch_latest_chain(self):
@@ -74,7 +64,7 @@ class OrbitNode:
 
     def update_chain(self):
         new_chain = self.fetch_latest_chain()
-        if new_chain and len(new_chain) > len(self.chain):
+        if new_chain and len(new_chain) > len(new_chain):
             print(f"New chain received. Updating local ledger ({len(new_chain)} blocks).")
             self.chain = new_chain
             save_chain(self.chain, owner_id=self.node_id, chain_file=NODE_LEDGER)
@@ -116,12 +106,16 @@ class OrbitNode:
             kwargs={"port": 5000 + int(self.node_id[-1]), "debug": False, "use_reloader": False}
         ).start()
 
-
     def ping_explorer(self, node_id, EXPLORER, port):
         try:
-            requests.post(EXPLORER, json={"node_id": self.node_id, "port": self.port})
+            payload = {
+                "node_id": self.node_id,
+                "address": self.address,
+                "port": self.port
+            }
+            requests.post(f"{EXPLORER}/node_ping", json=payload, timeout=3)
         except Exception as e:
-            print("Explorer ping failed:", e)
+            print(f"[ping_explorer] Explorer ping failed for {self.node_id} at {self.address}:{self.port} — {e}")
 
 
     def get_known_nodes(self, explorer_url="http://127.0.0.1:7000/active_nodes"):

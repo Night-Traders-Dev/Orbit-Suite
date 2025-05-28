@@ -55,14 +55,13 @@ def load_nodes():
 
 def save_nodes(nodes, exclude_id=None):
     for node in nodes:
-        if node["node"]["id"] == exclude_id:
-            continue
+#        if exclude_id:
+#            if node["node"]["id"] == exclude_id:
+#                continue
         try:
-            payload = {"node_id": node["node"]["id"]}
-            payload.update(info)
             requests.post(
                 f"{EXPLORER_API}/node_ping",
-                json=payload,
+                json=node,
                 timeout=3
             )
         except requests.Timeout as e:
@@ -71,15 +70,6 @@ def save_nodes(nodes, exclude_id=None):
             print(f"[save_nodes] Failed to ping explorer for node {node_id}: {e}")
 
 
-def load_nodes2():
-    if not os.path.exists(NODES_FILE):
-        return {}
-    with open(NODES_FILE, "r") as f:
-        return json.load(f)
-
-def save_nodes2(nodes):
-    with open(NODES_FILE, "w") as f:
-        json.dump(nodes, f, indent=2)
 
 def session_util(option, sessions=None):
     if option == "load":
