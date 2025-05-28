@@ -37,7 +37,7 @@ def save_users(users):
 
 # ===================== NODE FUNCS =====================
 
-EXPLORER_API = "http://localhost:7000"
+EXPLORER_API = "https://45b2-173-187-247-149.ngrok-free.app"
 
 def load_nodes():
     try:
@@ -142,7 +142,7 @@ else:
         FILE_LOCK_SUPPORTED = False
 
 def fetch_chain(url="localhost", port="7000"):
-    chainurl=(f"http://{url}:{port}/api/chain")
+    chainurl=(f"https://45b2-173-187-247-149.ngrok-free.app/api/chain")
     try:
         response = requests.get(chainurl, timeout=5)
         if response.status_code == 200:

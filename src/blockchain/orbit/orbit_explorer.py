@@ -279,4 +279,5 @@ def receive_block():
     return "OK", 200
 
 if __name__ == "__main__":
-    app.run(port=PORT, debug=True)
+    host = '0.0.0.0'
+    app.run(host=host, port=PORT, debug=True)

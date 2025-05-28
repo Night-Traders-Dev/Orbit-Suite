@@ -54,7 +54,7 @@ def start_listener(node_id, username):
         return
     user_port = (int(re.search(r'\d+', s).group()) + 5001)
 
-    address = "127.0.0.1"
+    address = 'https://45b2-173-187-247-149.ngrok-free.app/' #"0.0.0.0"
     port = user_port
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

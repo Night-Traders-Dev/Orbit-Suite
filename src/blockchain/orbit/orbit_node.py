@@ -12,7 +12,8 @@ from blockchain.orbitutil import get_node_for_user
 
 FETCH_INTERVAL = 30
 NODE_LEDGER = "data/orbit_chain.node"
-EXPLORER = "http://127.0.0.1:7000"
+EXPLORER = "https://45b2-173-187-247-149.ngrok-free.app"
+#"http://127.0.0.1:7000"
 
 orbit_db = OrbitDB()
 
