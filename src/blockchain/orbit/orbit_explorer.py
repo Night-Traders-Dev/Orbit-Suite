@@ -168,20 +168,28 @@ def validators():
 
 @app.route("/node/<node_id>")
 def load_node(node_id):
-    node_data = NodeRegistry.get(node_id)
+    node_data = load_nodes()
 
-    if not node_data:
-        return f"Node {node_id} not found", 404
+    if node_id in node_data:
+        # Node is found in registered nodes
+        node_blocks = [block for block in g.chain if block.get("validator") == node_id]
+    else:
+        # Try to find node by scanning the chain
+        node_blocks = [block for block in g.chain if block.get("validator") == node_id]
 
-    (
-        html,
-        blocks,
-        trust,
-        uptime,
-        total_blocks,
-        total_orbit,
-        avg_block_size
-    ) = node_profile(node_id, NodeRegistry, g.chain)
+        # If still no blocks, return not found
+        if not node_blocks:
+            return render_template("node_not_found.html", node_id=node_id), 404
+
+        # If found only via blocks, add minimal data
+        node_data[node_id] = {
+            "uptime": None,
+            "trust": None
+        }
+
+    html, blocks, trust, uptime, total_blocks, total_orbit, avg_block_size = node_profile(
+        node_id, node_data, g.chain
+    )
 
     return render_template(
         html,
