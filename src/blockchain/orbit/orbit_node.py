@@ -15,7 +15,7 @@ EXPLORER = "http://127.0.0.1:7000/node_ping"
 
 orbit_db = OrbitDB()
 
-
+app = Flask(__name__)
 
 class OrbitNode:
     def __init__(self, address):
@@ -40,20 +40,11 @@ class OrbitNode:
             }
         }
         return self.NodeRegistry
+
     def register_node(self):
         new_node = self.format_node(self.node_id, self.address, self.port, time.time())
-        if new_node.get("node").get("id") in self.get_known_nodes():
-            numeric_ids = [int(n.get("node").get("node_id").replace("Node", "")) for n in self.nodes if n.get("node").get("node_id").startswith("Node")]
-            next_id = max(numeric_ids, default=0) + 1
-            self.node_id = f"Node{next_id}"
-            self.port = 5000 + next_id
-        else:
-            self.port = 5000 + int(self.node_id.replace("Node", ""))
-
-        save_nodes(self.NodeRegistry)
-
-        print(f"Registered new node: {self.node_id} at {self.address}:{self.port}")
-
+        save_nodes(new_node)
+        return new_node
 
     def fetch_latest_chain(self):
         try:
@@ -106,21 +97,28 @@ class OrbitNode:
             kwargs={"port": 5000 + int(self.node_id[-1]), "debug": False, "use_reloader": False}
         ).start()
 
-    def ping_explorer(self, node_id, EXPLORER, port):
+
+    def ping_explorer(self, explorer_url="http://127.0.0.1:7000/node_ping"):
         try:
-            payload = {
-                "node_id": self.node_id,
-                "address": self.address,
-                "port": self.port
-            }
-            requests.post(f"{EXPLORER}/node_ping", json=payload, timeout=3)
-        except Exception as e:
-            print(f"[ping_explorer] Explorer ping failed for {self.node_id} at {self.address}:{self.port} — {e}")
+            new_node = self.register_node()
+
+            response = requests.post(
+                explorer_url,
+                json=new_node,
+                headers={'Content-Type': 'application/json'},
+                timeout=5
+            )
+            if response.status_code == 200:
+                print(f"[EXPLORER PING] Success: {response.json()}")
+            else:
+                print(f"[EXPLORER PING] Failed with status code: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"[EXPLORER PING] Request exception: {e}")
 
 
     def get_known_nodes(self, explorer_url="http://127.0.0.1:7000/active_nodes"):
         try:
-            response = requests.get(explorer_url)
+            response = requests.post(explorer_url, json=new_node, headers={'Content-Type': 'application/json'}, timeout=5)
             return response.json()
         except Exception as e:
             print("Failed to get active nodes:", e)
@@ -130,11 +128,8 @@ class OrbitNode:
         print(f"Starting Orbit Node for {self.address} ({self.node_id})")
         self.start_receiver_server()
         while self.running:
-            self.ping_explorer(self.node_id, EXPLORER, self.port)
+            self.ping_explorer(EXPLORER)
             updated_nodes = self.get_known_nodes()
-            if updated_nodes:
-                self.nodes.update(updated_nodes)
-
             self.update_chain()
             time.sleep(FETCH_INTERVAL)
 

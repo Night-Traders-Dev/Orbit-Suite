@@ -47,28 +47,32 @@ def load_nodes():
         else:
             print(f"[load_nodes] Failed with status {response.status_code}")
             return {}
-    except requests.Timeout as e:
+    except requests.Timeout:
         print(f"[load_nodes] Timeout")
+        return {}
     except Exception as e:
         print(f"[load_nodes] Explorer unreachable: {e}")
         return {}
 
 def save_nodes(nodes, exclude_id=None):
+    if isinstance(nodes, dict):
+        nodes = [nodes]
     for node in nodes:
-#        if exclude_id:
-#            if node["node"]["id"] == exclude_id:
-#                continue
+        node_id = node.get("node", {}).get("id", "None")
+        if exclude_id and node_id == exclude_id:
+            continue
         try:
-            requests.post(
+            response = requests.post(
                 f"{EXPLORER_API}/node_ping",
                 json=node,
                 timeout=3
             )
-        except requests.Timeout as e:
-            print(f"[save_nodes] Timeout")
+            if response.status_code != 200:
+                print(f"[save_nodes] Explorer rejected node {node_id} with status {response.status_code}")
+        except requests.Timeout:
+            print(f"[save_nodes] Timeout for node {node_id}")
         except Exception as e:
             print(f"[save_nodes] Failed to ping explorer for node {node_id}: {e}")
-
 
 
 def session_util(option, sessions=None):

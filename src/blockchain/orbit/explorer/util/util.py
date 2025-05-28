@@ -2,8 +2,7 @@ import json, os, datetime, math
 from config.configutil import OrbitDB
 from blockchain.stakeutil import get_user_lockups, get_all_lockups
 from core.walletutil import load_balance
-from blockchain.blockutil import load_chain
-from blockchain.orbitutil import load_nodes
+from core.ioutil import load_nodes, fetch_chain
 import time
 from collections import defaultdict
 from core.tx_types import TXTypes
@@ -19,7 +18,7 @@ def search_chain(query):
 
 def last_transactions(address, limit=10):
     txs = []
-    for block in reversed(load_chain()):
+    for block in reversed(fetch_chain()):
         for tx in block.get("transactions", []):
             if tx["sender"] == address or tx["recipient"] == address:
                 txs.append(tx)
@@ -31,7 +30,7 @@ def last_transactions(address, limit=10):
 
 def get_validator_stats():
     nodes = load_nodes()
-    chain = load_chain()
+    chain = fetch_chain()
 
     block_counts = {}
     for block in chain:
@@ -43,18 +42,15 @@ def get_validator_stats():
 
     stats = []
     for node in nodes:
-        node_info = node.get("node", {})
-        validator = node_info.get("id")
-        if not validator:
-            continue
+        node_id = node.get("node").get("id")
 
-        blocks = block_counts.get(validator, 0)
+        blocks = block_counts.get(node_id, 0)
         percent = round(100 * blocks / total_blocks, 2) if total_blocks else 0
-        trust = round(node_info.get("trust_score", 0.0), 3)
-        uptime = round(node_info.get("uptime_score", 0.0), 3)
+        trust = round(node_id.get("trust_score", 0.0), 3)
+        uptime = round(node_id.get("uptime_score", 0.0), 3)
 
         stats.append({
-            "validator": validator,
+            "validator": node_id,
             "blocks": blocks,
             "percent": percent,
             "trust": trust,
@@ -66,7 +62,7 @@ def get_validator_stats():
 
 
 def get_chain_summary():
-    chain = load_chain()
+    chain = fetch_chain()
     tx_count = sum(len(b.get("transactions", [])) for b in chain)
     account_set = set()
     total_orbit = 100000000
