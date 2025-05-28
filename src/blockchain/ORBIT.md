@@ -1,78 +1,82 @@
-# Orbit Blockchain Whitepaper
+## Orbit Blockchain Whitepaper
 
-## Overview
+# Overview
 
-**Orbit Blockchain** is a lightweight, modular, Python-based blockchain framework that enables secure, decentralized transaction processing and mining using **Enhanced Prime Cryptography (EPC)**. Designed for experimentation, education, and efficient distributed consensus, Orbit is capable of running on minimal infrastructure.
+Orbit Blockchain is a modular, Python-based blockchain framework designed for lightweight, decentralized applications. Powered by Enhanced Prime Cryptography (EPC) and featuring the novel Proof of Insight (PoI) consensus, Orbit is built for experimentation, education, and scalable community-driven validation.
+
+It runs efficiently on local infrastructure with minimal dependencies and includes both a CLI and a full-featured Web UI.
 
 
 ---
 
 ## Vision
 
-Orbit aims to create a decentralized ecosystem where users can:
+Orbit aims to build a decentralized ecosystem where users can:
 
-- Earn Orbit tokens through time-based mining,
+* Earn Orbit tokens through time-based simulated mining
 
-- Lock tokens for passive rewards,
+* Lock tokens to passively earn daily rewards
 
-- Participate in network validation and governance via a trust-weighted consensus model,
+* Participate in validation via a trust-based consensus model
 
-- Interact through a local-first, CLI or web-based interface with full control over wallets and nodes.
+* Interact through local CLI or web dashboards for full wallet/node control
 
-
-
----
-
-# 2 Core Components
-
-### 1. Ledger Architecture
-
-Orbit maintains a persistent JSON ledger (data/orbit_chain.json) that stores all blocks and transactions. This local file is the canonical state on each node.
-
-**Key Elements:**
-
-- Genesis Block: Created automatically with no transactions and a static validator.
-
-- Transactions: Include fields such as sender, recipient, amount, note, timestamp.
-
-- Blocks: Contain metadata like index, timestamp, transactions, previous_hash, validator, merkle_root, nonce, and optional signatures and metadata.
+* Explore real-time network metrics via the integrated Orbit Explorer
 
 
 
 ---
 
-### 2. Mining System
+## Core Components
 
-Orbit features Proof-of-Time Simulated Mining:
+# 1. Ledger Architecture
 
-- Users simulate mining by choosing a time duration.
+Orbit uses a local JSON ledger (data/orbit_chain.json) that stores all chain activity.
 
-- Rewards are time-based (e.g., 0.082 Orbit/sec).
+Structure Includes:
 
-- Each mining session is recorded as a transaction and included in a new block.
+* Genesis Block: Auto-generated if the ledger is missing
 
--  Mining is lightweight and does not require high-performance hardware.
+* Transactions: Transfer, mining, reward, and lockup claim types
+
+* Blocks: Include index, timestamp, transactions, hash, validator, merkle_root, signatures, and metadata
+
+* Merkle Tree: Root is computed per block for transaction integrity
 
 
 
 ---
 
-### 3. Lockups and Rewards
+# 2. Mining System: Proof-of-Time
 
-Orbit supports token Lockups to earn time-based rewards:
+Orbit supports a simulated mining model:
 
-- Users may lock any amount of Orbit tokens for a chosen duration (in days).
+* Users choose a mining duration
 
-- Locked tokens generate daily rewards (e.g., 5% APR).
+* Reward rate: 0.082 ORBIT/sec (simulated rate)
 
-- Rewards are only claimable after full reward intervals (daily).
+* Mining transaction is added to a new block
 
-- Lockups have a claim_until field to prevent duplicate reward claims.
-
-- Once matured, tokens can be withdrawn from the lock.
+* No resource-intensive computation required
 
 
-#### Example Lockup Entry:
+
+---
+
+# 3. Lockups and Claimable Rewards
+
+Orbit features lockups for passive earning:
+
+* Tokens locked for n days receive daily rewards (~5% APR)
+
+* Rewards can be claimed daily, based on full intervals
+
+* Prevents duplicate claims via claim_until field
+
+* Rewards appear as special reward transactions
+
+
+## Sample Lockup:
 ```json
 {
   "amount": 100.0,
@@ -82,44 +86,50 @@ Orbit supports token Lockups to earn time-based rewards:
 }
 ```
 
-Claimed rewards are recorded as reward transactions and added to the wallet balance.
-
-
 ---
 
-### 4. Consensus Protocol – Proof of Insight (PoI)
+# 4. Consensus: Proof of Insight (PoI)
 
-Orbit introduces a trust-based consensus system:
+Orbit replaces PoW/PoS with a trust-weighted consensus system:
 
-- Block Proposal: A node proposes a block.
+* Proposal: Node proposes block
 
-- Validation Quorum: Other nodes validate and vote based on block integrity and proposer trust score.
+* Voting: Peers validate and sign based on proposer’s trust and uptime history
 
-- Finalization: If quorum is met, signatures are added and the block is committed.
-
-
-This system encourages long-term good behavior, uptime, and accurate validation.
+* Finalization: On quorum, signatures are aggregated and block is added
 
 
----
+Trust is influenced by:
 
-### 5. Security Circle
+* Uptime (session duration and frequency)
 
-Users can define a Security Circle of trusted peers:
+* Correct block proposals
 
-- Helps bootstrap node trust.
+* Participation in consensus
 
-- Will be integrated into PoI for weighing votes.
-
-- Represents a web-of-trust layer for lightweight sybil resistance.
+* Security Circle inclusion
 
 
 
 ---
 
-### Data Structures
+# 5. Security Circle
 
-#### Transaction
+Optional peer trust layer:
+
+* Users define trusted nodes
+
+* Boosts consensus weight during validation
+
+* Acts as a Web-of-Trust for identity anchoring and Sybil resistance
+
+
+
+---
+
+# Key Data Structures
+
+## Transactions
 ```json
 {
   "type": "transfer",
@@ -130,7 +140,7 @@ Users can define a Security Circle of trusted peers:
   "timestamp": 1747271826.12
 }
 ```
-#### Reward Transaction
+## Reward Transaction
 ```json
 {
   "type": "reward",
@@ -141,7 +151,7 @@ Users can define a Security Circle of trusted peers:
   "lock_ref": 1747200000
 }
 ```
-#### Block
+## Block
 ```json
 {
   "index": 1,
@@ -158,7 +168,7 @@ Users can define a Security Circle of trusted peers:
   "nonce": 0,
   "metadata": {
     "version": "1.1",
-    "lockup_rewards": [],
+    "lockup_rewards": [...],
     "block_size": 1024
   }
 }
@@ -168,15 +178,15 @@ Users can define a Security Circle of trusted peers:
 
 ## Node Network & Communication
 
-- Nodes are listed in nodes.json.
+* Nodes listed on explorer
 
-- Communication uses socket-based broadcasting.
+* TCP socket-based broadcasting
 
-- Each node listens on a local TCP port.
+* Node sessions assigned dynamically if not active
 
-- New blocks are broadcast to all known peers.
+* Block proposals and votes are broadcast over the network
 
-- Consensus responses are relayed with vote signatures.
+* Retry logic implemented for consensus failures
 
 
 
@@ -184,18 +194,40 @@ Users can define a Security Circle of trusted peers:
 
 ## User Interface
 
-### Terminal CLI
+# CLI
 
-- Access wallet, ledger, mining, lockups, and node management.
+Full wallet control: send, receive, mine, lock, claim
 
-- Fully local and file-based, with optional networking.
+* Ledger viewing and transaction history
+
+* Node/validator stats and trust management
+
+* Security circle setup
 
 
-## Web UI (in progress)
+## Web UI (Orbit Explorer)
 
-- Integrated dashboard (wallet view, staking, mining, block explorer).
+* Block explorer: rich views for transactions, blocks, and addresses
 
-- Explorer features include block/tx search, validator stats, and rich address analytics.
+* Node explorer: validator uptime, trust scores, block count, tx count
+
+* Real-time analytics: block/day chart, top 10 wallets, inflow/outflow charts
+
+* Responsive dashboard for wallet status, balances, and lockups
+
+
+
+---
+
+## Security & Wallet Management
+
+* Encrypted private key storage (AES-based)
+
+* Session-aware login/logout with active node assignment
+
+* Backup and recovery system (JSON-based wallet export/import)
+
+* Local-first design: users maintain full control over keys and data
 
 
 
@@ -203,15 +235,21 @@ Users can define a Security Circle of trusted peers:
 
 ## Unique Features
 
-- Lightweight Genesis: Auto-generates genesis block if chain is missing.
+* Auto-generated genesis block
 
-- Daily Reward Claiming: Based on full-day lockup intervals.
+* Merkle root validation per block
 
-- Matured Lockup Recognition: Withdrawals only allowed after full lock duration.
+* Daily lockup rewards with maturity tracking
 
-- Standalone Mode: Functions without internet, purely as a local ledger.
+* Claim-only-after-full-interval enforcement
 
-- Low-dependency: Pure Python, no blockchain libraries required.
+* Local node session logic
+
+* Web-based visualizations (Chart.js) for inflow/outflow
+
+* Lightweight, portable, and low dependency footprint
+
+* Network node reputation and voting-based trust
 
 
 
@@ -219,23 +257,31 @@ Users can define a Security Circle of trusted peers:
 
 ## Future Roadmap
 
-[x] Implement lockup reward mechanism
+* [x] Lockup reward mechanism
 
-[x] Improve transaction validation logic
+* [x] Claim logic with interval tracking
 
-[x] Create Orbit Block Explorer (HTML modularized)
+* [x] Merkle root generator
 
-[x] Add validator stats and node profile pages
+* [x] Encrypted private key storage
 
-[ ] Implement gossip-based peer discovery
+* [x] Dynamic node session assignment
 
-[ ] Add IPFS or anchor hashes for off-chain state anchoring
+* [x] Node trust/uptime persistence
 
-[ ] Introduce token governance (proposals + voting)
+* [x] Modular Orbit Explorer
 
-[ ] Enable smart contract scripting layer (EPC-based logic)
+* [x] Block/tx validator stats and analytics
 
-[ ] Mobile and lightweight embedded node versions
+* [ ] Gossip-based peer discovery
+
+* [ ] Token governance (proposals + voting)
+
+* [ ] Off-chain data anchoring (IPFS or anchor hashes)
+
+* [ ] Smart contract scripting layer (EPC-based)
+
+* [ ] Embedded/minimal node versions
 
 
 
@@ -243,12 +289,12 @@ Users can define a Security Circle of trusted peers:
 
 ## License
 
-### MIT License
-Use freely, modify, and contribute to Orbit Blockchain’s continued evolution.
+MIT License
+Open-source, modifiable, and community-driven.
 
 
 ---
 
-## Author: Orbit Blockchain Core – 2025
+### Author: Orbit Blockchain Core, 2025
 
 
