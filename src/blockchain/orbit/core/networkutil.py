@@ -8,7 +8,11 @@ from core.logutil import log_node_activity
 import requests
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
+from config.configutil import OrbitDB
 
+orbit_db = OrbitDB()
+
+explorer = orbit_db.explorer
 session = requests.Session()
 retries = Retry(total=3, backoff_factor=0.5, status_forcelist=[500, 502, 503, 504])
 adapter = HTTPAdapter(max_retries=retries, pool_connections=10, pool_maxsize=20)
@@ -54,7 +58,7 @@ def start_listener(node_id, username):
         return
     user_port = (int(re.search(r'\d+', s).group()) + 5001)
 
-    address = 'https://45b2-173-187-247-149.ngrok-free.app/' #"0.0.0.0"
+    address = explorer
     port = user_port
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

@@ -12,6 +12,7 @@ CHAIN_FILE = orbit_db.blockchaindb
 LOCK_FILE = CHAIN_FILE + ".lock"
 NODES_FILE = orbit_db.nodedb
 PENDING_PROPOSALS_FILE = orbit_db.pendpropdb
+EXPLORER = orbit_db.explorer
 
 # ===================== USER FUNCS =====================
 
@@ -37,11 +38,10 @@ def save_users(users):
 
 # ===================== NODE FUNCS =====================
 
-EXPLORER_API = "https://45b2-173-187-247-149.ngrok-free.app"
 
 def load_nodes():
     try:
-        response = requests.get(f"{EXPLORER_API}/active_nodes", timeout=5)
+        response = requests.get(f"{EXPLORER}/active_nodes", timeout=5)
         if response.status_code == 200:
             data = response.json()
             if isinstance(data, dict):
@@ -68,7 +68,7 @@ def save_nodes(nodes, exclude_id=None):
             continue
         try:
             response = requests.post(
-                f"{EXPLORER_API}/node_ping",
+                f"{EXPLORER}/node_ping",
                 json=node,
                 timeout=3
             )
@@ -142,7 +142,7 @@ else:
         FILE_LOCK_SUPPORTED = False
 
 def fetch_chain(url="localhost", port="7000"):
-    chainurl=(f"https://45b2-173-187-247-149.ngrok-free.app/api/chain")
+    chainurl=(f"{EXPLORER}/api/chain")
     try:
         response = requests.get(chainurl, timeout=5)
         if response.status_code == 200:

@@ -17,6 +17,7 @@ class OrbitDB:
         self.pendpropdb: str = os.path.join(DATA_DIR, "pending_proposals.json")
         self.stakefile = os.path.join(DATA_DIR, "stake.json")
         self.NodeRegistry = {}
+        self.explorer = 'https://3599-173-187-247-149.ngrok-free.app'
 
 class MiningConfig:
     def __init__(self):
