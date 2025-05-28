@@ -26,10 +26,12 @@ def last_transactions(address, limit=10):
                     return txs
     return txs
 
+
 def get_validator_stats():
-    nodes = {}
-    nodes = load_nodes()  # dict: {"Node1": {node data}, ...}
+    nodes = load_nodes()  # dict: {"Node1": {"node": {...}, "last_seen": ...}, ...}
     chain = fetch_chain()
+
+    # Count blocks validated by each node ID
     block_counts = {}
     for block in chain:
         val = block.get("validator")
@@ -39,10 +41,8 @@ def get_validator_stats():
     total_blocks = sum(block_counts.values())
 
     stats = []
-    for node_data in nodes:
-        print(node_data, type(node_data))
+    for node_id, node_data in nodes.items():
         node_info = node_data.get("node", {})
-        node_id = node_info.get("id")
 
         blocks = block_counts.get(node_id, 0)
         percent = round(100 * blocks / total_blocks, 2) if total_blocks else 0

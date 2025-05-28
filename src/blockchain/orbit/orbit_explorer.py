@@ -168,6 +168,11 @@ def validators():
 
 @app.route("/node/<node_id>")
 def load_node(node_id):
+    node_data = NodeRegistry.get(node_id)
+
+    if not node_data:
+        return f"Node {node_id} not found", 404
+
     (
         html,
         blocks,
@@ -176,7 +181,7 @@ def load_node(node_id):
         total_blocks,
         total_orbit,
         avg_block_size
-    ) = node_profile(node_id, node_registry, g.chain)
+    ) = node_profile(node_id, NodeRegistry, g.chain)
 
     return render_template(
         html,
