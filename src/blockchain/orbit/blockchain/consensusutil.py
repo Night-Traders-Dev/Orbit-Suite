@@ -29,9 +29,16 @@ def confirm_block(node_id, block_data):
 
 def consensus_progression(node_id, block_data):
     nodes = load_nodes()
-    quorum = nodes.get(node_id, {}).get("quorum_slice", [])
+    node_info = nodes.get(node_id)
+    
+    if not node_info:
+        log_node_activity(node_id, "error", "Node info missing from registry")
+        return "error"
+
+    quorum = node_info.get("quorum_slice", [])
     block_hash = block_data["hash"]
 
+    # Consensus progression stages
     if not has_quorum(block_hash, quorum, "nominate"):
         nominate_block(node_id, block_data)
         return "nominated"
@@ -48,9 +55,9 @@ def consensus_progression(node_id, block_data):
         confirm_block(node_id, block_data)
         return "confirmed"
 
-    # Final confirmation: add block to chain if not already added
+    # Final confirmation and block addition
     chain = fetch_chain()
-    if not any(b["hash"] == block_hash for b in chain):
+    if not any(b.get("hash") == block_hash for b in chain):
         chain.append(block_data)
         save_chain(chain)
         log_node_activity(node_id, "finalize", f"Block {block_hash} added to chain")

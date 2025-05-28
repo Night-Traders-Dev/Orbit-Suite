@@ -14,7 +14,6 @@ from core.networkutil import send_block
 
 
 def create_genesis_block():
-    """Creates the initial genesis block."""
     genesis_block = TXConfig.Block(
         index=0,
         timestamp=time.time(),
@@ -46,21 +45,22 @@ def get_last_block():
         print(f"Error fetching last block: {e}")
     return None
 
+
 def propose_block(node_id, block_data, timeout=5):
-    """Attempts to propose a block and achieve quorum consensus."""
     if not validate_block(block_data, node_id):
         log_node_activity(node_id, "Propose Block", "Block could not be validated.")
         return False
+
     nodes = load_nodes()
     if node_id not in nodes:
         log_node_activity(node_id, "Propose Block", "Node is not registered.")
         return False
-    proposer_id = node_id
-    proposer_config = NodeConfig.from_dict(nodes[proposer_id])
-    quorum_slice = proposer_config.quorum_slice
 
-    votes = {proposer_id}
-    signatures = {proposer_id: sign_vote(proposer_id, block_data)}
+    proposer = NodeConfig.from_dict(nodes[node_id])
+    quorum_slice = proposer.quorum_slice
+
+    votes = {node_id}
+    signatures = {node_id: sign_vote(node_id, block_data)}
     start_time = time.time()
     ADJUST_RATE = 0.05
 
@@ -68,41 +68,40 @@ def propose_block(node_id, block_data, timeout=5):
         if time.time() - start_time > timeout:
             break
 
-        peer_data = nodes.get(peer_id)
-        if not peer_data:
-            log_node_activity(proposer_id, "Propose Block", f"Peer {peer_id} not found.")
+        peer_raw = nodes.get(peer_id)
+        if not peer_raw:
+            log_node_activity(node_id, "Propose Block", f"Peer {peer_id} not found.")
             continue
 
-        peer_config = NodeConfig.from_dict(peer_data)
-        online = random.random() < peer_config.uptime_score
+        peer = NodeConfig.from_dict(peer_raw)
+        online = random.random() < peer.uptime_score
 
         if online and simulate_quorum_vote(peer_id, block_data):
             votes.add(peer_id)
             signatures[peer_id] = sign_vote(peer_id, block_data)
-            peer_data["trust_score"] = min(peer_data.get("trust_score", 0.5) + ADJUST_RATE, 1.0)
-            peer_data["uptime_score"] = min(peer_data.get("uptime_score", 0.5) + ADJUST_RATE, 1.0)
+            peer.trust_score = min(peer.trust_score + ADJUST_RATE, 1.0)
+            peer.uptime_score = min(peer.uptime_score + ADJUST_RATE, 1.0)
         else:
             if not online:
-                peer_data["uptime_score"] = max(peer_data.get("uptime_score", 0.5) - ADJUST_RATE, 0.0)
+                peer.uptime_score = max(peer.uptime_score - ADJUST_RATE, 0.0)
             else:
-                peer_data["trust_score"] = max(peer_data.get("trust_score", 0.5) - ADJUST_RATE, 0.0)
+                peer.trust_score = max(peer.trust_score - ADJUST_RATE, 0.0)
 
-        nodes[peer_id] = peer_data
+        nodes[peer_id] = peer.to_dict()
 
     save_nodes(nodes)
     required_votes = (len(quorum_slice) // 2) + 1
 
     if len(votes) >= required_votes:
-        log_node_activity(proposer_id, "Propose Block", f"Consensus passed with {len(votes)} votes.")
+        log_node_activity(node_id, "Propose Block", f"Consensus passed with {len(votes)} votes.")
         return True
     else:
-        log_node_activity(proposer_id, "Propose Block", f"Consensus failed: {len(votes)} votes (need {required_votes}).")
-        relay_pending_proposal(proposer_id, block_data)
+        log_node_activity(node_id, "Propose Block", f"Consensus failed: {len(votes)} votes (need {required_votes}).")
+        relay_pending_proposal(node_id, block_data)
         return False
 
 
 def receive_block(block):
-    """Validates and appends a received block to the chain."""
     chain = fetch_chain()
     last_block = chain[-1]
 
@@ -131,23 +130,20 @@ def receive_block(block):
 
 
 def broadcast_block(block, sender_id=None):
-    """Broadcasts a block to all peers except the sender."""
     nodes = load_nodes()
-    for node_id, info in nodes.items():
+    for node_id, node_data in nodes.items():
         if node_id == sender_id:
             continue
-        address, port = info.get("address"), info.get("port")
-        if address and port:
+        node = NodeConfig.from_dict(node_data)
+        if node.address and node.port:
             try:
-                send_block(f"{address}:{port}", block)
+                send_block(f"{node.address}:{node.port}", block)
             except Exception as e:
                 log_node_activity(node_id, "Broadcast Block", f"Failed to send to {node_id}: {e}")
 
 
-def add_block(transactions, node_id="Node1"):
-    """Builds, proposes, and adds a block with transactions if consensus is achieved."""
+def add_block(transactions, node_id):
     chain = fetch_chain()
-#    node_id = select_next_validator()
     last_block = chain[-1]
     tx_objs = [TXConfig.Transaction.from_dict(tx) for tx in transactions]
     tx_dicts = [tx.to_dict() for tx in tx_objs]
@@ -202,6 +198,7 @@ def add_block(transactions, node_id="Node1"):
         log_node_activity(node_id, "Add Block", "Rejected by consensus.")
         return False
 
+
 def validate_block(block, node_id):
     chain = fetch_chain()
     if not chain:
@@ -234,8 +231,8 @@ def validate_block(block, node_id):
     log_node_activity(node_id, "Validate Block", f"Block {block['index']} is valid")
     return True
 
+
 def is_chain_valid():
-    """Validates the entire blockchain."""
     chain = fetch_chain()
     for i in range(1, len(chain)):
         current, previous = chain[i], chain[i - 1]

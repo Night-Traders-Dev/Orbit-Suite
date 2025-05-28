@@ -37,8 +37,6 @@ def send_orbit(sender, recipient, amount, order=None):
 
         current_time = time.time()
         user_node = get_node_for_user(sender)
-        if user_node is None:
-            user_node = "Node1"
         # Transactions
         tx_note = order if order else None
         tx1 = TXConfig.Transaction(
@@ -59,7 +57,7 @@ def send_orbit(sender, recipient, amount, order=None):
         )
 
 
-        add_block([tx1.to_dict(), tx2.to_dict()])
+        add_block([tx1.to_dict(), tx2.to_dict()], user_node)
         print(f"Sent {amount:.6f} Orbit to {recipient} | Fee: {fee:.6f} Orbit burned.")
 
     except ValueError:

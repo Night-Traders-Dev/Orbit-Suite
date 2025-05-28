@@ -144,23 +144,23 @@ class TXConfig:
                              for i in range(0, len(tx_hashes), 2)]
             return tx_hashes[0] if tx_hashes else ""
 
+
 def get_node_for_user(user_id):
-    path = os.path.join(DATA_DIR, "nodes.json")
-    if not os.path.exists(path):
-        return None
+    from core.ioutil import load_nodes, save_nodes
     try:
-        with open(path, "r") as f:
-            nodes = json.load(f)
+        nodes = load_nodes()  # Loads from dynamic source (e.g., OrbitDB or runtime file)
+
+        # Check if any node is already assigned to this user
         for node_id, config in nodes.items():
             if config.get("user") == user_id:
                 return node_id
-        # Otherwise, find an unused node
+
+        # Assign first available (unclaimed) node to this user
         for node_id, config in nodes.items():
             if not config.get("user"):
                 config["user"] = user_id
                 nodes[node_id] = config
-                with open(path, "w") as f:
-                    json.dump(nodes, f, indent=4)
+                save_nodes(nodes)  # Persist updated mapping
                 return node_id
     except Exception as e:
         print(f"[get_node_for_user] Error: {e}")

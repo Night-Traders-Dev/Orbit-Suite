@@ -208,6 +208,7 @@ def claim_lockup_rewards(username):
     user_lockups = get_user_lockups(username)
     now = int(time.time())
     chain = fetch_chain()
+    node_id = get_node_for_user(username)
 
     # Step 1: Extract most recent claim_until per lock_start from chain
     claim_map = {}
@@ -282,7 +283,6 @@ def claim_lockup_rewards(username):
         print("No new rewards or matured lockups available.")
         return
 
-    node_id = get_node_for_user(username)
     node_fee = round(total_reward * 0.03, 6)
     net_reward = round(total_reward - node_fee, 6)
 
@@ -295,7 +295,7 @@ def claim_lockup_rewards(username):
             note=tx_fee.gas_tx(),
             timestamp=now
         ).to_dict())
-        add_block(reward_txs)
+        add_block(reward_txs, node_id)
 
     if matured_total > 0:
         user["balance"] += round(matured_total, 6)
