@@ -1,4 +1,5 @@
 import json
+import re
 import requests
 import socket
 import threading
@@ -47,13 +48,14 @@ def send_block(peer_address, block):
     except (ConnectionRefusedError, socket.timeout, socket.error) as e:
         raise RuntimeError(f"Failed to send block to {peer_address}: {e}")
 
-def start_listener(node_id):
-    if not node_data:
+def start_listener(node_id, username):
+    if not node_id:
         log_node_activity(node_id, "Start Listener", f"No config found for node {node_id}")
         return
+    user_port = (int(re.search(r'\d+', s).group()) + 5001)
 
-    address = node_data["address"]
-    port = node_data["port"]
+    address = "127.0.0.1"
+    port = user_port
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind((address, port))

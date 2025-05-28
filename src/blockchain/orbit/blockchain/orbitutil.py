@@ -13,16 +13,20 @@ PENDING_PROPOSALS_FILE = orbit_db.pendpropdb
 TRUST_BLACKLIST_THRESHOLD = 0.2
 
 def assign_node_to_user(username, sessions):
-    sessions = session_util("load")
-    nodes = load_nodes()
-    assigned_nodes = set(sessions.values())
+    sessions = session_util("load")  # Load the current user:node mapping
+    nodes = load_nodes()  # Format: { "Node1": {node data}, ... }
 
-    for node in nodes:
-        if node not in assigned_nodes:
-            sessions[username] = node
-            session_util("save", sessions)
-            return node
-    return None  # No unassigned node available
+    if username in sessions:
+        return sessions[username]
+
+    if nodes:
+        available_node_ids = list(nodes.keys())
+        chosen_node = random.choice(available_node_ids)
+        sessions[username] = chosen_node
+        session_util("save", sessions)
+        return chosen_node
+
+    return None  # No nodes available
 
 def revoke_node_from_user(username):
     sessions = session_util("load")

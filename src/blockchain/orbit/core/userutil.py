@@ -63,7 +63,7 @@ def login():
     if not node_id:
         print("No available nodes at the moment. Try again later.")
         sys.exit()
-    threading.Thread(target=start_listener, args=(node_id,), daemon=True).start()
+    threading.Thread(target=start_listener, args=(node_id, username), daemon=True).start()
     log_event("LOGIN", username)
     return username, node_id
 
