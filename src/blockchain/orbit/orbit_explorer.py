@@ -98,19 +98,19 @@ def api_get_address():
 @app.route('/api/create_2fa', methods=['POST'])
 def api_create_2fa():
     data = request.get_json()
-    username = data.get('username')
-    secret = create_2fa_secret(username)
+    address = data.get('address')
+    secret = create_2fa_secret(address)
     return jsonify({"status": "success", "message": secret}), 200
 
 @app.route('/api/verify_2fa', methods=['POST'])
 def api_verift_2fa():
     data = request.get_json()
-    username = data.get('username')
+    username = data.get('address')
     totp = data.get('totp')
     print(totp)
-    result = verify_2fa_token(username, int(totp))
+    result = verify_2fa_token(address, int(totp))
     if result:
-        update_login(username)
+        update_login(address)
         return jsonify({"status": "success"}), 200
     else:
         return jsonify({"status": "fail"}), 400

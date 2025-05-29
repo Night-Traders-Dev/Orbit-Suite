@@ -32,9 +32,10 @@ def generate_orbit_address(discord_id):
 
 # ===================== 2FA UTILS =====================
 
-def create_2fa_secret(username):
+def create_2fa_secret(discord_id):
     secret = pyotp.random_base32()
     encrypted = encrypt_private_key(secret)
+    address = generate_orbit_address(discord_id)
 
     if os.path.exists(totp_db):
         with open(totp_db, "r") as f:
@@ -42,17 +43,22 @@ def create_2fa_secret(username):
     else:
         data = {}
 
-    data[username] = encrypted
+    if data.get(address):
+        return False
+
+
+    data[address] = encrypted
     with open(totp_db, "w") as f:
         json.dump(data, f)
 
     return secret
 
-def verify_2fa_token(username, user_token):
+def verify_2fa_token(discord_id, user_token):
+    address = generate_orbit_address(discord_id)
     with open(totp_db, "r") as f:
         data = json.load(f)
 
-    encrypted = data.get(username)
+    encrypted = data.get(address)
     if not encrypted:
         return False
 

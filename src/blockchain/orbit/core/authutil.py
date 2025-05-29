@@ -13,22 +13,24 @@ def save_login_sessions(data):
     with open(LOGIN_FILE, "w") as f:
         json.dump(data, f)
 
-def update_login(username):
+def update_login(discord_id):
+    address = generate_orbit_address(discord_id)
     data = load_login_sessions()
     current_time = int(time.time())
-    data[username] = {
-        "login_time": data.get(username, {}).get("login_time", current_time),
+    data[address] = {
+        "login_time": data.get(address, {}).get("login_time", current_time),
         "last_interaction": current_time
     }
     save_login_sessions(data)
 
-def is_logged_in(username):
+def is_logged_in(discord_id):
+    address = generate_orbit_address(discord_id)
     data = load_login_sessions()
-    session = data.get(username)
+    session = data.get(address)
     if not session:
         return False
     if int(time.time()) - session['last_interaction'] > SESSION_TIMEOUT:
-        del data[username]
+        del data[address]
         save_login_sessions(data)
         return False
     return True
@@ -36,7 +38,7 @@ def is_logged_in(username):
 def cleanup_expired_sessions():
     data = load_login_sessions()
     now = int(time.time())
-    to_delete = [user for user, sess in data.items() if now - sess['last_interaction'] > SESSION_TIMEOUT]
+    to_delete = [address for address, sess in data.items() if now - sess['last_interaction'] > SESSION_TIMEOUT]
     for user in to_delete:
-        del data[user]
+        del data[address]
     save_login_sessions(data)

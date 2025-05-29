@@ -35,4 +35,4 @@ def setup(bot):
         tx_summary = "\n".join([f"{tx['timestamp']}: {tx['from']} ➔ {tx['to']} ({tx['amount']} ORBIT) - {tx['note']}" for tx in balance['transactions']])
         embed.add_field(name="Last Transactions", value=tx_summary, inline=False)
 
-        await ctx.send(embed=embed, view=WalletDashboard(username), delete_after=60)
+        await ctx.send(embed=embed, view=WalletDashboard(uid, username), delete_after=60)
