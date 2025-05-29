@@ -3,56 +3,56 @@ from discord.ext import commands
 from discord.ui import View, Button, Modal, TextInput
 import json
 import asyncio
+import requests
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Dummy blockchain interaction functions (replace with real Orbit functions)
-def get_wallet_balance(user_id):
+def get_user_balance(username, host="https://3599-173-187-247-149.ngrok-free.app"):
+    try:
+        response = requests.get(f"{host}/api/balance/{username}")
+        if response.status_code == 200:
+            data = response.json()
+            return data['total_balance'], data['available_balance'], data['locked_balance']
+        else:
+            print(f"Error {response.status_code}: {response.json().get('error')}")
+            return None
+    except Exception as e:
+        print(f"Request failed: {e}")
+        return None
+
+def get_wallet_balance(username):
     return {
-        "address": f"orbit_{user_id[-6:]}",
-        "available": 123.45,
-        "staked": 100.00,
-        "locked": 50.00,
-        "rewards": 5.67,
-        "transactions": [
-            {"to": "orbit_111111", "from": "orbit_222222", "amount": 12.5, "note": "Payment", "timestamp": "2025-05-28"},
-            {"to": "orbit_333333", "from": f"orbit_{user_id[-6:]}", "amount": 6.0, "note": "Gift", "timestamp": "2025-05-27"}
-        ],
-        "validators": {
-            "uptime": "98.5%",
-            "trust": "4.8/5",
-            "blocks_validated": 42
-        },
-        "security_circle": ["orbit_222222", "orbit_333333", "orbit_444444"]
+        "address": f"address",
+        "available": 0.0,
+        "locked": 0.0,
+        "total": 0.0,
+        "transactions": [],
+        "validators": {},
+        "security_circle": []
     }
+
+
 
 def send_orbit(sender_id, recipient_id, amount):
     return True
 
-def stake_orbit(user_id, amount):
+def lock_orbit(username, amount, duration):
     return True
 
-def lock_orbit(user_id, amount, duration):
-    return True
-
-def claim_rewards(user_id):
+def claim_rewards(username):
     return True
 
 # Views and Modals
 class WalletDashboard(View):
-    def __init__(self, user_id):
+    def __init__(self, username):
         super().__init__(timeout=None)
-        self.user_id = user_id
+        self.user_id = username
 
     @discord.ui.button(label="Send ORBIT", style=discord.ButtonStyle.primary)
     async def send_orbit_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(SendOrbitModal(self.user_id))
-
-    @discord.ui.button(label="Stake ORBIT", style=discord.ButtonStyle.success)
-    async def stake_orbit_button(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_modal(StakeOrbitModal(self.user_id))
 
     @discord.ui.button(label="Lock ORBIT", style=discord.ButtonStyle.secondary)
     async def lock_orbit_button(self, interaction: discord.Interaction, button: Button):
@@ -65,9 +65,9 @@ class WalletDashboard(View):
         await interaction.response.send_message(msg, ephemeral=True)
 
 class SendOrbitModal(Modal):
-    def __init__(self, user_id):
+    def __init__(self, username):
         super().__init__(title="Send ORBIT")
-        self.user_id = user_id
+        self.user_id = username
         self.recipient = TextInput(label="Recipient ID")
         self.amount = TextInput(label="Amount")
         self.note = TextInput(label="Note", required=False)
@@ -80,22 +80,10 @@ class SendOrbitModal(Modal):
         msg = "✉️ Transaction successful!" if success else "⛔️ Transaction failed."
         await interaction.response.send_message(msg, ephemeral=True)
 
-class StakeOrbitModal(Modal):
-    def __init__(self, user_id):
-        super().__init__(title="Stake ORBIT")
-        self.user_id = user_id
-        self.amount = TextInput(label="Amount to Stake")
-        self.add_item(self.amount)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        success = stake_orbit(self.user_id, float(self.amount.value))
-        msg = "🔄 Staking successful!" if success else "⚠️ Staking failed."
-        await interaction.response.send_message(msg, ephemeral=True)
-
 class LockOrbitModal(Modal):
-    def __init__(self, user_id):
+    def __init__(self, username):
         super().__init__(title="Lock ORBIT")
-        self.user_id = user_id
+        self.user_id = username
         self.amount = TextInput(label="Amount to Lock")
         self.duration = TextInput(label="Lock Duration (days)")
         self.add_item(self.amount)
@@ -108,26 +96,28 @@ class LockOrbitModal(Modal):
 
 @bot.command(name="wallet")
 async def wallet(ctx):
-    user_id = str(ctx.author.id)
-    balance = get_wallet_balance(user_id)
+    username = ctx.author.name
+    balance = get_wallet_balance(username)
+    total, wallet, locked = get_user_balance(username)
 
-    embed = discord.Embed(title=f"{ctx.author.name}'s ORBIT Wallet", color=0x00ffcc)
-    embed.add_field(name="Address", value=balance["address"], inline=False)
-    embed.add_field(name="Available", value=f"{balance['available']} ORBIT", inline=True)
-    embed.add_field(name="Staked", value=f"{balance['staked']} ORBIT", inline=True)
-    embed.add_field(name="Locked", value=f"{balance['locked']} ORBIT", inline=True)
-    embed.add_field(name="Rewards", value=f"{balance['rewards']} ORBIT", inline=True)
+    embed = discord.Embed(title=f"Orbit Wallet", color=0x00ffcc)
+    embed.add_field(name="Address", value=username, inline=False)
+    embed.add_field(name="Wallet", value=f"{wallet} ORBIT", inline=True)
+    embed.add_field(name="Locked", value=f"{locked} ORBIT", inline=True)
+    embed.add_field(name="Total", value=f"{total} ORBIT", inline=True)
 
-    explorer_link = f"https://3599-173-187-247-149.ngrok-free.app/"
+    explorer_link = f"https://3599-173-187-247-149.ngrok-free.app/address/{username}"
     embed.add_field(name="View on Explorer", value=f"[Open Explorer]({explorer_link})", inline=False)
 
-    embed.add_field(name="Validator Stats", value=f"Uptime: {balance['validators']['uptime']}\nTrust: {balance['validators']['trust']}\nBlocks: {balance['validators']['blocks_validated']}", inline=False)
-    embed.add_field(name="Security Circle", value=", ".join(balance['security_circle']), inline=False)
+    embed.add_field(name="Validator Stats", value="{}", inline=False)
+    embed.add_field(name="Security Circle", value="{}", inline=False)
 
     tx_summary = "\n".join([f"{tx['timestamp']}: {tx['from']} ➔ {tx['to']} ({tx['amount']} ORBIT) - {tx['note']}" for tx in balance['transactions']])
     embed.add_field(name="Last Transactions", value=tx_summary, inline=False)
 
-    await ctx.send(embed=embed, view=WalletDashboard(user_id))
+    await ctx.send(embed=embed, view=WalletDashboard(username))
 
-# Run the bot
-bot.run()
+with open('secret', 'r') as file:
+    discord_key = file.read()
+
+bot.run(discord_key)

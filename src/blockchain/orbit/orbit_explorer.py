@@ -85,6 +85,20 @@ def block_volume():
     result = block_volume_14d(g.chain, datetime.datetime.utcnow())
     return jsonify(result)
 
+
+
+@app.route('/api/balance/<username>', methods=['GET'])
+def api_balance(username):
+    try:
+        amount, locked = load_balance(username)
+        return jsonify({
+            "total_balance": amount + locked,
+            "available_balance": amount,
+            "locked_balance": locked
+        })
+    except Exception as e:
+        return jsonify({"error": "Failed to load balance", "details": str(e)}), 500
+
 @app.route("/locked")
 def route_locked():
     html, locks, totals, sort = locked()
