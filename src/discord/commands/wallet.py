@@ -5,10 +5,14 @@ from api import get_user_balance, get_user_address
 from views import WalletDashboard, Register2FAView
 
 def setup(bot):
-    @bot.command(name="register2fa")
+    @bot.command(name="register")
     async def register_2fa(ctx):
+        try:
+            await ctx.message.delete()
+        except (discord.Forbidden, discord.HTTPException):
+            pass
         view = Register2FAView(ctx.author.id)
-        await ctx.send("Click below to register 2FA.", view=view)
+        await ctx.send("Click below to register 2FA.", view=view, delete_after=60)
 
     @bot.command(name="wallet")
     async def wallet(ctx):

@@ -33,5 +33,5 @@ class Register2FAView(View):
         address = await get_user_address(self.user_id)
         secret = await create_2fa_api(address)
         await interaction.response.send_message(
-            content=f"Here is your 2FA QR code: {secret}", ephemeral=True
+            content=f"Address: {address}\n2FA Secret: {secret}", ephemeral=True
         )
