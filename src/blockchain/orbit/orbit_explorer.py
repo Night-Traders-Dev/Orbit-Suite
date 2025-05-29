@@ -5,6 +5,8 @@ from config.configutil import OrbitDB
 from core.ioutil import load_chain, load_nodes
 from core.walletutil import load_balance
 from blockchain.stakeutil import get_user_lockups
+from blockchain.tokenutil import send_orbit
+from core.hashutil import create_2fa_secret, verify_2fa_token
 
 from explorer.api.latest import latest_block, latest_txs
 from explorer.api.volume import tx_volume_14d, block_volume_14d, orbit_volume_14d
@@ -86,6 +88,48 @@ def block_volume():
     return jsonify(result)
 
 
+@app.route('/api/create_2fa', methods=['POST'])
+def api_create_2fa():
+    data = request.get_json()
+    username = data.get('username')
+    secret = create_2fa_secret(username)
+    return jsonify({"status": "success", "message": secret}), 200
+
+@app.route('/api/send', methods=['POST'])
+def api_send():
+    try:
+        data = request.get_json()
+
+#        token = data.get('token')
+#        if not verify_token(sender, token):
+#            return jsonify({"error": "Invalid or expired token"}), 403
+
+        # Validate input
+        sender = data.get('sender')
+        recipient = data.get('recipient')
+        amount = data.get('amount')
+
+        if not sender or not recipient or amount is None:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        # Convert and validate amount
+        try:
+            amount = float(amount)
+            if amount <= 0:
+                return jsonify({"error": "Amount must be greater than 0"}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid amount format"}), 400
+
+        # Call core logic
+        success, message = send_orbit(sender, recipient, amount)
+
+        if success:
+            return jsonify({"status": "success", "message": message}), 200
+        else:
+            return jsonify({"status": "fail", "message": message}), 400
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/balance/<username>', methods=['GET'])
 def api_balance(username):

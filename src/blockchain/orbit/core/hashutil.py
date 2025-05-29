@@ -4,9 +4,42 @@ import rsa
 import os
 import time
 from cryptography.fernet import Fernet
+import pyotp
 
 KEY_SIZE = 2048  # Use strong RSA key
 AES_KEY_FILE = "data/aes.key"
+totp_db = "data/totp_db.json"
+
+# ===================== 2FA UTILS =====================
+
+def create_2fa_secret(username):
+    secret = pyotp.random_base32()
+    encrypted = encrypt_private_key(secret)
+
+    if os.path.exists(totp_db):
+        with open(totp_db, "r") as f:
+            data = json.load(f)
+    else:
+        data = {}
+
+    data[username] = encrypted
+    with open(totp_db, "w") as f:
+        json.dump(data, f)
+
+    return secret
+
+def verify_2fa_token(username, user_token):
+    with open(totp_db, "r") as f:
+        data = json.load(f)
+
+    encrypted = data.get(username)
+    if not encrypted:
+        return False
+
+    secret = decrypt_private_key(encrypted)
+    totp = pyotp.TOTP(secret)
+    return totp.verify(user_token)
+
 
 # ===================== AES UTILS =====================
 def load_aes_key():

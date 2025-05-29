@@ -2,14 +2,15 @@ import discord
 from discord.ext import commands
 from discord.ui import View, Button, Modal, TextInput
 import json
-import asyncio
+import asyncio, aiohttp
 import requests
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
+explorer = "https://3599-173-187-247-149.ngrok-free.app"
 
-def get_user_balance(username, host="https://3599-173-187-247-149.ngrok-free.app"):
+def get_user_balance(username, host=explorer):
     try:
         response = requests.get(f"{host}/api/balance/{username}")
         if response.status_code == 200:
@@ -21,6 +22,43 @@ def get_user_balance(username, host="https://3599-173-187-247-149.ngrok-free.app
     except Exception as e:
         print(f"Request failed: {e}")
         return None
+
+
+async def create_2fa_api(username):
+    payload = {
+        "username": username,
+    }
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(f"{explorer}/api/create_2fa", json=payload) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("message")
+        except Exception as e:
+            return False, f"Request failed: {str(e)}"
+
+
+
+async def send_orbit_api(sender, recipient, amount):
+    payload = {
+        "sender": sender,
+        "recipient": recipient,
+        "amount": amount
+    }
+
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(f"{explorer}/api/send", json=payload) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return True, data.get("message", "Transaction successful.")
+                else:
+                    data = await response.json()
+                    return False, data.get("error") or data.get("message", "Unknown error.")
+        except Exception as e:
+            return False, f"Request failed: {str(e)}"
+
 
 def get_wallet_balance(username):
     return {
@@ -34,9 +72,6 @@ def get_wallet_balance(username):
     }
 
 
-
-def send_orbit(sender_id, recipient_id, amount):
-    return True
 
 def lock_orbit(username, amount, duration):
     return True
@@ -76,7 +111,7 @@ class SendOrbitModal(Modal):
         self.add_item(self.note)
 
     async def on_submit(self, interaction: discord.Interaction):
-        success = send_orbit(self.user_id, self.recipient.value, float(self.amount.value))
+        success = await send_orbit_api(self.user_id, self.recipient.value, float(self.amount.value))
         msg = "✉️ Transaction successful!" if success else "⛔️ Transaction failed."
         await interaction.response.send_message(msg, ephemeral=True)
 
@@ -94,8 +129,33 @@ class LockOrbitModal(Modal):
         msg = "🔒 Lockup successful!" if success else "⛔️ Lockup failed."
         await interaction.response.send_message(msg, ephemeral=True)
 
+class Register2FAView(View):
+    def __init__(self, username):
+        super().__init__(timeout=None)
+        self.user_id = username
+
+    @discord.ui.button(label="Register 2FA", style=discord.ButtonStyle.primary)
+    async def register(self, interaction: discord.Interaction, button: discord.ui.Button):
+        secret = await create_2fa_api(self.user_id)
+
+        await interaction.response.send_message(
+            content=f"Here is your 2FA QR code. {secret}",
+            ephemeral=True
+        )
+
+@bot.command(name="register2fa")
+async def register_2fa(ctx):
+    view = Register2FAView(ctx.author.name)
+    await ctx.send("Click the button below to register for 2FA.", view=view)
+
 @bot.command(name="wallet")
 async def wallet(ctx):
+    try:
+        await ctx.message.delete()
+    except discord.Forbidden:
+        pass
+    except discord.HTTPException:
+        pass
     username = ctx.author.name
     balance = get_wallet_balance(username)
     total, wallet, locked = get_user_balance(username)
@@ -115,7 +175,7 @@ async def wallet(ctx):
     tx_summary = "\n".join([f"{tx['timestamp']}: {tx['from']} ➔ {tx['to']} ({tx['amount']} ORBIT) - {tx['note']}" for tx in balance['transactions']])
     embed.add_field(name="Last Transactions", value=tx_summary, inline=False)
 
-    await ctx.send(embed=embed, view=WalletDashboard(username))
+    await ctx.send(embed=embed, view=WalletDashboard(username), delete_after=60)
 
 with open('secret', 'r') as file:
     discord_key = file.read()
