@@ -105,9 +105,9 @@ def api_create_2fa():
 @app.route('/api/verify_2fa', methods=['POST'])
 def api_verift_2fa():
     data = request.get_json()
-    username = data.get('address')
+    address = data.get('address')
     totp = data.get('totp')
-    print(totp)
+    print(f"{address}:{totp}")
     result = verify_2fa_token(address, int(totp))
     if result:
         update_login(address)

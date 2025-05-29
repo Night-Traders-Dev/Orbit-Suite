@@ -7,7 +7,7 @@ from views import WalletDashboard, Register2FAView
 def setup(bot):
     @bot.command(name="register2fa")
     async def register_2fa(ctx):
-        view = Register2FAView(ctx.author.name)
+        view = Register2FAView(ctx.author.id)
         await ctx.send("Click below to register 2FA.", view=view)
 
     @bot.command(name="wallet")
