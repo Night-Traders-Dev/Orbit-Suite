@@ -7,6 +7,7 @@ from core.walletutil import load_balance
 from blockchain.stakeutil import get_user_lockups
 from blockchain.tokenutil import send_orbit
 from core.hashutil import create_2fa_secret, verify_2fa_token
+from core.authutil import update_login, is_logged_in, cleanup_expired_sessions
 
 from explorer.api.latest import latest_block, latest_txs
 from explorer.api.volume import tx_volume_14d, block_volume_14d, orbit_volume_14d
@@ -103,6 +104,7 @@ def api_verift_2fa():
     print(totp)
     result = verify_2fa_token(username, int(totp))
     if result:
+        update_login(username)
         return jsonify({"status": "success"}), 200
     else:
         return jsonify({"status": "fail"}), 400
