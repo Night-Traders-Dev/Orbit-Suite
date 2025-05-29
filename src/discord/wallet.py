@@ -1,6 +1,6 @@
-def get_wallet_balance(username):
+def get_wallet_balance(address):
     return {
-        "address": username,
+        "address": address,
         "available": 0.0,
         "locked": 0.0,
         "total": 0.0,

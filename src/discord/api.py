@@ -24,8 +24,7 @@ def get_user_balance(username, host=explorer):
         print(f"Request failed: {e}")
         return None
 
-async def create_2fa_api(discord_id):
-    address = await get_user_address(discord_id)
+async def create_2fa_api(address):
     async with aiohttp.ClientSession() as session:
         try:
             async with session.post(f"{explorer}/api/create_2fa", json={"address": address}) as response:
@@ -35,8 +34,7 @@ async def create_2fa_api(discord_id):
         except Exception as e:
             return f"Request failed: {str(e)}"
 
-async def verify_2fa_api(discord_id, totp):
-    address = await get_user_address(discord_id)
+async def verify_2fa_api(address, totp):
     async with aiohttp.ClientSession() as session:
         try:
             async with session.post(f"{explorer}/api/verify_2fa", json={"address": address, "totp": totp}) as response:

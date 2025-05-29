@@ -19,8 +19,8 @@ def setup(bot):
 
         username = ctx.author.name
         uid = ctx.author.id
-        balance = get_wallet_balance(username)
         address = await get_user_address(uid)
+        balance = get_wallet_balance(address)
         total, wallet, locked = get_user_balance(username)
 
         embed = discord.Embed(title="Orbit Wallet", color=0x00ffcc)
