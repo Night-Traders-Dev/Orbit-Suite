@@ -116,6 +116,22 @@ def api_verift_2fa():
     else:
         return jsonify({"status": "fail"}), 400
 
+@app.route('/api/mine', methods=['POST'])
+def api_mine():
+    try:
+        data = request.get_json()
+        user = data.get('user')
+        success, rate, mined, reward = start_mining(user)
+        message = [rate, mined, reward]
+        if success:
+            return jsonify({"status": "success", "message": message}), 200
+        else:
+            return jsonify({"status": "fail", "message": message}), 400
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/send', methods=['POST'])
 def api_send():
     try:
