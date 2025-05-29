@@ -38,7 +38,23 @@ async def create_2fa_api(username):
         except Exception as e:
             return False, f"Request failed: {str(e)}"
 
+async def verify_2fa_api(username, totp):
+    payload = {
+        "username": username,
+        "totp": totp
+    }
 
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(f"{explorer}/api/verify_2fa", json=payload) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("message")
+                else:
+                    data = await response.json()
+                    return data.get("message")
+        except Exception as e:
+            return False, f"Request failed: {str(e)}"
 
 async def send_orbit_api(sender, recipient, amount):
     payload = {
@@ -105,15 +121,21 @@ class SendOrbitModal(Modal):
         self.user_id = username
         self.recipient = TextInput(label="Recipient ID")
         self.amount = TextInput(label="Amount")
-        self.note = TextInput(label="Note", required=False)
+        self.totp = TextInput(label="2FA", required=True)
         self.add_item(self.recipient)
         self.add_item(self.amount)
-        self.add_item(self.note)
+        self.add_item(self.totp)
 
     async def on_submit(self, interaction: discord.Interaction):
-        success = await send_orbit_api(self.user_id, self.recipient.value, float(self.amount.value))
-        msg = "✉️ Transaction successful!" if success else "⛔️ Transaction failed."
-        await interaction.response.send_message(msg, ephemeral=True)
+        result = await verify_2fa_api(self.user_id, self.totp)
+        if not result:
+            msg = "⛔️ Transaction failed."
+            await interaction.response.send_message(msg, ephemeral=True)
+            pass
+        else:
+            success = await send_orbit_api(self.user_id, self.recipient.value, float(self.amount.value))
+            msg = "✉️ Transaction successful!" if success else "⛔️ Transaction failed."
+            await interaction.response.send_message(msg, ephemeral=True)
 
 class LockOrbitModal(Modal):
     def __init__(self, username):

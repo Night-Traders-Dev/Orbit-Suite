@@ -95,14 +95,21 @@ def api_create_2fa():
     secret = create_2fa_secret(username)
     return jsonify({"status": "success", "message": secret}), 200
 
+@app.route('/api/verify_2fa', methods=['POST'])
+def api_verift_2fa():
+    data = request.get_json()
+    username = data.get('username')
+    totp = data.get('totp')
+    result = verify_2fa_token(username, totp)
+    if result:
+        return jsonify({"status": "success"}), 200
+    else:
+        return jsonify({"status": "fail"}), 400
+
 @app.route('/api/send', methods=['POST'])
 def api_send():
     try:
         data = request.get_json()
-
-#        token = data.get('token')
-#        if not verify_token(sender, token):
-#            return jsonify({"error": "Invalid or expired token"}), 403
 
         # Validate input
         sender = data.get('sender')
