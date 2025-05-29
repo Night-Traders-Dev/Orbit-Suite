@@ -1,6 +1,16 @@
 import aiohttp, requests
 from config import explorer
 
+async def get_user_address(uid):
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(f"{explorer}/api/get_orbit_address", json={"uid": uid}) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("address")
+        except Exception as e:
+            return f"Request failed: {str(e)}"
+
 def get_user_balance(username, host=explorer):
     try:
         response = requests.get(f"{host}/api/balance/{username}")

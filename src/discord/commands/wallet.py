@@ -1,7 +1,7 @@
 from discord.ext import commands
 import discord
 from wallet import get_wallet_balance
-from api import get_user_balance
+from api import get_user_balance, get_user_address
 from views import WalletDashboard, Register2FAView
 
 def setup(bot):
@@ -18,11 +18,13 @@ def setup(bot):
             pass
 
         username = ctx.author.name
+        uid = ctx.author.id
         balance = get_wallet_balance(username)
+        address = await get_user_address(uid)
         total, wallet, locked = get_user_balance(username)
 
         embed = discord.Embed(title="Orbit Wallet", color=0x00ffcc)
-        embed.add_field(name="Address", value=username, inline=False)
+        embed.add_field(name="Address", value=address, inline=False)
         embed.add_field(name="Wallet", value=f"{wallet} ORBIT", inline=True)
         embed.add_field(name="Locked", value=f"{locked} ORBIT", inline=True)
         embed.add_field(name="Total", value=f"{total} ORBIT", inline=True)

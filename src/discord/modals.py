@@ -26,7 +26,8 @@ class SendOrbitModal(Modal):
             await interaction.followup.send("⛔️ Invalid 2FA code.", ephemeral=True)
             return
 
-        success, msg = await send_orbit_api(self.user_id, self.recipient.value, amount)
+        success = await send_orbit_api(self.user_id, self.recipient.value, amount)
+        msg = f"✉️ Transaction successful!\nSent {amount} Orbit to {self.recipient}" if success else "⛔️ Transaction failed."
         await interaction.followup.send(msg, ephemeral=True)
 
 class LockOrbitModal(Modal):

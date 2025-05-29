@@ -10,6 +10,26 @@ KEY_SIZE = 2048  # Use strong RSA key
 AES_KEY_FILE = "data/aes.key"
 totp_db = "data/totp_db.json"
 
+# ===================== ADDRESS UTILS =====================
+
+def generate_orbit_address(discord_id):
+    """
+    Generates a unique Orbit address using a Discord user ID.
+    Returns a short base58-like address starting with 'ORB'.
+    """
+    if not isinstance(discord_id, (int, str)):
+        raise ValueError("Discord ID must be an int or string.")
+
+    uid_str = str(discord_id)
+    hash_obj = hashlib.sha256(uid_str.encode())
+    hex_digest = hash_obj.hexdigest()
+
+    # Take first 24 characters for a short readable address
+    short_hash = hex_digest[:24].upper()
+
+    # Prefix to indicate Orbit address
+    return f"ORB.{short_hash}"
+
 # ===================== 2FA UTILS =====================
 
 def create_2fa_secret(username):

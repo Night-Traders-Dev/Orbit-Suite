@@ -6,7 +6,7 @@ from core.ioutil import load_chain, load_nodes
 from core.walletutil import load_balance
 from blockchain.stakeutil import get_user_lockups
 from blockchain.tokenutil import send_orbit
-from core.hashutil import create_2fa_secret, verify_2fa_token
+from core.hashutil import create_2fa_secret, verify_2fa_token, generate_orbit_address
 from core.authutil import update_login, is_logged_in, cleanup_expired_sessions
 
 from explorer.api.latest import latest_block, latest_txs
@@ -88,6 +88,12 @@ def block_volume():
     result = block_volume_14d(g.chain, datetime.datetime.utcnow())
     return jsonify(result)
 
+@app.route('/api/get_orbit_address', methods=['POST'])
+def api_get_address():
+    data = request.get_json()
+    uid = data.get('uid')
+    address = generate_orbit_address(uid)
+    return jsonify({"status": "success", "address": address}), 200
 
 @app.route('/api/create_2fa', methods=['POST'])
 def api_create_2fa():
