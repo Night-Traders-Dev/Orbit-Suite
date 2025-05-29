@@ -49,10 +49,10 @@ async def verify_2fa_api(username, totp):
             async with session.post(f"{explorer}/api/verify_2fa", json=payload) as response:
                 if response.status == 200:
                     data = await response.json()
-                    return data.get("message")
+                    return True
                 else:
                     data = await response.json()
-                    return data.get("message")
+                    return False
         except Exception as e:
             return False, f"Request failed: {str(e)}"
 
@@ -119,23 +119,33 @@ class SendOrbitModal(Modal):
     def __init__(self, username):
         super().__init__(title="Send ORBIT")
         self.user_id = username
+
         self.recipient = TextInput(label="Recipient ID")
         self.amount = TextInput(label="Amount")
-        self.totp = TextInput(label="2FA", required=True)
+        self.totp = TextInput(label="2FA Code", required=True)
+
         self.add_item(self.recipient)
         self.add_item(self.amount)
         self.add_item(self.totp)
 
     async def on_submit(self, interaction: discord.Interaction):
-        result = await verify_2fa_api(self.user_id, self.totp)
+        await interaction.response.defer(ephemeral=True)
+        try:
+            amount = float(self.amount.value)
+        except ValueError:
+            await interaction.followup.send("⛔️ Invalid amount format.", ephemeral=True)
+            return
+
+        result = await verify_2fa_api(self.user_id, self.totp.value)
+        print(result)
         if not result:
-            msg = "⛔️ Transaction failed."
-            await interaction.response.send_message(msg, ephemeral=True)
-            pass
-        else:
-            success = await send_orbit_api(self.user_id, self.recipient.value, float(self.amount.value))
-            msg = "✉️ Transaction successful!" if success else "⛔️ Transaction failed."
-            await interaction.response.send_message(msg, ephemeral=True)
+            await interaction.followup.send("⛔️ Invalid 2FA code.", ephemeral=True)
+            return
+
+        success = await send_orbit_api(self.user_id, self.recipient.value, amount)
+        msg = "✉️ Transaction successful!" if success else "⛔️ Transaction failed."
+        await interaction.followup.send(msg, ephemeral=True)
+
 
 class LockOrbitModal(Modal):
     def __init__(self, username):

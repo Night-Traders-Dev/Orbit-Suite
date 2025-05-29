@@ -100,7 +100,8 @@ def api_verift_2fa():
     data = request.get_json()
     username = data.get('username')
     totp = data.get('totp')
-    result = verify_2fa_token(username, totp)
+    print(totp)
+    result = verify_2fa_token(username, int(totp))
     if result:
         return jsonify({"status": "success"}), 200
     else:
