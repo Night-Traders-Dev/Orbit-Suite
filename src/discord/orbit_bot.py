@@ -130,4 +130,3 @@ async def wallet(ctx):
     await ctx.send(embed=embed, view=WalletDashboard(user_id))
 
 # Run the bot
-bot.run("MTM3NjY1NTE2MTU4MTI0NDQ5Ng.GM90IV.lQdVTpPWPnA83pKO1LAdkilMakXFJCzEaE-04M")
