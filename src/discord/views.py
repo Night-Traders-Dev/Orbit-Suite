@@ -17,11 +17,19 @@ class WalletDashboard(View):
     @discord.ui.button(label="Mine", style=discord.ButtonStyle.green)
     async def mine_orbit(self, interaction: discord.Interaction, button: Button):
         status, result = await mine_orbit_api(self.username)
+
         if status == "fail":
-            msg = result
+            msg = f"❌ {result}"
         else:
-           msg = f"Mining rate: {result['rate']} Orbit/sec\nTotal mined: {result['mined']} Orbit\nUser reward: {result['payout']} Orbit"
+            msg = (
+                f"⛏️ **Mining Started**\n"
+                f"📈 Rate: `{result['rate']:.4f}` Orbit/sec\n"
+                f"💰 Total Mined: `{result['mined']}` Orbit\n"
+                f"🏆 User Reward: `{result['payout']}` Orbit"
+            )
+
         await interaction.response.send_message(msg, ephemeral=True)
+
 
     @discord.ui.button(label="Lock", style=discord.ButtonStyle.secondary)
     async def lock_orbit(self, interaction: discord.Interaction, button: Button):

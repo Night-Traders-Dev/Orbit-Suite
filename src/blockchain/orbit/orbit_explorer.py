@@ -125,7 +125,7 @@ def api_mine():
         if success:
             return jsonify({"status": "success", "message": message}), 200
         else:
-            return jsonify({"status": "fail", "message": message}), 200
+            return jsonify({"status": "fail", "message": message}), 400
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
