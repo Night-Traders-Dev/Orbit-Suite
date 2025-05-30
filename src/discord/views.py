@@ -2,7 +2,7 @@ from discord.ui import View, Button
 import discord
 from modals import SendOrbitModal, LockOrbitModal
 from wallet import claim_rewards
-from api import create_2fa_api, get_user_address
+from api import create_2fa_api, get_user_address, mine_orbit_api
 
 class WalletDashboard(View):
     def __init__(self, discord_id, username):
@@ -10,11 +10,20 @@ class WalletDashboard(View):
         self.user_id = discord_id
         self.username = username
 
-    @discord.ui.button(label="Send ORBIT", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Send", style=discord.ButtonStyle.primary)
     async def send_orbit(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(SendOrbitModal(self.user_id, self.username))
 
-    @discord.ui.button(label="Lock ORBIT", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(label="Mine", style=discord.ButtonStyle.green)
+    async def mine_orbit(self, interaction: discord.Interaction, button: Button):
+        status, result = await mine_orbit_api(self.username)
+        if status == "fail":
+            msg = result
+        else:
+           msg = f"Mining rate: {result['rate']} Orbit/sec\nTotal mined: {result['mined']} Orbit\nUser reward: {result['payout']} Orbit"
+        await interaction.response.send_message(msg, ephemeral=True)
+
+    @discord.ui.button(label="Lock", style=discord.ButtonStyle.secondary)
     async def lock_orbit(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(LockOrbitModal(self.username))
 

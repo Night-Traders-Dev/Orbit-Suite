@@ -99,7 +99,7 @@ def start_mining(username):
     else:
         if now - start_time < MAX_MINING_DURATION:
             print(f"Mining available again in {format_duration(MAX_MINING_DURATION - (now - start_time))}")
-            return (format_duration(MAX_MINING_DURATION - (now - start_time)), 0, 0)
+            return False, f"Mining available again in {format_duration(MAX_MINING_DURATION - (now - start_time))}"
 
     user_data["mining_start_time"] = now
 
@@ -130,4 +130,8 @@ def start_mining(username):
         tx_order = TXTypes.MiningTypes.mining_metadata(node_fee, rate_data)
         send_orbit("mining", username, user_payout, order=tx_order)
 
-        return rate, mined, user_payout
+        return True, {
+            "rate": rate,
+            "mined": mined,
+            "payout": user_payout
+        }

@@ -56,3 +56,18 @@ async def send_orbit_api(sender, recipient, amount):
                     return False, data.get("error", "Unknown error.")
         except Exception as e:
             return False, f"Request failed: {str(e)}"
+
+async def mine_orbit_api(username):
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(f"{explorer}/api/mine", json={
+                "user": username
+            }) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get("status"), data.get("message")
+                else:
+                    data = await response.json()
+                    return False, data.get("error", "Unknown error.")
+        except Exception as e:
+            return False, f"Request failed: {str(e)}"

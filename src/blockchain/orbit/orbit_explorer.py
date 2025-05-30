@@ -121,12 +121,11 @@ def api_mine():
     try:
         data = request.get_json()
         user = data.get('user')
-        success, rate, mined, reward = start_mining(user)
-        message = [rate, mined, reward]
+        success, message = start_mining(user)
         if success:
             return jsonify({"status": "success", "message": message}), 200
         else:
-            return jsonify({"status": "fail", "message": message}), 400
+            return jsonify({"status": "fail", "message": message}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
