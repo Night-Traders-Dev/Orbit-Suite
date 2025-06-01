@@ -15,7 +15,8 @@ class WalletDashboard(View):
 
     @discord.ui.button(label="Mine", style=discord.ButtonStyle.green)
     async def mine_orbit(self, interaction: discord.Interaction, button: Button):
-        status, result = await mine_orbit_api(self.user_id)
+        address = await get_user_address(self.user_id)
+        status, result = await mine_orbit_api(address)
         print(status)
         print(result)
 

@@ -61,7 +61,7 @@ async def send_orbit_api(sender, recipient, amount):
 async def mine_orbit_api(address):
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(f"{explorer}/api/mine", json={"user": username}) as resp:
+            async with session.post(f"{explorer}/api/mine", json={"address": address}) as resp:
                 data = await resp.json()
                 if resp.status == 200:
                     return "success", data

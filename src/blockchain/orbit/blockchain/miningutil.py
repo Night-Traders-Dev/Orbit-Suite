@@ -82,14 +82,13 @@ def format_duration(seconds):
 
     return " ".join(parts)
 
-def start_mining(username):
+def start_mining(address):
     users = load_users()
-    if username not in users:
-        print("User not found.")
+    if address not in users:
         return
 
-    user_data = users[username]
-    node_id = get_node_for_user(username)
+    user_data = users[address]
+    node_id = get_node_for_user(address)
     now = time.time()
 
     start_time = user_data.get("mining_start_time", now)
@@ -98,7 +97,6 @@ def start_mining(username):
         start_time = now
     else:
         if now - start_time < MAX_MINING_DURATION:
-            print(f"Mining available again in {format_duration(MAX_MINING_DURATION - (now - start_time))}")
             return False, f"Mining available again in {format_duration(MAX_MINING_DURATION - (now - start_time))}"
 
     user_data["mining_start_time"] = now
@@ -111,12 +109,8 @@ def start_mining(username):
     node_fee = round(mined * node_fee_rate, 6)
     user_payout = round(mined - node_fee, 6)
 
-    print(f"Mining rate: {rate:.6f} Orbit/sec")
-    print(f"Total mined: {mined:.6f} Orbit")
-    print(f"User reward: {user_payout:.6f} Orbit")
-
     if MODE == "mainnet":
-        users[username] = user_data
+        users[address] = user_data
         save_users(users)
         tx_metadata = TXTypes.MiningTypes(
             mined,
@@ -128,7 +122,7 @@ def start_mining(username):
         )
         rate_data = tx_metadata.rate_dict()
         tx_order = TXTypes.MiningTypes.mining_metadata(node_fee, rate_data)
-        send_orbit("mining", username, user_payout, order=tx_order)
+        send_orbit("mining", address, user_payout, order=tx_order)
 
         return True, {
             "rate": rate,

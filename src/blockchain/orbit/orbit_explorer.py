@@ -127,10 +127,9 @@ def api_verift_2fa():
 def api_mine():
     try:
         data = request.get_json()
-        user = data.get('user')
-        success, message = start_mining(user)
+        address = data.get('address')
+        success, message = start_mining(address)
         if success:
-            # message is a dictionary, so use it directly
             return jsonify({
                 "status": "success",
                 "rate": message["rate"],
@@ -141,19 +140,19 @@ def api_mine():
             return jsonify({"status": "fail", "message": message}), 400
 
     except Exception as e:
+        print(f"error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/lock', methods=['POST'])
 def api_lock():
     try:
         data = request.get_json()
-        username = data.get('username')
+        address = data.get('address')
         amount = data.get('amount')
         duration = data.get('duration')
         print(f"Debug {usermame}, {amount}, {duration}")
-        success, message = lock_tokens(username, amount, duration)
+        success, message = lock_tokens(address, amount, duration)
         if success:
-            # message is a dictionary, so use it directly
             return jsonify({
                 "status": "success",
                 "lockup_times": message["lockup_times"],
@@ -198,10 +197,10 @@ def api_send():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/balance/<username>', methods=['GET'])
-def api_balance(username):
+@app.route('/api/balance/<address>', methods=['GET'])
+def api_balance(address):
     try:
-        amount, locked = load_balance(username)
+        amount, locked = load_balance(address)
         return jsonify({
             "total_balance": amount + locked,
             "available_balance": amount,
