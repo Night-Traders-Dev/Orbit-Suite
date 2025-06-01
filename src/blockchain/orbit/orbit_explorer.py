@@ -10,6 +10,7 @@ from blockchain.tokenutil import send_orbit
 from blockchain.miningutil import start_mining
 from core.hashutil import create_2fa_secret, verify_2fa_token, generate_orbit_address
 from core.authutil import update_login, is_logged_in, cleanup_expired_sessions
+from core.userutil import register, login
 
 from explorer.api.latest import latest_block, latest_txs
 from explorer.api.volume import tx_volume_14d, block_volume_14d, orbit_volume_14d
@@ -103,7 +104,11 @@ def api_create_2fa():
     data = request.get_json()
     address = data.get('address')
     secret = create_2fa_secret(address)
-    return jsonify({"status": "success", "message": secret}), 200
+    registered = register(address, secret)
+    if registered:
+        return jsonify({"status": "success", "message": secret}), 200
+    else:
+        return jsonify({"status": "fail", "message": "account creation failed"}), 400
 
 @app.route('/api/verify_2fa', methods=['POST'])
 def api_verift_2fa():

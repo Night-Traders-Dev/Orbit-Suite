@@ -5,18 +5,17 @@ from wallet import claim_rewards
 from api import create_2fa_api, get_user_address, mine_orbit_api
 
 class WalletDashboard(View):
-    def __init__(self, discord_id, username):
+    def __init__(self, discord_id:
         super().__init__(timeout=None)
         self.user_id = discord_id
-        self.username = username
 
     @discord.ui.button(label="Send", style=discord.ButtonStyle.primary)
     async def send_orbit(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_modal(SendOrbitModal(self.user_id, self.username))
+        await interaction.response.send_modal(SendOrbitModal(self.user_id))
 
     @discord.ui.button(label="Mine", style=discord.ButtonStyle.green)
     async def mine_orbit(self, interaction: discord.Interaction, button: Button):
-        status, result = await mine_orbit_api(self.username)
+        status, result = await mine_orbit_api(self.user_id)
         print(status)
         print(result)
 
@@ -35,7 +34,7 @@ class WalletDashboard(View):
 
     @discord.ui.button(label="Lock", style=discord.ButtonStyle.secondary)
     async def lock_orbit(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_modal(LockOrbitModal(self.username))
+        await interaction.response.send_modal(LockOrbitModal(self.user_id))
 
     @discord.ui.button(label="Claim Rewards", style=discord.ButtonStyle.secondary)
     async def claim(self, interaction: discord.Interaction, button: Button):

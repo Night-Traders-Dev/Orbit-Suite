@@ -11,9 +11,9 @@ async def get_user_address(uid):
         except Exception as e:
             return f"Request failed: {str(e)}"
 
-def get_user_balance(username, host=explorer):
+def get_user_balance(address, host=explorer):
     try:
-        response = requests.get(f"{host}/api/balance/{username}")
+        response = requests.get(f"{host}/api/balance/{address}")
         if response.status_code == 200:
             data = response.json()
             return data['total_balance'], data['available_balance'], data['locked_balance']
@@ -58,7 +58,7 @@ async def send_orbit_api(sender, recipient, amount):
             return False, f"Request failed: {str(e)}"
 
 
-async def mine_orbit_api(username):
+async def mine_orbit_api(address):
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(f"{explorer}/api/mine", json={"user": username}) as resp:
@@ -70,7 +70,7 @@ async def mine_orbit_api(username):
     except Exception as e:
         return "fail", str(e)
 
-async def lock_orbit_api(username, amount, duration):
+async def lock_orbit_api(address, amount, duration):
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(f"{explorer}/api/lock", json={"user": username, "amount": amount,"duration": duration}) as resp:

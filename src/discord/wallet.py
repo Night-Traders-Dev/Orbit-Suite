@@ -11,8 +11,8 @@ def get_wallet_balance(address):
         "security_circle": []
     }
 
-async def lock_orbit(username, amount, duration):
-    result, message = await lock_orbit_api(username, amount, duration)
+async def lock_orbit(address, amount, duration):
+    result, message = await lock_orbit_api(address, amount, duration)
     if result == "success":
         return True
 

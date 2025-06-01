@@ -16,28 +16,17 @@ orbit_db = OrbitDB()
 def validate_username(username):
     return username.isalnum() and 3 <= len(username) <= 20
 
-def register():
-    clear_screen()
+def register(username, password):
     users = load_users()
-    username = input("Choose a username: ").strip()
 
     if username in users:
         print("Username already exists.")
         return False
 
-    if not validate_username(username):
-        print("Username must be alphanumeric and 3–20 characters.")
-        return False
-
-    password = input("Choose a password: ").strip()
-    if len(password) < 6:
-        print("Password must be at least 6 characters.")
-        return False
     users = create_account(username, password, users)
 
     save_users(users)
     log_event("REGISTER", username)
-    print("Registration successful!")
     return True
 
 def login():
