@@ -3,7 +3,7 @@ from core.ioutil import fetch_chain
 from config.configutil import TXConfig
 
 def load_balance(username):
-    blockchain = fetch_chain()  #load_chain(username)
+    blockchain = fetch_chain() #load_chain(username)
     balance = 0
     locked_from_ledger = []
     total_sent = 0

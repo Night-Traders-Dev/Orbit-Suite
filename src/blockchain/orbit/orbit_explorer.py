@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, g
+from flask_lt import run_with_lt
 import json, os, datetime, math, time
 
 from config.configutil import OrbitDB
@@ -24,6 +25,7 @@ from explorer.util.util import search_chain, last_transactions, get_validator_st
 
 orbit_db = OrbitDB()
 app = Flask(__name__)
+run_with_lt(app, subdomain="orbit-blockchain")
 
 CHAIN_PATH = orbit_db.blockchaindb
 PORT = 7000
@@ -123,7 +125,13 @@ def api_mine():
         user = data.get('user')
         success, message = start_mining(user)
         if success:
-            return jsonify({"status": "success", "message": message}), 200
+            rate, mined, payout = message
+            return jsonify({
+                "status": "success",
+                "rate": rate,
+                "mined": mined,
+                "payout": payout
+            }), 200
         else:
             return jsonify({"status": "fail", "message": message}), 400
 
@@ -380,4 +388,4 @@ def receive_block():
 
 if __name__ == "__main__":
     host = '0.0.0.0'
-    app.run(host=host, port=PORT, debug=True)
+    app.run(host=host, port=PORT, debug=False,)
