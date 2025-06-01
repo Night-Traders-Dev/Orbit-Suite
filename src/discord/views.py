@@ -5,7 +5,7 @@ from wallet import claim_rewards
 from api import create_2fa_api, get_user_address, mine_orbit_api
 
 class WalletDashboard(View):
-    def __init__(self, discord_id:
+    def __init__(self, discord_id):
         super().__init__(timeout=None)
         self.user_id = discord_id
 

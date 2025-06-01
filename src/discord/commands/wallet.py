@@ -21,22 +21,21 @@ def setup(bot):
         except (discord.Forbidden, discord.HTTPException):
             pass
 
-        username = ctx.author.name
         uid = ctx.author.id
         address = await get_user_address(uid)
         balance = get_wallet_balance(address)
-        total, wallet, locked = get_user_balance(username)
+        total, wallet, locked = get_user_balance(address)
 
         embed = discord.Embed(title="Orbit Wallet", color=0x00ffcc)
         embed.add_field(name="Address", value=address, inline=False)
         embed.add_field(name="Wallet", value=f"{wallet} ORBIT", inline=True)
         embed.add_field(name="Locked", value=f"{locked} ORBIT", inline=True)
         embed.add_field(name="Total", value=f"{total} ORBIT", inline=True)
-        embed.add_field(name="View on Explorer", value=f"[Explorer](https://3599-173-187-247-149.ngrok-free.app/address/{username})", inline=False)
+#        embed.add_field(name="View on Explorer", value=f"[Explorer](https://3599-173-187-247-149.ngrok-free.app/address/{username})", inline=False)
         embed.add_field(name="Validator Stats", value="{}", inline=False)
         embed.add_field(name="Security Circle", value="{}", inline=False)
 
         tx_summary = "\n".join([f"{tx['timestamp']}: {tx['from']} ➔ {tx['to']} ({tx['amount']} ORBIT) - {tx['note']}" for tx in balance['transactions']])
         embed.add_field(name="Last Transactions", value=tx_summary, inline=False)
 
-        await ctx.send(embed=embed, view=WalletDashboard(uid, username), delete_after=60)
+        await ctx.send(embed=embed, view=WalletDashboard(uid), delete_after=60)
