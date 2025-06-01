@@ -125,19 +125,18 @@ def api_mine():
         user = data.get('user')
         success, message = start_mining(user)
         if success:
-            rate, mined, payout = message
+            # message is a dictionary, so use it directly
             return jsonify({
                 "status": "success",
-                "rate": rate,
-                "mined": mined,
-                "payout": payout
+                "rate": message["rate"],
+                "mined": message["mined"],
+                "payout": message["payout"]
             }), 200
         else:
             return jsonify({"status": "fail", "message": message}), 400
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 @app.route('/api/send', methods=['POST'])
 def api_send():
