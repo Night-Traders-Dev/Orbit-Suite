@@ -5,7 +5,7 @@ import json, os, datetime, math, time
 from config.configutil import OrbitDB
 from core.ioutil import load_chain, load_nodes
 from core.walletutil import load_balance
-from blockchain.stakeutil import get_user_lockups
+from blockchain.stakeutil import get_user_lockups, lock_tokens
 from blockchain.tokenutil import send_orbit
 from blockchain.miningutil import start_mining
 from core.hashutil import create_2fa_secret, verify_2fa_token, generate_orbit_address
@@ -137,6 +137,29 @@ def api_mine():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/lock', methods=['POST'])
+def api_lock():
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        amount = data.get('amount')
+        duration = data.get('duration')
+        print(f"Debug {usermame}, {amount}, {duration}")
+        success, message = lock_tokens(username, amount, duration)
+        if success:
+            # message is a dictionary, so use it directly
+            return jsonify({
+                "status": "success",
+                "lockup_times": message["lockup_times"],
+                "lockup_amount": message["lockup_amount"]
+            }), 200
+        else:
+            return jsonify({"status": "fail", "message": message}), 400
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/api/send', methods=['POST'])
 def api_send():

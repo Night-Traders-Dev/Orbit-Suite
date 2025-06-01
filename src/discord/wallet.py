@@ -1,3 +1,5 @@
+from api import lock_orbit_api
+
 def get_wallet_balance(address):
     return {
         "address": address,
@@ -9,8 +11,10 @@ def get_wallet_balance(address):
         "security_circle": []
     }
 
-def lock_orbit(username, amount, duration):
-    return True
+async def lock_orbit(username, amount, duration):
+    result, message = await lock_orbit_api(username, amount, duration)
+    if result == "success":
+        return True
 
 def claim_rewards(username):
     return True

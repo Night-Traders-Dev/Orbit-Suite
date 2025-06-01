@@ -36,11 +36,11 @@ class LockOrbitModal(Modal):
         super().__init__(title="Lock ORBIT")
         self.user_id = username
         self.amount = TextInput(label="Amount to Lock")
-        self.duration = TextInput(label="Lock Duration (days)")
+        self.duration = TextInput(label="Duration in days (min 1, max 1825)")
         self.add_item(self.amount)
         self.add_item(self.duration)
 
     async def on_submit(self, interaction: discord.Interaction):
-        success = lock_orbit(self.user_id, float(self.amount.value), int(self.duration.value))
+        success = await lock_orbit(self.user_id, float(self.amount.value), int(self.duration.value))
         msg = "🔒 Lockup successful!" if success else "⛔️ Lockup failed."
         await interaction.response.send_message(msg, ephemeral=True)

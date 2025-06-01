@@ -88,19 +88,16 @@ def view_lockups(username):
     lockups = get_user_lockups(username)
     print_lockups(lockups)
 
-def lock_tokens(username):
+def lock_tokens(username, duration, amount):
     users = load_users()
     balance, _ = load_balance(username)
 
     try:
-        amount = float(input(f"Enter amount of Orbit to lock (available: {balance:.4f}): "))
         if amount < MIN_LOCK_AMOUNT or amount > balance:
             print("Invalid amount.")
             return
 
-        duration = int(input("Enter lockup duration in days (min 1, max 1825): "))
         if duration < 1 or duration > MAX_LOCK_DURATION_DAYS:
-            print(f"Duration must be between 1 and {MAX_LOCK_DURATION_DAYS} days.")
             return
         lockup_times = {"init_days": duration}
         lockup_amount = {"lock": amount}
@@ -112,7 +109,10 @@ def lock_tokens(username):
             tx_value="dict"
         )
         send_orbit(username, "lockup_rewards", amount, order=lock_metadata.tx_types())
-        print(f"Locked {amount:.4f} Orbit for {duration} days.")
+        return True, {
+            "lockup_times": lockup_times,
+            "lockup_amount": lockup_amount
+        }
 
     except ValueError:
         print("Invalid input.")
