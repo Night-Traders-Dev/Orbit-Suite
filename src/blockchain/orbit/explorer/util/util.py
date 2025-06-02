@@ -26,35 +26,35 @@ def last_transactions(address, limit=10):
                     return txs
     return txs
 
-
 def get_validator_stats():
-    nodes = load_nodes()  # dict: {"Node1": {"node": {...}, "last_seen": ...}, ...}
+    nodes = load_nodes()  # {"Node1": {id, address, host, port, uptime, trust, ...}, ...}
     chain = fetch_chain()
 
-    # Count blocks validated by each node ID
+    # Count blocks validated by each node
     block_counts = {}
     for block in chain:
-        val = block.get("validator")
-        if val:
-            block_counts[val] = block_counts.get(val, 0) + 1
+        validator = block.get("validator")
+        if validator:
+            block_counts[validator] = block_counts.get(validator, 0) + 1
 
-    total_blocks = sum(block_counts.values())
+    total_blocks = sum(block_counts.values()) or 1  # Avoid division by zero
 
     stats = []
-    for node_id, node_data in nodes.items():
-        node_info = node_data.get("node", {})
-
+    for node_id, node in nodes.items():
         blocks = block_counts.get(node_id, 0)
-        percent = round(100 * blocks / total_blocks, 2) if total_blocks else 0
-        trust = round(node_info.get("trust_score", 0.0), 3)
-        uptime = round(node_info.get("uptime_score", 0.0), 3)
+        percent = round(100 * blocks / total_blocks, 2)
+
+        trust = round(node.get("trust", 0.0), 3)
+        uptime = round(node.get("uptime", 0.0), 3)
 
         stats.append({
             "validator": node_id,
             "blocks": blocks,
             "percent": percent,
             "trust": trust,
-            "uptime": uptime
+            "uptime": uptime,
+            "high_trust": trust > 0.9,
+            "low_uptime": uptime < 0.5
         })
 
     stats.sort(key=lambda x: x["blocks"], reverse=True)

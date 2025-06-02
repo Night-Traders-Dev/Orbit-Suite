@@ -79,10 +79,19 @@ class OrbitNode:
             self.chain.append(block)
             save_chain(self.chain, owner_id=self.node_id, chain_file=NODE_LEDGER)
             print(f"Accepted new block: {block['index']}")
+
+            # Trust score increase
+            self.nodes[self.node_id]["trust"] = min(1.0, self.nodes[self.node_id]["trust"] + 0.01)
+            save_nodes(self.nodes, exclude_id=self.node_id)
             return True
         else:
             print("Invalid block received.")
+
+            # Trust score penalty
+            self.nodes[self.node_id]["trust"] = max(0.0, self.nodes[self.node_id]["trust"] - 0.02)
+            save_nodes(self.nodes, exclude_id=self.node_id)
             return False
+
 
     def broadcast_block_to_peers(self, block):
         for node_id, node_data in self.nodes.items():
@@ -111,9 +120,13 @@ class OrbitNode:
             kwargs={"port": self.port, "debug": False, "use_reloader": False}
         ).start()
 
+
     def heartbeat_loop(self, new_node, new_node_id):
         while self.running:
             try:
+                new_node["last_seen"] = time.time()
+                new_node["uptime"] += self.heartbeat_interval / 60.0  # uptime in minutes
+
                 response = requests.post(
                     f"{EXPLORER}/node_ping",
                     json=new_node,
@@ -122,11 +135,15 @@ class OrbitNode:
                 )
                 if response.status_code == 200:
                     print(f"[HEARTBEAT] Node {new_node_id} heartbeat sent.")
+                    self.nodes[new_node_id] = new_node
+                    save_nodes(self.nodes, exclude_id=self.node_id)
                 else:
                     print(f"[HEARTBEAT] Failed (status {response.status_code})")
+
             except Exception as e:
                 print(f"[HEARTBEAT] Exception: {e}")
             time.sleep(self.heartbeat_interval)
+
 
     def start_heartbeat_thread(self, new_node, new_node_id):
         self.heartbeat_thread = threading.Thread(

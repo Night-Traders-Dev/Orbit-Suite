@@ -294,39 +294,57 @@ def validators():
 @app.route("/node/<node_id>")
 def load_node(node_id):
     node_data = load_nodes()
+    chain = g.chain  # Assumes g.chain has already been set
 
-    if node_id in node_data:
-        # Node is found in registered nodes
-        node_blocks = [block for block in g.chain if block.get("validator") == node_id]
-    else:
-        # Try to find node by scanning the chain
-        node_blocks = [block for block in g.chain if block.get("validator") == node_id]
+    # Try to retrieve blocks validated by this node
+    node_blocks = [block for block in chain if block.get("validator") == node_id]
 
-        # If still no blocks, return not found
+    # Handle missing node case
+    if node_id not in node_data:
         if not node_blocks:
             return render_template("node_not_found.html", node_id=node_id), 404
 
-        # If found only via blocks, add minimal data
+        # Add placeholder node data if only found via chain
         node_data[node_id] = {
-            "uptime": None,
-            "trust": None
+            "id": node_id,
+            "trust": 0.0,
+            "uptime": 0.0,
+            "address": "Unknown",
+            "host": "Unknown",
+            "port": "N/A",
+            "last_seen": None,
+            "users": []
         }
 
-    html, blocks, trust, uptime, total_blocks, total_orbit, avg_block_size = node_profile(
-        node_id, node_data, g.chain
-    )
+    # Pull flattened node info
+    node = node_data.get(node_id, {})
+    trust = round(node.get("trust", 0.0), 3)
+    uptime = round(node.get("uptime", 0.0), 3)
+    total_blocks = len(node_blocks)
+
+    # Total ORBIT processed
+    total_orbit = 0.0
+    for block in node_blocks:
+        for tx in block.get("transactions", []):
+            if tx.get("type") == "transfer":
+                total_orbit += tx.get("amount", 0.0)
+
+    # Average block size (tx count per block)
+    avg_block_size = round(
+        sum(len(block.get("transactions", [])) for block in node_blocks) / total_blocks,
+        2
+    ) if total_blocks else 0.0
 
     return render_template(
-        html,
+        "node_profile.html",
         node_id=node_id,
-        blocks=blocks,
+        blocks=node_blocks,
         trust=trust,
         uptime=uptime,
         total_blocks=total_blocks,
         total_orbit=total_orbit,
         avg_block_size=avg_block_size
     )
-
 
 @app.route("/api/docs")
 def api_docs():
