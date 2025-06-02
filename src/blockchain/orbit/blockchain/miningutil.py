@@ -44,7 +44,7 @@ def calculate_mining_rate(U, S, B, Score,
     user_factor = (U_target / max(U, U_target)) ** 0.5
     supply_factor = max(0, 1 - (S / S_max))
     time_decay = 0.5 ** (B / B_halflife)
-    node_boost = 1 + min(Score / 100, 0.10)
+    node_boost = 1 + min(Score, 0.10)
     rate = (R_base * user_factor * supply_factor * time_decay * node_boost)
     rate_dict = {
         "base": R_base,
