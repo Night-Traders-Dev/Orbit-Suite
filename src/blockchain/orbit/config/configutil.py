@@ -27,14 +27,14 @@ class MiningConfig:
 
 
 class NodeConfig:
-    def __init__(self, node_id, address, port, quorum_slice=None, trust_score=0.5, uptime_score=0.5, user=None):
+    def __init__(self, node_id, address, port, quorum_slice=None, trust_score=0.5, uptime_score=0.5, users=None):
         self.node_id = node_id
         self.address = address
         self.port = port
         self.quorum_slice = quorum_slice or []
         self.trust_score = trust_score
         self.uptime_score = uptime_score
-        self.user = user  # Optional field to link node to a user
+        self.users = users or []
 
     def to_dict(self):
         return {
@@ -44,7 +44,8 @@ class NodeConfig:
             "quorum_slice": self.quorum_slice,
             "trust_score": self.trust_score,
             "uptime_score": self.uptime_score,
-            "user": self.user
+            "last_seen": time.time(),
+            "users": self.users
         }
 
     @staticmethod
@@ -56,8 +57,20 @@ class NodeConfig:
             quorum_slice=data.get("quorum_slice", []),
             trust_score=data.get("trust_score", 0.5),
             uptime_score=data.get("uptime_score", 0.5),
-            user=data.get("user")
+            last_seen=data.get("last_seen", time.time()),
+            users=data.get("users", [])
         )
+
+    def add_user(self, address):
+        if address not in self.users:
+            self.users.append(address)
+
+    def remove_user(self, address):
+        if address in self.users:
+            self.users.remove(address)
+
+    def has_user(self, address):
+        return address in self.users
 
 class TXConfig:
     class Transaction:

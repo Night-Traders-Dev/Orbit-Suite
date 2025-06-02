@@ -21,6 +21,7 @@ app = Flask(__name__)
 class OrbitNode:
     def __init__(self, address):
         self.address = address
+        self.ip = '127.0.0.1'
         self.port = 5000 + random.randint(0, 999)
         self.node_id = "Node" + str(random.randint(0, 999))
         self.running = True
@@ -29,8 +30,9 @@ class OrbitNode:
         self.NodeRegistry = {}
         self.heartbeat_interval = 20  # seconds
         self.heartbeat_thread = None
+        self.users = []
 
-    def format_node(self, node_id, ip, port, last_seen):
+    def format_node(self, node_id, ip, port, last_seen, users):
         self.NodeRegistry = {
             "node": {
                 "id": node_id,
@@ -39,13 +41,17 @@ class OrbitNode:
                 "quorum_slice": [],
                 "trust_score": 1.0,
                 "uptime_score": 1.0,
-                "last_seen": time.time()
+                "last_seen": time.time(),
+                "users": users or []
             }
         }
         return self.NodeRegistry
 
     def register_node(self):
-        new_node = self.format_node(self.node_id, self.address, self.port, time.time())
+        self.users = []
+        if self.address:
+            self.users.append(self.address)
+        new_node = self.format_node(self.node_id, self.ip, self.port, time.time(), self.users)
         save_nodes(new_node)
         return new_node
 
