@@ -11,8 +11,6 @@ from config.configutil import TXConfig, NodeConfig, OrbitDB
 from core.ioutil import load_nodes, save_nodes, fetch_chain, save_chain
 from blockchain.blockutil import validate_block
 from blockchain.orbitutil import simulate_peer_vote
-from core.logutil import log_node_activity
-
 
 FETCH_INTERVAL = 30
 NODE_LEDGER = "data/orbit_chain.node"
@@ -37,8 +35,6 @@ class OrbitNode:
         self.last_validated_block = self.get_latest_validated_block_index()
         self.block_received_event = threading.Event()
         self.stats_ui_thread = None
-        self.peer_discovery_thread = None
-        self.quorum_slice = set()  # Basic placeholder for future PoI use
 
     def get_available_port(self, start=5000, end=5999):
         while True:
@@ -71,7 +67,7 @@ class OrbitNode:
         try:
             return fetch_chain()
         except Exception as e:
-            log_node_activity(self.node_id, f"[ERROR] Fetching chain failed: {e}")
+            print(f"[ERROR] Fetching chain failed: {e}")
             return []
 
     def update_chain(self):
@@ -82,7 +78,7 @@ class OrbitNode:
 
     def validate_incoming_block(self, block):
         if any(b.get("hash") == block.get("hash") for b in self.chain):
-            log_node_activity(self.node_id,"[INFO] Block already exists in chain.")
+            print("[INFO] Block already exists in chain.")
             return False
         result = simulate_peer_vote(self.node_id, block)
         print(result)
@@ -97,12 +93,12 @@ class OrbitNode:
             self.last_validated_block = block.get("index", self.last_validated_block)
 
             self.block_received_event.set()
-            log_node_activity(self.node_id, f"[SUCCESS] Block validated and added at index {block.get('index')}")
+            print(f"[SUCCESS] Block validated and added at index {block.get('index')}")
             return True
         else:
             self.nodes[self.node_id]["trust"] = max(0.0, self.nodes[self.node_id]["trust"] - 0.02)
             save_nodes(self.nodes, exclude_id=self.node_id)
-            log_node_activity(self.node_id, "[FAIL] Block failed validation.")
+            print("[FAIL] Block failed validation.")
             return False
 
     def get_latest_validated_block_index(self):
@@ -118,11 +114,11 @@ class OrbitNode:
         for node_id, node_data in self.nodes.items():
             if node_id == self.node_id:
                 continue
-            url = f"http://127.0.0.1:{node_data.get('port')}"
+            url = f"http://{node_data.get('address')}:{node_data.get('port')}"
             try:
                 res = requests.post(f"{url}/receive_block", json=block, timeout=3)
                 if res.status_code == 200:
-                    log_node_activity(self.node_id, f"[SYNC] Block sent to {node_id}")
+                    print(f"[SYNC] Block sent to {node_id}")
             except Exception:
                 continue
 
@@ -170,7 +166,7 @@ class OrbitNode:
                     save_nodes(self.nodes, exclude_id=self.node_id)
 
             except Exception as e:
-                log_node_activity(self.node_id, f"[HEARTBEAT] Exception: {e}")
+                print(f"[HEARTBEAT] Exception: {e}")
 
             if self.block_received_event.is_set():
                 self.block_received_event.clear()
@@ -194,36 +190,6 @@ class OrbitNode:
         interval = self.heartbeat_max - (self.heartbeat_max - self.heartbeat_min) * ratio
         return max(self.heartbeat_min, min(self.heartbeat_max, int(interval)))
 
-
-    def discover_and_add_peers(self):
-        while self.running:
-            try:
-                res = requests.get(f"{EXPLORER}/active_nodes", timeout=5)
-                if res.status_code == 200:
-                    node_dict = res.json()  # Full dictionary of nodes
-                    for node_id, node_data in node_dict.items():
-                        peer = node_data.get("node", {})
-                        if (
-                            peer.get("id") != self.node_id
-                            and peer.get("id") not in self.nodes
-                        ):
-                            self.nodes[peer["id"]] = {
-                                "host": peer["host"],
-                                "port": peer["port"],
-                            }
-                            log_node_activity(self.node_id, f"[DISCOVERY] Added new peer: {peer['id']}")
-            except Exception as e:
-                log_node_activity(self.node_id, f"[DISCOVERY ERROR] {e}")
-            time.sleep(10)
-
-
-    def start_peer_discovery_thread(self):
-        self.peer_discovery_thread = threading.Thread(
-            target=self.discover_and_add_peers,
-            daemon=True
-        )
-        self.peer_discovery_thread.start()
-
     def display_stats_loop(self):
         while self.running:
             shutil.get_terminal_size()
@@ -239,8 +205,7 @@ class OrbitNode:
             print(f"Uptime        : {uptime:.4f}")
             print(f"Trust Score   : {trust:.4f}")
             print(f"Blocks Validated : {validated_count}")
-            print(f"Peers Known   : {len(self.nodes)}")
-            print(f"Quorum Slice  : {list(self.quorum_slice)}")
+            print(f"Last Seen     : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             print(f"{'='*40}")
             print("Press Ctrl+C to stop the node.")
             time.sleep(5)
@@ -253,12 +218,11 @@ class OrbitNode:
         self.stats_ui_thread.start()
 
     def run(self):
-        log_node_activity(self.node_id, f"[BOOT] Starting Orbit Node for {self.address} ({self.node_id})")
+        print(f"[BOOT] Starting Orbit Node for {self.address} ({self.node_id})")
         new_node = self.register_node()
         new_node_id = new_node["id"]
         self.start_receiver_server()
         self.start_heartbeat_thread(new_node, new_node_id)
-        self.start_peer_discovery_thread()
         self.start_stats_ui_thread()
 
         while self.running:
