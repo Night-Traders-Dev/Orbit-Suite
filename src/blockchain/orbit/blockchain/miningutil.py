@@ -82,6 +82,24 @@ def format_duration(seconds):
 
     return " ".join(parts)
 
+
+def check_mining(address):
+    users = load_users()
+    if address not in users:
+        return
+
+    user_data = users[address]
+    node_id = get_node_for_user(address)
+    now = time.time()
+
+    start_time = user_data.get("mining_start_time", now)
+    if not start_time:
+        user_data["mining_start_time"] = now
+        start_time = now
+    else:
+        if now - start_time < 3600:
+            return False, f"{format_duration(3600 - (now - start_time))}"
+
 def start_mining(address):
     users = load_users()
     if address not in users:
