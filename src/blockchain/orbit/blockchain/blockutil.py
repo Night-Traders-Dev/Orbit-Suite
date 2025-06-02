@@ -10,7 +10,7 @@ from blockchain.voteutil import record_vote
 from config.configutil import NodeConfig, TXConfig
 from core.ioutil import load_chain, save_chain, fetch_chain, load_users, save_users
 from core.hashutil import generate_merkle_root, calculate_hash
-from core.networkutil import send_block
+from core.networkutil import send_block_to_node
 
 
 def create_genesis_block():
@@ -130,8 +130,8 @@ def broadcast_block(block, sender_id=None):
             node = NodeConfig.from_dict(node_data)
             if node.address and node.port:
                 try:
-                    url = f"http://127.0.0.1:{node.port}/receive_block"
-                    send_block(url, block)
+                    url = f"http://127.0.0.1:{node.port}"
+                    send_block_to_node(url, block)
                     log_node_activity(sender_id, "Broadcast Block", f"Block sent to {url}")
                 except Exception as e:
                     log_node_activity(sender_id, "Broadcast Block", f"Failed to send to {node_id}: {e}")

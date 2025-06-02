@@ -83,9 +83,8 @@ class OrbitNode:
         if any(b.get("hash") == block.get("hash") for b in self.chain):
             log_node_activity(self.node_id, "[INFO]",  "Block already exists in chain.")
             return False
-        result = simulate_peer_vote(self.node_id, block)
         log_node_activity(self.node_id, "[INFO]",  "Validating Block.")
-        if 1 == 1:
+        if validate_block(block, self.node_id):
             self.chain.append(block)
             save_chain(self.chain, owner_id=self.node_id, chain_file=NODE_LEDGER)
             self.block_timestamps.append(time.time())
