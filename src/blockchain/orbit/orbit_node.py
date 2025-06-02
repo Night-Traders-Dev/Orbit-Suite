@@ -131,6 +131,8 @@ class OrbitNode:
         @app.route("/receive_block", methods=["POST"])
         def receive_block():
             block = request.get_json()
+            log_node_activity(self.node_id, "DEBUG", block)
+            time.sleep(15)
             if self.validate_incoming_block(block):
                 self.update_chain()
                 return jsonify({"status": "accepted"}), 200
@@ -138,7 +140,7 @@ class OrbitNode:
 
         threading.Thread(
             target=app.run,
-            kwargs={"port": self.port, "debug": False, "use_reloader": False}
+            kwargs={"host": '0.0.0.0', "port": self.port, "debug": False, "use_reloader": False}
         ).start()
 
     def heartbeat_loop(self, new_node, new_node_id):

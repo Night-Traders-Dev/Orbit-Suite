@@ -100,44 +100,32 @@ def propose_block(node_id, block_data, timeout=5):
         relay_pending_proposal(node_id, block_data)
         return False
 
-
 def receive_block(block):
     chain = fetch_chain()
+    if not chain:
+        log_node_activity("unknown", "Receive Block", "Chain not loaded")
+        return False
+
     last_block = chain[-1]
 
-    if block["index"] != last_block["index"]:
+    if block["index"] != last_block["index"] + 1:
         log_node_activity(block.get("validator", "unknown"), "Receive Block", "Rejected: Invalid index.")
         return False
-
-    if block["previous_hash"] != last_block["hash"]:
-        log_node_activity(block.get("validator", "unknown"), "Receive Block", "Rejected: Hash mismatch.")
-        return False
-
-    recalculated = calculate_hash(
-        block["index"], block["previous_hash"], block["timestamp"],
-        block["transactions"], block.get("validator", ""),
-        block.get("merkle_root", ""), block.get("nonce", 0),
-        block.get("metadata", {})
-    )
-
-    if recalculated != block["hash"]:
-        log_node_activity(block.get("validator", "unknown"), "Receive Block", "Rejected: Invalid hash.")
-        return False
-
-    chain.append(block)
-    save_chain(chain)
-    return True
 
 
 def broadcast_block(block, sender_id=None):
     nodes = load_nodes()
+    self_id = config.NODE_CONFIG.get("node_name")
     for node_id, node_data in nodes.items():
-        if node_id == sender_id:
+        if node_id == self_id:
             continue
+
         node = NodeConfig.from_dict(node_data)
         if node.address and node.port:
             try:
-                send_block(f"{node.address}:{node.port}", block)
+                url = f"http://127.0.0.1:{node.port}/receive_block"
+                send_block(url, block)
+                log_node_activity(node_id, "Broadcast Block", f"Block sent to {url}")
             except Exception as e:
                 log_node_activity(node_id, "Broadcast Block", f"Failed to send to {node_id}: {e}")
 
@@ -191,7 +179,7 @@ def add_block(transactions, node_id):
 
         save_users(users)
         save_chain(chain + [new_block.to_dict()])
-#        broadcast_block(new_block.to_dict(), sender_id=node_id)
+        broadcast_block(new_block.to_dict(), node_id)
         log_node_activity(node_id, "Add Block", f"Block {new_block.index} added.")
         return True
     else:

@@ -35,22 +35,14 @@ def send_block_to_node(address, block_data):
         print(f"Failed to send block to {address}: {e}")
         return False
 
-def send_block(peer_address, block):
-    host, port = peer_address.split(":")
-    port = int(port)
-
+def send_block(url, block):
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(5)
-            s.connect((host, port))
-            payload = {
-                "type": "block",
-                "data": block.to_dict() if hasattr(block, "to_dict") else block,
-            }
-            s.sendall((json.dumps(payload) + "\n").encode())
-            s.shutdown(socket.SHUT_WR)
-    except (ConnectionRefusedError, socket.timeout, socket.error) as e:
-        raise RuntimeError(f"Failed to send block to {peer_address}: {e}")
+        block_dict = block.to_dict() if hasattr(block, "to_dict") else block
+        headers = {'Content-Type': 'application/json'}
+        response = requests.post(url, headers=headers, data=json.dumps(block_dict), timeout=3)
+        response.raise_for_status()
+    except Exception as e:
+        raise e
 
 def start_listener(node_id, username):
     if not node_id:
