@@ -154,7 +154,6 @@ def load_node(node_id):
             return render_template("node_not_found.html", node_id=node_id), 404
 
 
-        print(f"Debug: {node_blocks}")
         # Add placeholder node data if only found via chain
         node_data[node_id] = {
             "id": node_id,
