@@ -1,7 +1,7 @@
 from discord.ui import View, Button
 import discord
 from modals import SendOrbitModal, LockOrbitModal
-from wallet import claim_rewards
+from wallet import claim_rewards, wallet_info
 from api import create_2fa_api, get_user_address, mine_orbit_api
 
 class WalletDashboard(View):
@@ -29,7 +29,8 @@ class WalletDashboard(View):
             )
 
         await interaction.response.send_message(msg, ephemeral=True)
-
+        embed = await wallet_info(self.user_id)
+        await interaction.message.edit(embed=embed, view=WalletDashboard(self.user_id), delete_after=60)
 
     @discord.ui.button(label="Lock", style=discord.ButtonStyle.secondary)
     async def lock_orbit(self, interaction: discord.Interaction, button: Button):
