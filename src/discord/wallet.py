@@ -1,4 +1,4 @@
-from api import get_user_balance, get_user_address, lock_orbit_api
+from api import get_user_balance, get_user_address, lock_orbit_api, claim_rewards_api
 from discord.ext import commands
 import discord
 
@@ -19,8 +19,10 @@ async def lock_orbit(address, amount, duration):
     if result == "success":
         return True
 
-def claim_rewards(username):
-    return True
+async def claim_rewards(address):
+    result, message = await claim_rewards_api(address)
+    if result == "success":
+        return message
 
 async def wallet_info(uid):
     address = await get_user_address(uid)

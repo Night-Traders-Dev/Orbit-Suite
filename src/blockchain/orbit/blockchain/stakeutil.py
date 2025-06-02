@@ -202,133 +202,132 @@ def withdraw_lockup(username):
     print(f"{payout:.6f} Orbit added to your balance.")
 
 
-def claim_lockup_rewards(username):
-    users = load_users()
-    user = users[username]
-    user_lockups = get_user_lockups(username)
-    now = int(time.time())
-    chain = fetch_chain()
-    node_id = get_node_for_user(username)
+def claim_lockup_rewards(username, relock_duration=None):
+    try:
+        users = load_users()
+        if username not in users:
+            return {"status": "error", "message": "User not found"}
 
-    # Step 1: Extract most recent claim_until per lock_start from chain
-    claim_map = {}
-    for block in chain:
-        for tx in block.get("transactions", []):
-            if tx.get("recipient") == username and tx.get("sender") == "lockup_rewards":
-                note = tx.get("note", {})
-                if isinstance(note, dict) and "start" in note and "end" in note:
-                    lock_start = str(note["start"])
-                    prev_claim = claim_map.get(lock_start, 0)
-                    claim_map[lock_start] = max(prev_claim, note["end"])
+        user = users[username]
+        user_lockups = get_user_lockups(username)
+        now = int(time.time())
+        chain = fetch_chain()
+        node_id = get_node_for_user(username)
 
-    matured_total = 0.0
-    total_reward = 0.0
-    reward_txs = []
-    still_locked = []
-    claimed = 0
-    lock_count = 0
+        claim_map = {}
+        for block in chain:
+            for tx in block.get("transactions", []):
+                if tx.get("recipient") == username and tx.get("sender") == "lockup_rewards":
+                    note = tx.get("note", {})
+                    if isinstance(note, dict) and "start" in note and "end" in note:
+                        lock_start = str(note["start"])
+                        prev_claim = claim_map.get(lock_start, 0)
+                        claim_map[lock_start] = max(prev_claim, note["end"])
 
-    for lock in user_lockups:
-        lock_count += 1
-        lock_start = lock["start"]
-        duration = lock["days"]
-        amount = lock["amount"]
-        lock_end = lock_start + duration * 86400
-        last_claim = int(claim_map.get(str(lock_start), lock_start))
-        claim_until = min(now, lock_end)
+        matured_total = 0.0
+        total_reward = 0.0
+        reward_txs = []
+        still_locked = []
+        claimed = 0
+        lock_count = 0
 
-        # Unlock matured principal if reward has been claimed through or past lock_end
-        if now >= lock_end and last_claim >= lock_end:
-            matured_total += amount
-        else:
-            still_locked.append(lock)  # still in progress
+        for lock in user_lockups:
+            lock_count += 1
+            lock_start = lock["start"]
+            duration = lock["days"]
+            amount = lock["amount"]
+            lock_end = lock_start + duration * 86400
+            last_claim = int(claim_map.get(str(lock_start), lock_start))
+            claim_until = min(now, lock_end)
 
-        if now < last_claim + 86400:
+            if now >= lock_end and last_claim >= lock_end:
+                matured_total += amount
+            else:
+                still_locked.append(lock)
 
-            remaining = int((last_claim + 86400) - now)
-            hours = remaining // 3600
-            minutes = (remaining % 3600) // 60
-            print(f"Next claim in {hours}h {minutes}m")
-            claimed += 1
-            continue
+            if now < last_claim + 86400:
+                claimed += 1
+                if claimed == lock_count:
+                    remaining = int((last_claim + 86400) - now)
+                    return {
+                        "status": "cooldown",
+                        "message": f"Next claim available in {remaining // 3600}h {(remaining % 3600) // 60}m"
+                    }
+                continue
 
-            if claimed == lock_count:
-                return
+            if last_claim < claim_until:
+                seconds_eligible = claim_until - last_claim
+                reward = (amount * LOCK_REWARD_RATE_PER_DAY / 86400) * seconds_eligible
+                reward = round(reward, 6)
+                lockup_times = {"start": lock_start, "end": claim_until, "days": duration, "last_claim": last_claim}
+                lockup_amount = {"amount": reward, "lock": amount, "claim": reward}
+                staking = TXTypes.StakingTypes(lockup_times, lockup_amount)
+                if reward > 0:
+                    total_reward += reward
+                    reward_txs.append(TXConfig.Transaction(
+                        sender="lockup_rewards",
+                        recipient=username,
+                        amount=reward,
+                        note=staking.tx_build("claim"),
+                        timestamp=now
+                    ).to_dict())
 
-        # Calculate eligible reward
-        if last_claim < claim_until:
-            seconds_eligible = claim_until - last_claim
-            reward = (amount * LOCK_REWARD_RATE_PER_DAY / 86400) * seconds_eligible
-            reward = round(reward, 6)
-            lockup_times = {"start": lock_start, "end": lock["end"], "days": duration, "last_claim": last_claim}
-            lockup_amount = {"amount": reward,"lock": amount, "claim": reward}
-            staking = TXTypes.StakingTypes(lockup_times, lockup_amount)
-            lock_metadata = TXTypes(
-                tx_class="staking",
-                tx_type="claim",
-                tx_data=staking.tx_build("lockup"),
-                tx_value="dict"
-            )
-            if reward > 0:
-                total_reward += reward
-                reward_txs.append(TXConfig.Transaction(
-                    sender="lockup_rewards",
-                    recipient=username,
-                    amount=reward,
-                    note=staking.tx_build("claim"),
-                    timestamp=now
-                ).to_dict())
+        if total_reward == 0 and matured_total == 0:
+            return {"status": "ok", "message": "No new rewards or matured lockups available."}
 
-    if total_reward == 0 and matured_total == 0:
-        print("No new rewards or matured lockups available.")
-        return
+        node_fee = round(total_reward * 0.03, 6)
+        net_reward = round(total_reward - node_fee, 6)
 
-    node_fee = round(total_reward * 0.03, 6)
-    net_reward = round(total_reward - node_fee, 6)
+        if total_reward > 0:
+            tx_fee = TXTypes.GasTypes(node_fee, node_id, username, "nodefeecollector")
+            reward_txs.append(TXConfig.Transaction(
+                sender=username,
+                recipient="nodefeecollector",
+                amount=node_fee,
+                note=tx_fee.gas_tx(),
+                timestamp=now
+            ).to_dict())
+            add_block(reward_txs, node_id)
 
-    if total_reward > 0:
-        tx_fee = TXTypes.GasTypes(node_fee, node_id, username, "nodefeecollector")
-        reward_txs.append(TXConfig.Transaction(
-            sender=username,
-            recipient="nodefeecollector",
-            amount=node_fee,
-            note=tx_fee.gas_tx(),
-            timestamp=now
-        ).to_dict())
-        add_block(reward_txs, node_id)
+        result = {
+            "status": "success",
+            "rewards": round(total_reward, 6),
+            "node_fee": node_fee,
+            "net_credited": net_reward,
+            "matured_unlocked": matured_total
+        }
 
-    if matured_total > 0:
-        user["balance"] += round(matured_total, 6)
-        print(f"{matured_total:.6f} Orbit unlocked from matured lockups.")
+        if matured_total > 0:
+            user["balance"] += round(matured_total, 6)
 
-    user["locked"] = still_locked
-    save_users(users)
+        user["locked"] = still_locked
+        save_users(users)
 
-    if net_reward > 0:
-        print(f"Claimed {total_reward:.6f} Orbit in lockup rewards.")
-        print(f"Node Fee: {node_fee:.6f} Orbit → Node {node_id}")
-        print(f"Net credited: {net_reward:.6f} Orbit")
-
-        choice = input("Re-lock rewards for compounding? (y/n): ").strip().lower()
-        if choice == 'y':
+        if net_reward > 0 and relock_duration:
             try:
-                duration = int(input("Enter new lockup duration in days (1 - 1825): "))
-                if duration < 1 or duration > MAX_LOCK_DURATION_DAYS:
-                    print("Invalid duration.")
-                    return
-                relock_tx = TXConfig.Transaction(
-                    sender=username,
-                    recipient="lockup_rewards",
-                    amount=net_reward,
-                    note={"duration": duration},
-                    timestamp=time.time()
-                )
-                add_block([relock_tx.to_dict()])
-                print(f"Re-locked {net_reward:.6f} Orbit for {duration} days.")
-            except ValueError:
-                print("Invalid duration.")
-        else:
+                relock_duration = int(relock_duration)
+                if relock_duration < 1 or relock_duration > MAX_LOCK_DURATION_DAYS:
+                    result["relock_status"] = "invalid_duration"
+                else:
+                    relock_tx = TXConfig.Transaction(
+                        sender=username,
+                        recipient="lockup_rewards",
+                        amount=net_reward,
+                        note={"duration": relock_duration},
+                        timestamp=time.time()
+                    )
+                    add_block([relock_tx.to_dict()])
+                    result["relock_status"] = f"Re-locked {net_reward:.6f} Orbit for {relock_duration} days"
+            except Exception as e:
+                result["relock_status"] = f"Re-lock failed: {str(e)}"
+        elif net_reward > 0:
             users = load_users()
             users[username]["balance"] += net_reward
+            users[username]["locked"] = still_locked
             save_users(users)
-            print(f"{net_reward:.6f} Orbit added to your balance.")
+            result["relock_status"] = "Reward credited to balance"
+
+        return result
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
