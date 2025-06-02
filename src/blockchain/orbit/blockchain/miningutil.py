@@ -1,7 +1,6 @@
-import math
-import time
+import time, math
 from core.tx_types import TXTypes
-from core.ioutil import load_users, save_users
+from core.ioutil import load_users, save_users, fetch_chain
 from core.walletutil import load_balance
 from blockchain.blockutil import add_block
 from config.configutil import MiningConfig, TXConfig, get_node_for_user
@@ -11,59 +10,60 @@ from blockchain.tokenutil import send_orbit
 mining_config = MiningConfig()
 MODE = "mainnet"
 
-MAX_MINING_RATE = 5.0  # max Orbit/sec allowed per user
-MAX_MINING_DURATION = 3600  # 1 hour max per mining session
+def get_chain_summary():
+    chain = fetch_chain()
+    tx_count = sum(len(b.get("transactions", [])) for b in chain)
+    account_set = set()
+    total_orbit = 100000000
+    circulating = (0 - total_orbit)
+    for b in chain:
+        for tx in b.get("transactions", []):
+            account_set.add(tx["sender"])
+            account_set.add(tx["recipient"])
+            circulating += tx["amount"]
+    return {
+        "blocks": len(chain),
+        "transactions": tx_count,
+        "accounts": len(account_set),
+        "circulating": circulating,
+        "total_orbit": total_orbit
+    }
 
-def get_base_rate(start_time):
-    current_time = time.time()
-    t = current_time - start_time
-    return mining_config.base * math.exp(-mining_config.decay * t)
 
-def get_security_circle_bonus(user_data):
-    circle = user_data.get("security_circle", [])
-    if not isinstance(circle, list): return 0
-    return min(0.25, 0.05 * min(len(circle), 5))
+def get_node_score(node_id):
+    nodes = load_nodes()
+    for node in nodes:
+        node = nodes.get(node_id, {})
+        return node.get("trust_score", 1.0)
 
-def get_lockup_reward(user_data):
-    locked = user_data.get("locked", [])
-    Lb = user_data.get("balance", 1)
-    current_time = time.time()
+def calculate_mining_rate(U, S, B, Score,
+                          R_base=0.082,
+                          U_target=10000,
+                          S_max=100000,
+                          B_halflife=100000):
+    user_factor = (U_target / max(U, U_target)) ** 0.5
+    supply_factor = max(0, 1 - (S / S_max))
+    time_decay = 0.5 ** (B / B_halflife)
+    node_boost = 1 + min(Score / 100, 0.10)
+    rate = (R_base * user_factor * supply_factor * time_decay * node_boost)
+    rate_dict = {
+        "base": R_base,
+        "user": user_factor,
+        "supply": supply_factor,
+        "time": time_decay,
+        "node": node_boost
+    }
 
-    if not isinstance(locked, list) or Lb <= 0:
-        return 0
+    return rate, rate_dict
 
-    active_lockups = [
-        lock for lock in locked
-        if isinstance(lock, dict)
-        and "locked" in lock and "days" in lock and "start" in lock
-        and current_time < lock["start"] + lock["days"] * 86400
-    ]
-
-    n = len(active_lockups)
-    if n == 0:
-        return 0
-
-    total = 0
-    for lock in active_lockups:
-        Lc = lock["locked"]
-        Lt = lock["days"]
-        if Lc > 0 and Lt > 0:
-            total += (Lc / Lb) * Lt * math.log(n + 1)
-
-    return min(total, 0.5)  # cap lockup bonus
-
-def get_referral_bonus(user_data):
-    refs = user_data.get("referrals", [])
-    if not isinstance(refs, list): return 0
-    return min(0.1, 0.01 * len(refs))
-
-def calculate_total_rate(user_data, start_time):
-    B = get_base_rate(start_time)
-    S = get_security_circle_bonus(user_data)
-    L = get_lockup_reward(user_data)
-    R = get_referral_bonus(user_data)
-    I = B * (1 + S + L + R)
-    return min(I, MAX_MINING_RATE)
+def get_dynamic_mining_rate():
+    data = get_chain_summary()
+    U = data["accounts"]
+    S = data["circulating"]
+    B = data["blocks"]
+    Score = 1.0 #get_node_score(node_id)
+    rate, rate_dict = calculate_mining_rate(U, S, B, Score)
+    return rate, rate_dict
 
 def format_duration(seconds):
     seconds = int(seconds)
@@ -96,13 +96,13 @@ def start_mining(address):
         user_data["mining_start_time"] = now
         start_time = now
     else:
-        if now - start_time < MAX_MINING_DURATION:
-            return False, f"Mining available again in {format_duration(MAX_MINING_DURATION - (now - start_time))}"
+        if now - start_time < 3600:
+            return False, f"Mining available again in {format_duration(3600 - (now - start_time))}"
 
     user_data["mining_start_time"] = now
 
-    rate = calculate_total_rate(user_data, start_time)
-    mined = round(rate * MAX_MINING_DURATION, 6)
+    rate, rate_dict = get_dynamic_mining_rate()
+    mined = round(rate * 3600, 6)
 
     # Calculate dynamic node fee (e.g., 3% of mined)
     node_fee_rate = 0.03
@@ -114,10 +114,10 @@ def start_mining(address):
         save_users(users)
         tx_metadata = TXTypes.MiningTypes(
             mined,
-            get_base_rate(start_time),
-            get_security_circle_bonus(user_data),
-            get_lockup_reward(user_data),
-            get_referral_bonus(user_data),
+            rate_dict["base"],
+            rate_dict["user"],
+            rate_dict["supply"],
+            rate_dict["time"],
             time.time()
         )
         rate_data = tx_metadata.rate_dict()
