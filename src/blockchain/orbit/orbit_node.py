@@ -5,6 +5,7 @@ import json
 import os
 import random
 import argparse
+import shutil
 from flask import Flask, request, jsonify
 from config.configutil import TXConfig, NodeConfig, OrbitDB
 from core.ioutil import load_nodes, save_nodes, fetch_chain, save_chain
@@ -29,9 +30,10 @@ class OrbitNode:
         self.heartbeat_interval = 30
         self.heartbeat_thread = None
         self.last_validated_block = self.get_latest_validated_block_index()
+        self.block_received_event = threading.Event()
+        self.stats_ui_thread = None
 
     def get_available_port(self, start=5000, end=5999):
-        """Randomly pick a port that isn’t already taken."""
         while True:
             port = random.randint(start, end)
             if not self.is_port_in_use(port):
@@ -45,7 +47,6 @@ class OrbitNode:
     def register_node(self):
         raw_nodes = load_nodes()
         self.nodes = {n.get("id"): n for n in raw_nodes if isinstance(n, dict) and "id" in n}
-
         self.nodes[self.node_id] = {
             "id": self.node_id,
             "address": self.address,
@@ -56,10 +57,8 @@ class OrbitNode:
             "last_seen": time.time(),
             "users": self.users
         }
-
         save_nodes(self.nodes, exclude_id=self.node_id)
         return self.nodes[self.node_id]
-
 
     def fetch_latest_chain(self):
         try:
@@ -71,7 +70,6 @@ class OrbitNode:
     def update_chain(self):
         new_chain = self.fetch_latest_chain()
         if new_chain and len(new_chain) > len(self.chain):
-            print(f"New chain received. Updating local ledger ({len(new_chain)} blocks).")
             self.chain = new_chain
             save_chain(self.chain, owner_id=self.node_id, chain_file=NODE_LEDGER)
 
@@ -79,16 +77,11 @@ class OrbitNode:
         if validate_block(block, self.chain):
             self.chain.append(block)
             save_chain(self.chain, owner_id=self.node_id, chain_file=NODE_LEDGER)
-            print(f"Accepted new block: {block['index']}")
-
-            # Trust score increase
             self.nodes[self.node_id]["trust"] = min(1.0, self.nodes[self.node_id]["trust"] + 0.01)
             save_nodes(self.nodes, exclude_id=self.node_id)
+            self.block_received_event.set()
             return True
         else:
-            print("Invalid block received.")
-
-            # Trust score penalty
             self.nodes[self.node_id]["trust"] = max(0.0, self.nodes[self.node_id]["trust"] - 0.02)
             save_nodes(self.nodes, exclude_id=self.node_id)
             return False
@@ -99,6 +92,8 @@ class OrbitNode:
                 return block["index"]
         return -1
 
+    def get_validated_block_count(self):
+        return sum(1 for block in self.chain if block.get("validator") == self.node_id)
 
     def broadcast_block_to_peers(self, block):
         for node_id, node_data in self.nodes.items():
@@ -119,6 +114,7 @@ class OrbitNode:
         def receive_block():
             block = request.get_json()
             if self.validate_incoming_block(block):
+                self.update_chain()
                 return jsonify({"status": "accepted"}), 200
             return jsonify({"status": "rejected"}), 400
 
@@ -127,15 +123,12 @@ class OrbitNode:
             kwargs={"port": self.port, "debug": False, "use_reloader": False}
         ).start()
 
-
     def heartbeat_loop(self, new_node, new_node_id):
         while self.running:
             try:
                 new_node["last_seen"] = time.time()
-
                 latest_block_index = self.get_latest_validated_block_index()
                 validated_new_block = latest_block_index > self.last_validated_block
-
                 current_uptime = new_node.get("uptime", 0.0)
 
                 if validated_new_block:
@@ -154,16 +147,16 @@ class OrbitNode:
                 )
 
                 if response.status_code == 200:
-                    print(f"[HEARTBEAT] Node {new_node_id} heartbeat sent. Uptime: {new_node['uptime']}")
                     self.nodes[new_node_id] = new_node
                     save_nodes(self.nodes, exclude_id=self.node_id)
-                else:
-                    print(f"[HEARTBEAT] Failed (status {response.status_code})")
 
             except Exception as e:
                 print(f"[HEARTBEAT] Exception: {e}")
-            time.sleep(self.heartbeat_interval)
 
+            if self.block_received_event.is_set():
+                self.block_received_event.clear()
+
+            time.sleep(self.heartbeat_interval)
 
     def start_heartbeat_thread(self, new_node, new_node_id):
         self.heartbeat_thread = threading.Thread(
@@ -173,15 +166,44 @@ class OrbitNode:
         )
         self.heartbeat_thread.start()
 
+    def display_stats_loop(self):
+        while self.running:
+            shutil.get_terminal_size()  # helps avoid stale stdout
+            os.system("cls" if os.name == "nt" else "clear")
+            validated_count = self.get_validated_block_count()
+            uptime = self.nodes.get(self.node_id, {}).get("uptime", 0.0)
+            trust = self.nodes.get(self.node_id, {}).get("trust", 0.0)
+            print(f"🔗 Orbit Node Dashboard")
+            print(f"{'='*40}")
+            print(f"Node ID       : {self.node_id}")
+            print(f"Address       : {self.address}")
+            print(f"Port          : {self.port}")
+            print(f"Uptime        : {uptime:.4f}")
+            print(f"Trust Score   : {trust:.4f}")
+            print(f"Blocks Validated : {validated_count}")
+            print(f"Last Seen     : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            print(f"{'='*40}")
+            print("Press Ctrl+C to stop the node.")
+            time.sleep(5)
+
+    def start_stats_ui_thread(self):
+        self.stats_ui_thread = threading.Thread(
+            target=self.display_stats_loop,
+            daemon=True
+        )
+        self.stats_ui_thread.start()
+
     def run(self):
         print(f"Starting Orbit Node for {self.address} ({self.node_id})")
         new_node = self.register_node()
         new_node_id = new_node["id"]
         self.start_receiver_server()
         self.start_heartbeat_thread(new_node, new_node_id)
+        self.start_stats_ui_thread()
 
         while self.running:
-            self.update_chain()
+            if not self.block_received_event.is_set():
+                self.update_chain()
             time.sleep(FETCH_INTERVAL)
 
     def stop(self):
@@ -198,5 +220,5 @@ if __name__ == "__main__":
     try:
         node.run()
     except KeyboardInterrupt:
-        print("Stopping node...")
+        print("\nStopping node...")
         node.stop()
