@@ -112,22 +112,29 @@ def receive_block(block):
         log_node_activity(block.get("validator", "unknown"), "Receive Block", "Rejected: Invalid index.")
         return False
 
+    block_obj = TXConfig.Block.from_dict(block)
+    if validate_block(block_obj, block.get("validator", "unknown")):
+        chain.append(block)
+        save_chain(chain)
+        log_node_activity(block["validator"], "Receive Block", f"Block {block['index']} accepted.")
+        return True
+    else:
+        log_node_activity(block.get("validator", "unknown"), "Receive Block", "Validation failed.")
+        return False
+
 
 def broadcast_block(block, sender_id=None):
     nodes = load_nodes()
-    self_id = config.NODE_CONFIG.get("node_name")
     for node_id, node_data in nodes.items():
-        if node_id == self_id:
-            continue
-
-        node = NodeConfig.from_dict(node_data)
-        if node.address and node.port:
-            try:
-                url = f"http://127.0.0.1:{node.port}/receive_block"
-                send_block(url, block)
-                log_node_activity(node_id, "Broadcast Block", f"Block sent to {url}")
-            except Exception as e:
-                log_node_activity(node_id, "Broadcast Block", f"Failed to send to {node_id}: {e}")
+        if sender_id != node_id:
+            node = NodeConfig.from_dict(node_data)
+            if node.address and node.port:
+                try:
+                    url = f"http://127.0.0.1:{node.port}/receive_block"
+                    send_block(url, block)
+                    log_node_activity(sender_id, "Broadcast Block", f"Block sent to {url}")
+                except Exception as e:
+                    log_node_activity(sender_id, "Broadcast Block", f"Failed to send to {node_id}: {e}")
 
 
 def add_block(transactions, node_id):

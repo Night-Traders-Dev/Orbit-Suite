@@ -131,8 +131,6 @@ class OrbitNode:
         @app.route("/receive_block", methods=["POST"])
         def receive_block():
             block = request.get_json()
-            log_node_activity(self.node_id, "DEBUG", block)
-            time.sleep(15)
             if self.validate_incoming_block(block):
                 self.update_chain()
                 return jsonify({"status": "accepted"}), 200
