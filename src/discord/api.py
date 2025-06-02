@@ -73,7 +73,7 @@ async def mine_orbit_api(address):
 async def lock_orbit_api(address, amount, duration):
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(f"{explorer}/api/lock", json={"user": username, "amount": amount,"duration": duration}) as resp:
+            async with session.post(f"{explorer}/api/lock", json={"address": address, "amount": amount,"duration": duration}) as resp:
                 data = await resp.json()
                 if resp.status == 200:
                     return "success", data

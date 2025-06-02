@@ -150,7 +150,6 @@ def api_lock():
         address = data.get('address')
         amount = data.get('amount')
         duration = data.get('duration')
-        print(f"Debug {usermame}, {amount}, {duration}")
         success, message = lock_tokens(address, amount, duration)
         if success:
             return jsonify({

@@ -88,7 +88,7 @@ def view_lockups(username):
     lockups = get_user_lockups(username)
     print_lockups(lockups)
 
-def lock_tokens(username, duration, amount):
+def lock_tokens(username, amount, duration):
     users = load_users()
     balance, _ = load_balance(username)
 
