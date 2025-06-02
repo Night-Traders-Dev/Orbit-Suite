@@ -191,7 +191,7 @@ def add_block(transactions, node_id):
 
         save_users(users)
         save_chain(chain + [new_block.to_dict()])
-        broadcast_block(new_block.to_dict(), sender_id=node_id)
+#        broadcast_block(new_block.to_dict(), sender_id=node_id)
         log_node_activity(node_id, "Add Block", f"Block {new_block.index} added.")
         return True
     else:

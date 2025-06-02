@@ -71,7 +71,7 @@ class OrbitNode:
         try:
             return fetch_chain()
         except Exception as e:
-            log_node_activity(self.node_id, f"[ERROR] Fetching chain failed: {e}")
+            log_node_activity(self.node_id, "[ERROR]",  f"Fetching chain failed: {e}")
             return []
 
     def update_chain(self):
@@ -82,10 +82,9 @@ class OrbitNode:
 
     def validate_incoming_block(self, block):
         if any(b.get("hash") == block.get("hash") for b in self.chain):
-            log_node_activity(self.node_id,"[INFO] Block already exists in chain.")
+            log_node_activity(self.node_id, "[INFO]",  "Block already exists in chain.")
             return False
         result = simulate_peer_vote(self.node_id, block)
-        print(result)
 
         if validate_block(block, self.node_id):
             self.chain.append(block)
@@ -97,12 +96,12 @@ class OrbitNode:
             self.last_validated_block = block.get("index", self.last_validated_block)
 
             self.block_received_event.set()
-            log_node_activity(self.node_id, f"[SUCCESS] Block validated and added at index {block.get('index')}")
+            log_node_activity(self.node_id, f"[SUCCESS]", f"Block validated and added at index {block.get('index')}")
             return True
         else:
             self.nodes[self.node_id]["trust"] = max(0.0, self.nodes[self.node_id]["trust"] - 0.02)
             save_nodes(self.nodes, exclude_id=self.node_id)
-            log_node_activity(self.node_id, "[FAIL] Block failed validation.")
+            log_node_activity(self.node_id, "[FAIL]", "Block failed validation.")
             return False
 
     def get_latest_validated_block_index(self):
@@ -115,6 +114,7 @@ class OrbitNode:
         return sum(1 for block in self.chain if block.get("validator") == self.node_id)
 
     def broadcast_block_to_peers(self, block):
+        log_node_activity(self.node_id, f"[SYNC]", f"Starting Broadcast")
         for node_id, node_data in self.nodes.items():
             if node_id == self.node_id:
                 continue
@@ -122,8 +122,9 @@ class OrbitNode:
             try:
                 res = requests.post(f"{url}/receive_block", json=block, timeout=3)
                 if res.status_code == 200:
-                    log_node_activity(self.node_id, f"[SYNC] Block sent to {node_id}")
-            except Exception:
+                    log_node_activity(self.node_id, f"[SYNC]", f"Block sent to {node_id}")
+            except Exception as e:
+                log_node_activity(self.node_id, f"[SYNC]", f"Block failed to send to {node_id}")
                 continue
 
     def start_receiver_server(self):
@@ -132,6 +133,7 @@ class OrbitNode:
         @app.route("/receive_block", methods=["POST"])
         def receive_block():
             block = request.get_json()
+            broadcast_block_to_peers(block)
             if self.validate_incoming_block(block):
                 self.update_chain()
                 return jsonify({"status": "accepted"}), 200
@@ -170,7 +172,7 @@ class OrbitNode:
                     save_nodes(self.nodes, exclude_id=self.node_id)
 
             except Exception as e:
-                log_node_activity(self.node_id, f"[HEARTBEAT] Exception: {e}")
+                log_node_activity(self.node_id, f"[HEARTBEAT]",  f"Exception: {e}")
 
             if self.block_received_event.is_set():
                 self.block_received_event.clear()
@@ -211,9 +213,9 @@ class OrbitNode:
                                 "host": peer["host"],
                                 "port": peer["port"],
                             }
-                            log_node_activity(self.node_id, f"[DISCOVERY] Added new peer: {peer['id']}")
+                            log_node_activity(self.node_id, f"[DISCOVERY]", f"Added new peer: {peer['id']}")
             except Exception as e:
-                log_node_activity(self.node_id, f"[DISCOVERY ERROR] {e}")
+                log_node_activity(self.node_id, f"[DISCOVERY ERROR]", f"{e}")
             time.sleep(10)
 
 
@@ -253,7 +255,7 @@ class OrbitNode:
         self.stats_ui_thread.start()
 
     def run(self):
-        log_node_activity(self.node_id, f"[BOOT] Starting Orbit Node for {self.address} ({self.node_id})")
+        log_node_activity(self.node_id, f"[BOOT]", f"Starting Orbit Node for {self.address} ({self.node_id})")
         new_node = self.register_node()
         new_node_id = new_node["id"]
         self.start_receiver_server()
