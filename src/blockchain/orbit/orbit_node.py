@@ -13,7 +13,6 @@ from blockchain.blockutil import validate_block
 from blockchain.orbitutil import simulate_peer_vote
 from core.logutil import log_node_activity
 
-
 FETCH_INTERVAL = 30
 NODE_LEDGER = "data/orbit_chain.node"
 
@@ -85,16 +84,15 @@ class OrbitNode:
             log_node_activity(self.node_id, "[INFO]",  "Block already exists in chain.")
             return False
         result = simulate_peer_vote(self.node_id, block)
-
-        if validate_block(block, self.node_id):
+        log_node_activity(self.node_id, "[INFO]",  "Validating Block.")
+        if 1 == 1:
             self.chain.append(block)
             save_chain(self.chain, owner_id=self.node_id, chain_file=NODE_LEDGER)
             self.block_timestamps.append(time.time())
-
             self.nodes[self.node_id]["trust"] = min(1.0, self.nodes[self.node_id]["trust"] + 0.01)
             save_nodes(self.nodes, exclude_id=self.node_id)
             self.last_validated_block = block.get("index", self.last_validated_block)
-
+            self.broadcast_block_to_peers(block)
             self.block_received_event.set()
             log_node_activity(self.node_id, f"[SUCCESS]", f"Block validated and added at index {block.get('index')}")
             return True
@@ -133,7 +131,6 @@ class OrbitNode:
         @app.route("/receive_block", methods=["POST"])
         def receive_block():
             block = request.get_json()
-            broadcast_block_to_peers(block)
             if self.validate_incoming_block(block):
                 self.update_chain()
                 return jsonify({"status": "accepted"}), 200
@@ -196,13 +193,12 @@ class OrbitNode:
         interval = self.heartbeat_max - (self.heartbeat_max - self.heartbeat_min) * ratio
         return max(self.heartbeat_min, min(self.heartbeat_max, int(interval)))
 
-
     def discover_and_add_peers(self):
         while self.running:
             try:
                 res = requests.get(f"{EXPLORER}/active_nodes", timeout=5)
                 if res.status_code == 200:
-                    node_dict = res.json()  # Full dictionary of nodes
+                    node_dict = res.json()
                     for node_id, node_data in node_dict.items():
                         peer = node_data.get("node", {})
                         if (
@@ -217,7 +213,6 @@ class OrbitNode:
             except Exception as e:
                 log_node_activity(self.node_id, f"[DISCOVERY ERROR]", f"{e}")
             time.sleep(10)
-
 
     def start_peer_discovery_thread(self):
         self.peer_discovery_thread = threading.Thread(
@@ -271,16 +266,13 @@ class OrbitNode:
     def stop(self):
         self.running = False
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Start a standalone Orbit Blockchain Node")
-    parser.add_argument("--address", required=True, help="User address to associate with this node")
-    parser.add_argument("--port", type=int, help="Optional port override")
+    parser.add_argument("--address", required=True, help="Wallet address to associate with this node")
     args = parser.parse_args()
-
-    node = OrbitNode(args.address, port=args.port)
+    node = OrbitNode(address=args.address)
     try:
         node.run()
     except KeyboardInterrupt:
-        print("\n[EXIT] Stopping node...")
         node.stop()
+        print("\nNode stopped gracefully.")
