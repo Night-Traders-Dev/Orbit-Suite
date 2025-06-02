@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, g
-from flask_lt import run_with_lt
+#from flask_lt import run_with_lt
 import json, os, datetime, math, time
 
 from config.configutil import OrbitDB
@@ -43,7 +43,7 @@ def format_timestamp(value):
     except:
         return str(value)
 
-
+# ===================== General UI Routes =====================
 
 @app.route("/")
 def get_home():
@@ -73,156 +73,15 @@ def get_orbit_stats():
 
     return render_template(html, stats=stats)
 
-
-
-@app.route("/api/orbit_volume_14d")
-def orbit_volumed():
-    result = orbit_volume_14d(g.chain, datetime.datetime.utcnow())
-    return jsonify(result)
-
-
-@app.route("/api/tx_volume_14d")
-def tx_volume():
-    data = tx_volume_14d(g.chain, int(time.time()))
-    return jsonify(data)
-
-
-@app.route("/api/block_volume_14d")
-def block_volume():
-    result = block_volume_14d(g.chain, datetime.datetime.utcnow())
-    return jsonify(result)
-
-@app.route('/api/get_orbit_address', methods=['POST'])
-def api_get_address():
-    data = request.get_json()
-    uid = data.get('uid')
-    address = generate_orbit_address(uid)
-    return jsonify({"status": "success", "address": address}), 200
-
-@app.route('/api/create_2fa', methods=['POST'])
-def api_create_2fa():
-    data = request.get_json()
-    address = data.get('address')
-    secret = create_2fa_secret(address)
-    registered = register(address, secret)
-    if registered:
-        return jsonify({"status": "success", "message": secret}), 200
-    else:
-        return jsonify({"status": "fail", "message": "account creation failed"}), 400
-
-@app.route('/api/verify_2fa', methods=['POST'])
-def api_verift_2fa():
-    data = request.get_json()
-    address = data.get('address')
-    totp = data.get('totp')
-    print(f"{address}:{totp}")
-    result = verify_2fa_token(address, int(totp))
-    if result:
-        update_login(address)
-        return jsonify({"status": "success"}), 200
-    else:
-        return jsonify({"status": "fail"}), 400
-
-@app.route('/api/mine', methods=['POST'])
-def api_mine():
-    try:
-        data = request.get_json()
-        address = data.get('address')
-        success, message = start_mining(address)
-        if success:
-            return jsonify({
-                "status": "success",
-                "rate": message["rate"],
-                "mined": message["mined"],
-                "payout": message["payout"]
-            }), 200
-        else:
-            return jsonify({"status": "fail", "message": message}), 400
-
-    except Exception as e:
-        print(f"error: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/lock', methods=['POST'])
-def api_lock():
-    try:
-        data = request.get_json()
-        address = data.get('address')
-        amount = data.get('amount')
-        duration = data.get('duration')
-        success, message = lock_tokens(address, amount, duration)
-        if success:
-            return jsonify({
-                "status": "success",
-                "lockup_times": message["lockup_times"],
-                "lockup_amount": message["lockup_amount"]
-            }), 200
-        else:
-            return jsonify({"status": "fail", "message": message}), 400
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/api/send', methods=['POST'])
-def api_send():
-    try:
-        data = request.get_json()
-
-        # Validate input
-        sender = data.get('sender')
-        recipient = data.get('recipient')
-        amount = data.get('amount')
-
-        if not sender or not recipient or amount is None:
-            return jsonify({"error": "Missing required fields"}), 400
-
-        # Convert and validate amount
-        try:
-            amount = float(amount)
-            if amount <= 0:
-                return jsonify({"error": "Amount must be greater than 0"}), 400
-        except ValueError:
-            return jsonify({"error": "Invalid amount format"}), 400
-
-        # Call core logic
-        success, message = send_orbit(sender, recipient, amount)
-
-        if success:
-            return jsonify({"status": "success", "message": message}), 200
-        else:
-            return jsonify({"status": "fail", "message": message}), 400
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/balance/<address>', methods=['GET'])
-def api_balance(address):
-    try:
-        amount, locked = load_balance(address)
-        return jsonify({
-            "total_balance": amount + locked,
-            "available_balance": amount,
-            "locked_balance": locked
-        })
-    except Exception as e:
-        return jsonify({"error": "Failed to load balance", "details": str(e)}), 500
-
 @app.route("/locked")
 def route_locked():
     html, locks, totals, sort = locked()
     return render_template(html, locks=locks, totals=totals, sort=sort)
 
-
-@app.route("/api/latest-block")
-def api_latest_block():
-    result = latest_block(g.chain)
-    return jsonify(result)
-
-@app.route("/api/latest-transactions")
-def api_latest_transactions():
-    result = latest_txs(g.chain)
-    return jsonify(result)
+@app.route("/top-wallets")
+def get_top_wallets():
+    html, wallet_data = top_wallets(g.chain)
+    return render_template(html, wallets=wallet_data)
 
 @app.route("/tx/<txid>")
 def get_tx(txid):
@@ -252,10 +111,6 @@ def get_tx(txid):
             node_fee=node_fee
         )
 
-@app.route("/top-wallets")
-def get_top_wallets():
-    html, wallet_data = top_wallets(g.chain)
-    return render_template(html, wallets=wallet_data)
 
 @app.route("/block/<int:index>")
 def get_block(index):
@@ -286,10 +141,6 @@ def get_address_detail(address):
 
     return render_template(html, address_data=data)
 
-@app.route("/validators")
-def validators():
-    stats = get_validator_stats()
-    return render_template("validators.html", validator_data=stats)
 
 @app.route("/node/<node_id>")
 def load_node(node_id):
@@ -355,6 +206,168 @@ def load_node(node_id):
         total_orbit=total_orbit,
         avg_block_size=avg_block_size
     )
+
+
+# ===================== Auth + Identity APIs ==================
+
+
+@app.route('/api/get_orbit_address', methods=['POST'])
+def api_get_address():
+    data = request.get_json()
+    uid = data.get('uid')
+    address = generate_orbit_address(uid)
+    return jsonify({"status": "success", "address": address}), 200
+
+@app.route('/api/create_2fa', methods=['POST'])
+def api_create_2fa():
+    data = request.get_json()
+    address = data.get('address')
+    secret = create_2fa_secret(address)
+    registered = register(address, secret)
+    if registered:
+        return jsonify({"status": "success", "message": secret}), 200
+    else:
+        return jsonify({"status": "fail", "message": "account creation failed"}), 400
+
+@app.route('/api/verify_2fa', methods=['POST'])
+def api_verift_2fa():
+    data = request.get_json()
+    address = data.get('address')
+    totp = data.get('totp')
+    print(f"{address}:{totp}")
+    result = verify_2fa_token(address, int(totp))
+    if result:
+        update_login(address)
+        return jsonify({"status": "success"}), 200
+    else:
+        return jsonify({"status": "fail"}), 400
+
+
+# ===================== Mining + Staking APIs =================
+
+@app.route('/api/mine', methods=['POST'])
+def api_mine():
+    try:
+        data = request.get_json()
+        address = data.get('address')
+        success, message = start_mining(address)
+        if success:
+            return jsonify({
+                "status": "success",
+                "rate": message["rate"],
+                "mined": message["mined"],
+                "payout": message["payout"]
+            }), 200
+        else:
+            return jsonify({"status": "fail", "message": message}), 400
+
+    except Exception as e:
+        print(f"error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/lock', methods=['POST'])
+def api_lock():
+    try:
+        data = request.get_json()
+        address = data.get('address')
+        amount = data.get('amount')
+        duration = data.get('duration')
+        success, message = lock_tokens(address, amount, duration)
+        if success:
+            return jsonify({
+                "status": "success",
+                "lockup_times": message["lockup_times"],
+                "lockup_amount": message["lockup_amount"]
+            }), 200
+        else:
+            return jsonify({"status": "fail", "message": message}), 400
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ===================== Token Operations APIs =================
+
+
+@app.route('/api/send', methods=['POST'])
+def api_send():
+    try:
+        data = request.get_json()
+
+        # Validate input
+        sender = data.get('sender')
+        recipient = data.get('recipient')
+        amount = data.get('amount')
+
+        if not sender or not recipient or amount is None:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        # Convert and validate amount
+        try:
+            amount = float(amount)
+            if amount <= 0:
+                return jsonify({"error": "Amount must be greater than 0"}), 400
+        except ValueError:
+            return jsonify({"error": "Invalid amount format"}), 400
+
+        # Call core logic
+        success, message = send_orbit(sender, recipient, amount)
+
+        if success:
+            return jsonify({"status": "success", "message": message}), 200
+        else:
+            return jsonify({"status": "fail", "message": message}), 400
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/balance/<address>', methods=['GET'])
+def api_balance(address):
+    try:
+        amount, locked = load_balance(address)
+        return jsonify({
+            "total_balance": amount + locked,
+            "available_balance": amount,
+            "locked_balance": locked
+        })
+    except Exception as e:
+        return jsonify({"error": "Failed to load balance", "details": str(e)}), 500
+
+# ===================== Blockchain Data APIs ==================
+
+@app.route("/api/latest-block")
+def api_latest_block():
+    result = latest_block(g.chain)
+    return jsonify(result)
+
+@app.route("/api/latest-transactions")
+def api_latest_transactions():
+    result = latest_txs(g.chain)
+    return jsonify(result)
+
+@app.route("/api/orbit_volume_14d")
+def orbit_volumed():
+    result = orbit_volume_14d(g.chain, datetime.datetime.utcnow())
+    return jsonify(result)
+
+
+@app.route("/api/tx_volume_14d")
+def tx_volume():
+    data = tx_volume_14d(g.chain, int(time.time()))
+    return jsonify(data)
+
+
+@app.route("/api/block_volume_14d")
+def block_volume():
+    result = block_volume_14d(g.chain, datetime.datetime.utcnow())
+    return jsonify(result)
+
+
+
+@app.route("/validators")
+def validators():
+    stats = get_validator_stats()
+    return render_template("validators.html", validator_data=stats)
+
 
 @app.route("/api/docs")
 def api_docs():
