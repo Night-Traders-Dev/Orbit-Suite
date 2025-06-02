@@ -93,3 +93,17 @@ async def claim_rewards_api(address):
                     return "fail", data.get("message", "Unknown error")
     except Exception as e:
         return "fail", str(e)
+
+
+
+async def claim_check_api(address):
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{explorer}/api/claim_check", json={"address": address}) as resp:
+                data = await resp.json()
+                if resp.status == 200:
+                    return "success", data
+                else:
+                    return "fail", data.get("message", "Unknown error")
+    except Exception as e:
+        return "fail", str(e)

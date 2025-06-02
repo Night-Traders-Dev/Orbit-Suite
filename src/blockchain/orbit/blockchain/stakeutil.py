@@ -88,6 +88,65 @@ def view_lockups(username):
     lockups = get_user_lockups(username)
     print_lockups(lockups)
 
+def check_claim(username):
+    try:
+        users = load_users()
+        if username not in users:
+            return {"status": "error", "message": "User not found"}
+
+        user = users[username]
+        user_lockups = get_user_lockups(username)
+        now = int(time.time())
+        chain = fetch_chain()
+        node_id = get_node_for_user(username)
+
+        claim_map = {}
+        for block in chain:
+            for tx in block.get("transactions", []):
+                if tx.get("recipient") == username and tx.get("sender") == "lockup_rewards":
+                    note = tx.get("note", {})
+                    if isinstance(note, dict) and "start" in note and "end" in note:
+                        lock_start = str(note["start"])
+                        prev_claim = claim_map.get(lock_start, 0)
+                        claim_map[lock_start] = max(prev_claim, note["end"])
+
+        matured_total = 0.0
+        total_reward = 0.0
+        reward_txs = []
+        still_locked = []
+        claimed = 0
+        lock_count = 0
+
+        for lock in user_lockups:
+            lock_count += 1
+            lock_start = lock["start"]
+            duration = lock["days"]
+            amount = lock["amount"]
+            lock_end = lock_start + duration * 86400
+            last_claim = int(claim_map.get(str(lock_start), lock_start))
+            claim_until = min(now, lock_end)
+
+            if now >= lock_end and last_claim >= lock_end:
+                matured_total += amount
+            else:
+                still_locked.append(lock)
+
+            if now < last_claim + 86400:
+                claimed += 1
+                if claimed == lock_count:
+                    remaining = int((last_claim + 86400) - now)
+                    return {
+                        "status": "cooldown",
+                        "message": f"{remaining // 3600}h {(remaining % 3600) // 60}m"
+                    }
+                else:
+                    return {
+                        "status": "cooldown",
+                        "message": f"Now"
+                    }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 def lock_tokens(username, amount, duration):
     users = load_users()
     balance, _ = load_balance(username)

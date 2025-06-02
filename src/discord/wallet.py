@@ -1,4 +1,4 @@
-from api import get_user_balance, get_user_address, lock_orbit_api, claim_rewards_api
+from api import get_user_balance, get_user_address, lock_orbit_api, claim_rewards_api, claim_check_api
 from discord.ext import commands
 import discord
 
@@ -35,9 +35,7 @@ async def wallet_info(uid):
     embed.add_field(name="Locked", value=f"{locked} ORBIT", inline=True)
     embed.add_field(name="Total", value=f"{total} ORBIT", inline=True)
     embed.add_field(name="View on Explorer", value=f"[Explorer](http://127.0.0.1:7000/address/{address})", inline=False)
-    embed.add_field(name="Validator Stats", value="{}", inline=False)
-    embed.add_field(name="Security Circle", value="{}", inline=False)
-
-    tx_summary = "\n".join([f"{tx['timestamp']}: {tx['from']} ➔ {tx['to']} ({tx['amount']} ORBIT) - {tx['note']}" for tx in balance['transactions']])
-    embed.add_field(name="Last Transactions", value=tx_summary, inline=False)
+    embed.add_field(name="Next Mine", value=f"", inline=True)
+    status, claim_cooldown = await claim_check_api(address)
+    embed.add_field(name="Next Claim", value=f"{claim_cooldown['message']}", inline=True)
     return embed

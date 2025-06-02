@@ -5,7 +5,7 @@ import json, os, datetime, math, time
 from config.configutil import OrbitDB
 from core.ioutil import load_chain, load_nodes
 from core.walletutil import load_balance
-from blockchain.stakeutil import get_user_lockups, lock_tokens, claim_lockup_rewards
+from blockchain.stakeutil import get_user_lockups, lock_tokens, claim_lockup_rewards, check_claim
 from blockchain.tokenutil import send_orbit
 from blockchain.miningutil import start_mining
 from core.hashutil import create_2fa_secret, verify_2fa_token, generate_orbit_address
@@ -294,6 +294,13 @@ def api_claim():
     address = data.get("address")
     relock_duration = data.get("relock_duration")  # Optional
     result = claim_lockup_rewards(address, relock_duration)
+    return jsonify(result)
+
+@app.route("/api/claim_check", methods=["POST"])
+def api_claim_check():
+    data = request.get_json()
+    address = data.get("address")
+    result = check_claim(address)
     return jsonify(result)
 
 # ===================== Token Operations APIs =================
