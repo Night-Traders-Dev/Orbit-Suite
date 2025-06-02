@@ -296,14 +296,14 @@ def load_node(node_id):
     node_data = load_nodes()
     chain = g.chain  # Assumes g.chain has already been set
 
-    # Try to retrieve blocks validated by this node
     node_blocks = [block for block in chain if block.get("validator") == node_id]
 
-    # Handle missing node case
     if node_id not in node_data:
         if not node_blocks:
             return render_template("node_not_found.html", node_id=node_id), 404
 
+
+        print(f"Debug: {node_blocks}")
         # Add placeholder node data if only found via chain
         node_data[node_id] = {
             "id": node_id,
@@ -322,11 +322,16 @@ def load_node(node_id):
     uptime = round(node.get("uptime", 0.0), 3)
     total_blocks = len(node_blocks)
 
-    # Total ORBIT processed
     total_orbit = 0.0
+    total_gas = 0.0
     for block in node_blocks:
         for tx in block.get("transactions", []):
-            if tx.get("type") == "transfer":
+            note = tx.get("note", {})
+            if note and "type" in note:
+                gas_info = note["type"].get("gas")
+                if gas_info:
+                    total_gas += gas_info.get("fee", 0.0)
+            else:
                 total_orbit += tx.get("amount", 0.0)
 
     # Average block size (tx count per block)
