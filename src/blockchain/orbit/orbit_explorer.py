@@ -184,9 +184,11 @@ def load_node(node_id):
                 lock_info = note["type"].get("lockup")
                 if lock_info:
                     total_orbit += lock_info.get("amount", 0.0)
-                mining_info = note["type"].get("mining")
-                if mining_info:
-                    total_orbit += mining_info.get("rate", 0.0)
+
+                if tx.get("sender") == "mining":
+                    mining_info = tx.get("amount")
+                    if mining_info:
+                        total_orbit += mining_info
             else:
                 total_orbit += tx.get("amount", 0.0)
 
