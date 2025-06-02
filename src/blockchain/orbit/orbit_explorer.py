@@ -26,7 +26,7 @@ from explorer.util.util import search_chain, last_transactions, get_validator_st
 
 orbit_db = OrbitDB()
 app = Flask(__name__)
-run_with_lt(app, subdomain="orbit-blockchain")
+#run_with_lt(app, subdomain="orbit-blockchain")
 
 CHAIN_PATH = orbit_db.blockchaindb
 PORT = 7000
@@ -414,4 +414,4 @@ def receive_block():
 
 if __name__ == "__main__":
     host = '0.0.0.0'
-    app.run(host=host, port=PORT, debug=False,)
+    app.run(host=host, port=PORT, debug=False)

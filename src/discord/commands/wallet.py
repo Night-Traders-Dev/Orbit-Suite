@@ -31,7 +31,7 @@ def setup(bot):
         embed.add_field(name="Wallet", value=f"{wallet} ORBIT", inline=True)
         embed.add_field(name="Locked", value=f"{locked} ORBIT", inline=True)
         embed.add_field(name="Total", value=f"{total} ORBIT", inline=True)
-#        embed.add_field(name="View on Explorer", value=f"[Explorer](https://3599-173-187-247-149.ngrok-free.app/address/{username})", inline=False)
+        embed.add_field(name="View on Explorer", value=f"[Explorer](http://127.0.0.1:7000/address/{address})", inline=False)
         embed.add_field(name="Validator Stats", value="{}", inline=False)
         embed.add_field(name="Security Circle", value="{}", inline=False)
 
