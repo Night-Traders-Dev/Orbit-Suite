@@ -323,14 +323,19 @@ def load_node(node_id):
     total_blocks = len(node_blocks)
 
     total_orbit = 0.0
-    total_gas = 0.0
     for block in node_blocks:
         for tx in block.get("transactions", []):
             note = tx.get("note", {})
             if note and "type" in note:
                 gas_info = note["type"].get("gas")
                 if gas_info:
-                    total_gas += gas_info.get("fee", 0.0)
+                    total_orbit += gas_info.get("fee", 0.0)
+                lock_info = note["type"].get("lockup")
+                if lock_info:
+                    total_orbit += lock_info.get("amount", 0.0)
+                mining_info = note["type"].get("mining")
+                if mining_info:
+                    total_orbit += mining_info.get("rate", 0.0)
             else:
                 total_orbit += tx.get("amount", 0.0)
 
