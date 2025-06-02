@@ -10,6 +10,7 @@ from flask import Flask, request, jsonify
 from config.configutil import TXConfig, NodeConfig, OrbitDB
 from core.ioutil import load_nodes, save_nodes, fetch_chain, save_chain
 from blockchain.blockutil import validate_block
+from blockchain.orbitutil import simulate_peer_vote
 
 FETCH_INTERVAL = 30
 NODE_LEDGER = "data/orbit_chain.node"
@@ -79,8 +80,10 @@ class OrbitNode:
         if any(b.get("hash") == block.get("hash") for b in self.chain):
             print("[INFO] Block already exists in chain.")
             return False
+        result = simulate_peer_vote(self.node_id, block)
+        print(result)
 
-        if validate_block(block, self.chain):
+        if validate_block(block, self.node_id):
             self.chain.append(block)
             save_chain(self.chain, owner_id=self.node_id, chain_file=NODE_LEDGER)
             self.block_timestamps.append(time.time())
