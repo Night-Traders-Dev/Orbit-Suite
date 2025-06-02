@@ -27,7 +27,9 @@ class OrbitNode:
         self.chain = self.fetch_latest_chain()
         self.nodes = load_nodes()
         self.users = [address]
-        self.heartbeat_interval = 30
+        self.heartbeat_min = 10
+        self.heartbeat_max = 30
+        self.block_timestamps = []
         self.heartbeat_thread = None
         self.last_validated_block = self.get_latest_validated_block_index()
         self.block_received_event = threading.Event()
@@ -64,7 +66,7 @@ class OrbitNode:
         try:
             return fetch_chain()
         except Exception as e:
-            print(f"Error fetching chain: {e}")
+            print(f"[ERROR] Fetching chain failed: {e}")
             return []
 
     def update_chain(self):
@@ -74,16 +76,26 @@ class OrbitNode:
             save_chain(self.chain, owner_id=self.node_id, chain_file=NODE_LEDGER)
 
     def validate_incoming_block(self, block):
+        if any(b.get("hash") == block.get("hash") for b in self.chain):
+            print("[INFO] Block already exists in chain.")
+            return False
+
         if validate_block(block, self.chain):
             self.chain.append(block)
             save_chain(self.chain, owner_id=self.node_id, chain_file=NODE_LEDGER)
+            self.block_timestamps.append(time.time())
+
             self.nodes[self.node_id]["trust"] = min(1.0, self.nodes[self.node_id]["trust"] + 0.01)
             save_nodes(self.nodes, exclude_id=self.node_id)
+            self.last_validated_block = block.get("index", self.last_validated_block)
+
             self.block_received_event.set()
+            print(f"[SUCCESS] Block validated and added at index {block.get('index')}")
             return True
         else:
             self.nodes[self.node_id]["trust"] = max(0.0, self.nodes[self.node_id]["trust"] - 0.02)
             save_nodes(self.nodes, exclude_id=self.node_id)
+            print("[FAIL] Block failed validation.")
             return False
 
     def get_latest_validated_block_index(self):
@@ -103,9 +115,9 @@ class OrbitNode:
             try:
                 res = requests.post(f"{url}/receive_block", json=block, timeout=3)
                 if res.status_code == 200:
-                    print(f"Block sent to {node_id}")
-            except Exception as e:
-                print(f"Failed to send block to {node_id}: {e}")
+                    print(f"[SYNC] Block sent to {node_id}")
+            except Exception:
+                continue
 
     def start_receiver_server(self):
         app = Flask(__name__)
@@ -156,7 +168,7 @@ class OrbitNode:
             if self.block_received_event.is_set():
                 self.block_received_event.clear()
 
-            time.sleep(self.heartbeat_interval)
+            time.sleep(self.get_dynamic_heartbeat_interval())
 
     def start_heartbeat_thread(self, new_node, new_node_id):
         self.heartbeat_thread = threading.Thread(
@@ -166,9 +178,18 @@ class OrbitNode:
         )
         self.heartbeat_thread.start()
 
+    def get_dynamic_heartbeat_interval(self):
+        cutoff = time.time() - 300
+        self.block_timestamps = [t for t in self.block_timestamps if t >= cutoff]
+        block_count = len(self.block_timestamps)
+        max_blocks = 30
+        ratio = min(block_count / max_blocks, 1.0)
+        interval = self.heartbeat_max - (self.heartbeat_max - self.heartbeat_min) * ratio
+        return max(self.heartbeat_min, min(self.heartbeat_max, int(interval)))
+
     def display_stats_loop(self):
         while self.running:
-            shutil.get_terminal_size()  # helps avoid stale stdout
+            shutil.get_terminal_size()
             os.system("cls" if os.name == "nt" else "clear")
             validated_count = self.get_validated_block_count()
             uptime = self.nodes.get(self.node_id, {}).get("uptime", 0.0)
@@ -194,7 +215,7 @@ class OrbitNode:
         self.stats_ui_thread.start()
 
     def run(self):
-        print(f"Starting Orbit Node for {self.address} ({self.node_id})")
+        print(f"[BOOT] Starting Orbit Node for {self.address} ({self.node_id})")
         new_node = self.register_node()
         new_node_id = new_node["id"]
         self.start_receiver_server()
@@ -220,5 +241,5 @@ if __name__ == "__main__":
     try:
         node.run()
     except KeyboardInterrupt:
-        print("\nStopping node...")
+        print("\n[EXIT] Stopping node...")
         node.stop()
