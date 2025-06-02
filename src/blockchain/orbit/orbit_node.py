@@ -26,8 +26,9 @@ class OrbitNode:
         self.chain = self.fetch_latest_chain()
         self.nodes = load_nodes()
         self.users = [address]
-        self.heartbeat_interval = 20  # seconds
+        self.heartbeat_interval = 30
         self.heartbeat_thread = None
+        self.last_validated_block = self.get_latest_validated_block_index()
 
     def get_available_port(self, start=5000, end=5999):
         """Randomly pick a port that isn’t already taken."""
@@ -50,8 +51,8 @@ class OrbitNode:
             "address": self.address,
             "host": self.ip,
             "port": self.port,
-            "uptime": 0,
-            "trust": 0.5,
+            "uptime": 1.0,
+            "trust": 1.0,
             "last_seen": time.time(),
             "users": self.users
         }
@@ -92,6 +93,12 @@ class OrbitNode:
             save_nodes(self.nodes, exclude_id=self.node_id)
             return False
 
+    def get_latest_validated_block_index(self):
+        for block in reversed(self.chain):
+            if block.get("validator") == self.node_id:
+                return block["index"]
+        return -1
+
 
     def broadcast_block_to_peers(self, block):
         for node_id, node_data in self.nodes.items():
@@ -125,7 +132,19 @@ class OrbitNode:
         while self.running:
             try:
                 new_node["last_seen"] = time.time()
-                new_node["uptime"] += self.heartbeat_interval / 60.0  # uptime in minutes
+
+                latest_block_index = self.get_latest_validated_block_index()
+                validated_new_block = latest_block_index > self.last_validated_block
+
+                current_uptime = new_node.get("uptime", 0.0)
+
+                if validated_new_block:
+                    new_uptime = min(1.0, current_uptime * 0.95 + 0.05)
+                    self.last_validated_block = latest_block_index
+                else:
+                    new_uptime = max(0.0, current_uptime * 0.995)
+
+                new_node["uptime"] = round(new_uptime, 4)
 
                 response = requests.post(
                     f"{EXPLORER}/node_ping",
@@ -133,8 +152,9 @@ class OrbitNode:
                     headers={'Content-Type': 'application/json'},
                     timeout=5
                 )
+
                 if response.status_code == 200:
-                    print(f"[HEARTBEAT] Node {new_node_id} heartbeat sent.")
+                    print(f"[HEARTBEAT] Node {new_node_id} heartbeat sent. Uptime: {new_node['uptime']}")
                     self.nodes[new_node_id] = new_node
                     save_nodes(self.nodes, exclude_id=self.node_id)
                 else:

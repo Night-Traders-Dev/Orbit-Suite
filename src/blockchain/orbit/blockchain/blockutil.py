@@ -45,7 +45,6 @@ def get_last_block():
         print(f"Error fetching last block: {e}")
     return None
 
-
 def propose_block(node_id, block_data, timeout=5):
     if not validate_block(block_data, node_id):
         log_node_activity(node_id, "Propose Block", "Block could not be validated.")
@@ -62,7 +61,6 @@ def propose_block(node_id, block_data, timeout=5):
     votes = {node_id}
     signatures = {node_id: sign_vote(node_id, block_data)}
     start_time = time.time()
-    ADJUST_RATE = 0.05
 
     for peer_id in quorum_slice:
         if time.time() - start_time > timeout:
@@ -74,18 +72,20 @@ def propose_block(node_id, block_data, timeout=5):
             continue
 
         peer = NodeConfig.from_dict(peer_raw)
-        online = random.random() < peer.uptime_score
+        ping_success = random.random() < peer.uptime_score
 
-        if online and simulate_quorum_vote(peer_id, block_data):
+        if ping_success and simulate_quorum_vote(peer_id, block_data):
             votes.add(peer_id)
             signatures[peer_id] = sign_vote(peer_id, block_data)
-            peer.trust_score = min(peer.trust_score + ADJUST_RATE, 1.0)
-            peer.uptime_score = min(peer.uptime_score + ADJUST_RATE, 1.0)
+
+            # Update uptime with EMA and trust increment
+            peer.uptime_score = 0.9 * peer.uptime_score + 0.1 * 1.0
+            peer.trust_score = min(peer.trust_score + 0.02, 1.0)
+
         else:
-            if not online:
-                peer.uptime_score = max(peer.uptime_score - ADJUST_RATE, 0.0)
-            else:
-                peer.trust_score = max(peer.trust_score - ADJUST_RATE, 0.0)
+            # Apply decay for non-participation or failed ping
+            peer.uptime_score = 0.98 * peer.uptime_score
+            peer.trust_score = max(peer.trust_score - 0.01, 0.0)
 
         nodes[peer_id] = peer.to_dict()
 
