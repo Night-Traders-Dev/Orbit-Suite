@@ -53,6 +53,7 @@ class OrbitNode:
             "uptime": 0,
             "trust": 0.5,
             "last_seen": time.time(),
+            "users": self.users
         }
 
         save_nodes(self.nodes, exclude_id=self.node_id)

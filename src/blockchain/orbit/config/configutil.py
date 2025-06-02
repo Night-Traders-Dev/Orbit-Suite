@@ -27,23 +27,25 @@ class MiningConfig:
 
 
 class NodeConfig:
-    def __init__(self, node_id, address, port, quorum_slice=None, trust_score=0.5, uptime_score=0.5, users=None):
-        self.node_id = node_id
+    def __init__(self, id, address, host, port, quorum_slice=None, trust=0.5, uptime=0.5, users=None):
+        self.id = id
         self.address = address
+        self.host = host
         self.port = port
         self.quorum_slice = quorum_slice or []
-        self.trust_score = trust_score
-        self.uptime_score = uptime_score
+        self.trust = trust
+        self.uptime = uptime
         self.users = users or []
 
     def to_dict(self):
         return {
-            "node_id": self.node_id,
+            "id": self.id,
             "address": self.address,
+            "host": self.host,
             "port": self.port,
             "quorum_slice": self.quorum_slice,
-            "trust_score": self.trust_score,
-            "uptime_score": self.uptime_score,
+            "trust": self.trust,
+            "uptime": self.uptime,
             "last_seen": time.time(),
             "users": self.users
         }
@@ -51,13 +53,13 @@ class NodeConfig:
     @staticmethod
     def from_dict(data):
         return NodeConfig(
-            node_id=data.get("node_id"),
+            id=data.get("id"),
             address=data.get("address"),
+            host=data.get("host"),
             port=data.get("port"),
             quorum_slice=data.get("quorum_slice", []),
-            trust_score=data.get("trust_score", 0.5),
-            uptime_score=data.get("uptime_score", 0.5),
-            last_seen=data.get("last_seen", time.time()),
+            trust=data.get("trust", 0.5),
+            uptime=data.get("uptime", 0.5),
             users=data.get("users", [])
         )
 
@@ -71,6 +73,7 @@ class NodeConfig:
 
     def has_user(self, address):
         return address in self.users
+
 
 class TXConfig:
     class Transaction:

@@ -43,14 +43,19 @@ def load_nodes():
         response = requests.get(f"{EXPLORER}/active_nodes", timeout=5)
         if response.status_code == 200:
             data = response.json()
-            if isinstance(data, list):
+            if isinstance(data, dict):
+                # Flatten {"NodeID": { "node": {...}, "last_seen": ... }} → { "NodeID": {...} }
                 return {
-                    entry["node"]["id"]: entry
+                    node_id: entry.get("node", {})
+                    for node_id, entry in data.items()
+                    if isinstance(entry, dict) and "node" in entry
+                }
+            elif isinstance(data, list):
+                return {
+                    entry["node"]["id"]: entry["node"]
                     for entry in data
                     if "node" in entry and "id" in entry["node"]
                 }
-            elif isinstance(data, dict):
-                return data
             else:
                 print(f"[load_nodes] Unexpected format: {type(data)}")
                 return {}
@@ -64,18 +69,18 @@ def load_nodes():
         print(f"[load_nodes] Explorer unreachable: {e}")
         return {}
 
+
 def save_nodes(nodes, exclude_id=None):
     if isinstance(nodes, dict):
-        nodes = list(nodes.values())
-    for entry in nodes:
-        node = entry.get("node", {})
+        nodes = list(nodes.values())  # Raw node dicts now, not wrapped in {"node": ...}
+    for node in nodes:
         node_id = node.get("id", "None")
         if exclude_id and node_id == exclude_id:
             continue
         try:
             response = requests.post(
                 f"{EXPLORER}/node_ping",
-                json={"node": node},  # Properly wrap node
+                json={"node": node},  # Send as-is, not nested inside another dict
                 timeout=3
             )
             if response.status_code != 200:
