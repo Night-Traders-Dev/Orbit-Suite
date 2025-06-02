@@ -42,18 +42,22 @@ class OrbitNode:
             return s.connect_ex(('localhost', port)) == 0
 
     def register_node(self):
+        raw_nodes = load_nodes()
+        self.nodes = {n.get("id"): n for n in raw_nodes if isinstance(n, dict) and "id" in n}
+
         self.nodes[self.node_id] = {
             "id": self.node_id,
-            "address": self.ip,
+            "address": self.address,
+            "host": self.ip,
             "port": self.port,
-            "quorum_slice": [],
-            "trust_score": 1.0,
-            "uptime_score": 1.0,
+            "uptime": 0,
+            "trust": 0.5,
             "last_seen": time.time(),
-            "users": self.users
         }
-        save_nodes(self.nodes)
-        return {"node": self.nodes[self.node_id]}
+
+        save_nodes(self.nodes, exclude_id=self.node_id)
+        return self.nodes[self.node_id]
+
 
     def fetch_latest_chain(self):
         try:
@@ -134,7 +138,7 @@ class OrbitNode:
     def run(self):
         print(f"Starting Orbit Node for {self.address} ({self.node_id})")
         new_node = self.register_node()
-        new_node_id = new_node["node"]["id"]
+        new_node_id = new_node["id"]
         self.start_receiver_server()
         self.start_heartbeat_thread(new_node, new_node_id)
 

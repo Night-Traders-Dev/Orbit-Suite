@@ -376,15 +376,14 @@ active_node_registry = {}
 
 @app.route("/node_ping", methods=["POST"])
 def node_ping():
-    data = request.get_json()
-    node = data.get("node", {})
+    node = request.get_json()
     node_id = node.get("id")
     last_seen = time.time()
 
     if not node_id:
         return jsonify({"error": "Missing node ID"}), 400
 
-    # Store by node_id
+    # Store by node_id directly
     active_node_registry[node_id] = {
         "node": node,
         "last_seen": last_seen

@@ -38,13 +38,18 @@ def save_users(users):
 
 # ===================== NODE FUNCS =====================
 
-
 def load_nodes():
     try:
         response = requests.get(f"{EXPLORER}/active_nodes", timeout=5)
         if response.status_code == 200:
             data = response.json()
-            if isinstance(data, dict):
+            if isinstance(data, list):
+                return {
+                    entry["node"]["id"]: entry
+                    for entry in data
+                    if "node" in entry and "id" in entry["node"]
+                }
+            elif isinstance(data, dict):
                 return data
             else:
                 print(f"[load_nodes] Unexpected format: {type(data)}")
@@ -61,15 +66,16 @@ def load_nodes():
 
 def save_nodes(nodes, exclude_id=None):
     if isinstance(nodes, dict):
-        nodes = [nodes]
-    for node in nodes:
-        node_id = node.get("node", {}).get("id", "None")
+        nodes = list(nodes.values())
+    for entry in nodes:
+        node = entry.get("node", {})
+        node_id = node.get("id", "None")
         if exclude_id and node_id == exclude_id:
             continue
         try:
             response = requests.post(
                 f"{EXPLORER}/node_ping",
-                json=node,
+                json={"node": node},  # Properly wrap node
                 timeout=3
             )
             if response.status_code != 200:
@@ -78,7 +84,6 @@ def save_nodes(nodes, exclude_id=None):
             print(f"[save_nodes] Timeout for node {node_id}")
         except Exception as e:
             print(f"[save_nodes] Failed to ping explorer for node {node_id}: {e}")
-
 
 def session_util(option, sessions=None):
     if option == "load":

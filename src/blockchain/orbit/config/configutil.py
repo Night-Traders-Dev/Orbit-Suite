@@ -162,20 +162,23 @@ class TXConfig:
 def get_node_for_user(user_id):
     from core.ioutil import load_nodes, save_nodes
     try:
-        nodes = load_nodes()  # Loads from dynamic source (e.g., OrbitDB or runtime file)
+        nodes = load_nodes()  # Returns a dict of {node_id: {node: {...}, last_seen: ...}}
 
-        # Check if any node is already assigned to this user
-        for node_id, config in nodes.items():
-            if config.get("user") == user_id:
+        for node_id, data in nodes.items():
+            node_config = data.get("node", {})
+            if node_config.get("user") == user_id:
                 return node_id
 
-        # Assign first available (unclaimed) node to this user
-        for node_id, config in nodes.items():
-            if not config.get("user"):
-                config["user"] = user_id
-                nodes[node_id] = config
+        for node_id, data in nodes.items():
+            node_config = data.get("node", {})
+            if not node_config.get("user"):
+                node_config["user"] = user_id
+                data["node"] = node_config
+                nodes[node_id] = data
                 save_nodes(nodes)  # Persist updated mapping
                 return node_id
     except Exception as e:
         print(f"[get_node_for_user] Error: {e}")
     return None
+
+
