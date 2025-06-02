@@ -38,7 +38,7 @@ async def wallet_info(uid):
     status, mine_cooldown = await mine_check_api(address)
     if not mine_cooldown:
         mine_cooldown = "Now"
-    embed.add_field(name="Next Mine", value=f"{mine_cooldown}", inline=True)
+    embed.add_field(name="Next Mine", value=f"{mine_cooldown[1]}", inline=True)
     status, claim_cooldown = await claim_check_api(address)
     embed.add_field(name="Next Claim", value=f"{claim_cooldown['message']}", inline=True)
     return embed

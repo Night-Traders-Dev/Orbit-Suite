@@ -1,13 +1,24 @@
 from discord.ext import commands
+from discord import app_commands
 import discord
 from config import DISCORD_TOKEN
+from commands.wallet import setup as wallet_setup
 
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
+GUILD = discord.Object(id=1376608254741713008)
 
-# Load commands
-from commands.wallet import setup as wallet_setup
-wallet_setup(bot)
+
+@bot.event
+async def on_ready():
+    try:
+        wallet_setup(bot, GUILD)
+        synced = await bot.tree.sync(guild=GUILD)
+        print(f"Synced {len(synced)}")
+    except Exception as e:
+        print(e)
+    print(f'Bot Name: {bot.user}')
+
 
 bot.run(DISCORD_TOKEN)
