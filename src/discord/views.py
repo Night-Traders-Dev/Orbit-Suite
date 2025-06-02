@@ -17,8 +17,6 @@ class WalletDashboard(View):
     async def mine_orbit(self, interaction: discord.Interaction, button: Button):
         address = await get_user_address(self.user_id)
         status, result = await mine_orbit_api(address)
-        print(status)
-        print(result)
 
         if status == "fail":
             msg = f"❌ {result}"

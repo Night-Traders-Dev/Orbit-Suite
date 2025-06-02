@@ -1,7 +1,7 @@
 from discord.ui import Modal, TextInput
 import discord
 from api import verify_2fa_api, send_orbit_api, get_user_address
-from wallet import lock_orbit
+from wallet import lock_orbit, wallet_info
 
 class SendOrbitModal(Modal):
     def __init__(self, uid):
@@ -30,6 +30,10 @@ class SendOrbitModal(Modal):
         success = await send_orbit_api(self.address, self.recipient.value, amount)
         msg = f"✉️ Transaction successful!\nSent {amount} Orbit to {self.recipient}" if success else "⛔️ Transaction failed."
         await interaction.followup.send(msg, ephemeral=True)
+        embed = await wallet_info(self.uid)
+        from views import WalletDashboard
+        await interaction.message.edit(embed=embed, view=WalletDashboard(self.uid), delete_after=60)
+
 
 class LockOrbitModal(Modal):
     def __init__(self, uid):
