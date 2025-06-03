@@ -115,7 +115,7 @@ class OrbitNode:
         for node_id, node_data in self.nodes.items():
             if node_id == self.node_id:
                 continue
-            url = f"http://127.0.0.1:{node_data.get('port')}"
+            url = f"127.0.0.1:{node_data.get('port')}"
             try:
                 res = requests.post(f"{url}/receive_block", json=block, timeout=3)
                 if res.status_code == 200:

@@ -69,6 +69,10 @@ class Register2FAView(View):
     async def register(self, interaction: discord.Interaction, button: Button):
         address = await get_user_address(self.user_id)
         secret = await create_2fa_api(address)
-        await interaction.response.send_message(
-            content=f"Address: {address}\n2FA Secret: {secret}", ephemeral=True
-        )
+        ROLE_ID = 1379507259180060742
+        role = interaction.guild.get_role(ROLE_ID)
+        if role:
+            await interaction.user.add_roles(role)
+            await interaction.response.send_message(
+                content=f"Address: {address}\n2FA Secret: {secret}", ephemeral=True
+            )
