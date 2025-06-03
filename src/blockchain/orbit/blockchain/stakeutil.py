@@ -5,6 +5,7 @@ from blockchain.tokenutil import send_orbit
 from core.ioutil import fetch_chain, load_users, save_users
 from core.tx_types import TXTypes
 from core.walletutil import load_balance
+from core.logutil import log_event
 import json
 
 LOCK_REWARD_RATE_PER_DAY = 0.05
@@ -120,21 +121,27 @@ def check_claim(username):
         for lock in user_lockups:
             lock_count += 1
             lock_start = lock["start"]
-            duration = lock["days"]
-            amount = lock["amount"]
+            duration = lock.get("days", 0)
+            amount = lock.get("amount", 0)
+
             lock_end = lock_start + duration * 86400
-            last_claim = int(claim_map.get(str(lock_start), lock_start))
+            last_claim = claim_map.get(str(lock_start), lock_start)
             claim_until = min(now, lock_end)
 
-            if now >= lock_end and last_claim >= lock_end:
+            if claim_until <= 0:
+                log_event(username, "[WARN]", f"Skipping invalid lockup: start={lock_start}, days={duration}")
+                still_locked.append(lock)
+                continue
+
+            if time.time() >= lock_end and last_claim >= lock_end:
                 matured_total += amount
             else:
                 still_locked.append(lock)
 
-            if now < last_claim + 86400:
+            if time.time() < last_claim + 86400:
                 claimed += 1
                 if claimed == lock_count:
-                    remaining = int((last_claim + 86400) - now)
+                    remaining = (last_claim + 86400 - time.time())
                     return {
                         "status": "cooldown",
                         "message": f"{remaining // 3600}h {(remaining % 3600) // 60}m"
@@ -293,11 +300,17 @@ def claim_lockup_rewards(username, relock_duration=None):
         for lock in user_lockups:
             lock_count += 1
             lock_start = lock["start"]
-            duration = lock["days"]
-            amount = lock["amount"]
+            duration = lock.get("days", 0)
+            amount = lock.get("amount", 0)
             lock_end = lock_start + duration * 86400
             last_claim = int(claim_map.get(str(lock_start), lock_start))
             claim_until = min(now, lock_end)
+
+
+            if claim_until <= 0:
+                log_event(username, "[WARN]", f"Skipping invalid lockup: start={lock_start}, days={duration}")
+                still_locked.append(lock)
+                continue
 
             if now >= lock_end and last_claim >= lock_end:
                 matured_total += amount
