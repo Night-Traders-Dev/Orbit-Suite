@@ -58,3 +58,18 @@ class LockOrbitModal(Modal):
         embed = await wallet_info(self.uid)
         from views import WalletDashboard
         await interaction.message.edit(embed=embed, view=WalletDashboard(self.uid), delete_after=60)
+
+
+
+class TokenListingModal(Modal):
+    def __init__(self):
+        super().__init__(title="Orbit Exchange")
+        name = TextInput(label="Token Name", placeholder="ExampleToken", max_length=32)
+        symbol = TextInput(label="Symbol", placeholder="EXT", max_length=8)
+        supply = TextInput(label="Total Supply", placeholder="1000000", max_length=18)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.send_message(
+            f"✅ Token listed:\n**Name:** {self.name}\n**Symbol:** {self.symbol}\n**Supply:** {self.supply}",
+            ephemeral=True
+        )

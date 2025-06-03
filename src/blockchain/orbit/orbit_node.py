@@ -89,6 +89,7 @@ class OrbitNode:
             save_chain(self.chain, owner_id=self.node_id, chain_file=NODE_LEDGER)
             self.block_timestamps.append(time.time())
             self.nodes[self.node_id]["trust"] = min(1.0, self.nodes[self.node_id]["trust"] + 0.01)
+            self.nodes[self.node_id]["uptime"] = min(1.0, self.nodes[self.node_id]["uptime"] + 0.01)
             save_nodes(self.nodes, exclude_id=self.node_id)
             self.last_validated_block = block.get("index", self.last_validated_block)
             self.broadcast_block_to_peers(block)

@@ -1,6 +1,6 @@
 from discord.ui import View, Button
 import discord
-from modals import SendOrbitModal, LockOrbitModal
+from modals import SendOrbitModal, LockOrbitModal, TokenListingModal
 from wallet import claim_rewards, wallet_info
 from api import create_2fa_api, get_user_address, mine_orbit_api
 
@@ -76,3 +76,24 @@ class Register2FAView(View):
             await interaction.response.send_message(
                 content=f"Address: {address}\n2FA Secret: {secret}", ephemeral=True
             )
+
+
+class ExchangeView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="Buy Tokens", style=discord.ButtonStyle.green, custom_id="buy_tokens")
+    async def buy_button(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_message("🔍 Token marketplace coming soon!", ephemeral=True)
+
+    @discord.ui.button(label="Sell Tokens", style=discord.ButtonStyle.red, custom_id="sell_tokens")
+    async def sell_button(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_message("📝 Feature under construction!", ephemeral=True)
+
+    @discord.ui.button(label="List a Token", style=discord.ButtonStyle.blurple, custom_id="list_token")
+    async def list_button(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_modal(TokenListingModal())
+
+    @discord.ui.button(label="My Tokens", style=discord.ButtonStyle.gray, custom_id="my_tokens")
+    async def my_tokens_button(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_message("📊 Portfolio view under development.", ephemeral=True)

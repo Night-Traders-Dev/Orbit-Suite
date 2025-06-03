@@ -2,7 +2,7 @@ from discord.ext import commands
 import discord
 from wallet import get_wallet_balance, wallet_info
 from api import get_user_balance, get_user_address
-from views import WalletDashboard, Register2FAView
+from views import WalletDashboard, Register2FAView, ExchangeView
 
 def setup(bot, GUILD):
     @bot.tree.command(
@@ -33,4 +33,15 @@ def setup(bot, GUILD):
             delete_after=60
         )
 
+    @bot.tree.command(
+        name="exchange",
+        description="Access the Orbit token exchange",
+        guild=GUILD
+    )
+    async def exchange(interaction: discord.Interaction):
+        await interaction.response.send_message(
+            "🌐 Welcome to the Orbit Exchange!",
+            view=ExchangeView(),
+            delete_after=120
+            )
 
