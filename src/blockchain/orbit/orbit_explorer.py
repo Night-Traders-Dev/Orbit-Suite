@@ -307,7 +307,7 @@ def api_claim():
 def api_claim_check():
     data = request.get_json()
     address = data.get("address")
-    result = check_claim(address)
+    result = check_claim(address) or {"message": "N/A"}
     return jsonify(result)
 
 # ===================== Token Operations APIs =================

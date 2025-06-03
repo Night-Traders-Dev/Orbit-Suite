@@ -126,7 +126,7 @@ def check_claim(username):
 
             lock_end = lock_start + duration * 86400
             last_claim = claim_map.get(str(lock_start), lock_start)
-            claim_until = min(now, lock_end)
+            claim_until = min(time.time(), lock_end)
 
             if claim_until <= 0:
                 log_event(username, "[WARN]", f"Skipping invalid lockup: start={lock_start}, days={duration}")
