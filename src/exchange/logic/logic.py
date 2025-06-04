@@ -27,6 +27,7 @@ async def create_buy_order(symbol, price, amount, buyer_addr):
         amount=0.01,
         order=tx
     )
+
     return (True, tx) if valid else (False, msg)
 
 async def create_sell_order(symbol, price, amount, seller_addr):
@@ -48,6 +49,25 @@ async def create_sell_order(symbol, price, amount, seller_addr):
         amount=0.01,
         order=tx
     )
+    unsigned_tx = TXExchange.create_token_transfer_tx(
+        sender=seller_addr,
+        receiver=EXCHANGE_ADDRESS,
+        amount=amount,
+        token_symbol=symbol,
+        note="",
+        signature=""
+    )
+
+    tx_type = list(unsigned_tx["type"].keys())[0]
+    tx_data = unsigned_tx["type"][tx_type]
+    unsigned_tx["type"][tx_type] = tx_data
+
+
+
+    validator = TXValidator(tx)
+    valid, msg = validator.validate()
+    if valid:
+        tranfer_token = await send_orbit_api(seller_addr, EXCHANGE_ADDRESS, 0.01, order=unsigned_tx)
     return (True, tx) if valid else (False, msg)
 
 async def cancel_order(order_id, canceller_address, symbol=None):

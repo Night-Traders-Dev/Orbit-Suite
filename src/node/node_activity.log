@@ -218,3 +218,7 @@
 1749061174.357037 | Node Node9944 | [HEARTBEAT] | Exception: HTTPConnectionPool(host='127.0.0.1', port=7000): Max retries exceeded with url: /node_ping (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7c37e3fc20>: Failed to establish a new connection: [Errno 111] Connection refused'))
 1749061177.0492966 | Node Node9944 | [DISCOVERY ERROR] | HTTPConnectionPool(host='127.0.0.1', port=7000): Max retries exceeded with url: /active_nodes (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7c37d455b0>: Failed to establish a new connection: [Errno 111] Connection refused'))
 1749062730.3245592 | Node Node9944 | [INFO] | Validating Block.
+1749063408.3274894 | Node Node9944 | [INFO] | Validating Block.
+1749063564.3773563 | Node Node9944 | [INFO] | Validating Block.
+1749063781.2267637 | Node Node9944 | [INFO] | Validating Block.
+1749063781.4338555 | Node Node9944 | [INFO] | Validating Block.
