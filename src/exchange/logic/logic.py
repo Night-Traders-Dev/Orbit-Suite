@@ -107,12 +107,8 @@ async def buy_token_from_exchange(symbol, amount, buyer_address):
         token_symbol=symbol.upper(),
         note="Token purchased from exchange"
     )
-    token_validator = TXValidator(token_tx)
-    valid, msg = token_validator.validate()
-    if not valid:
-        return False, f"Token TX invalid: {msg}"
 
-    sent = await send_orbit_api(buyer_address, EXCHANGE_ADDRESS, total_cost, token_symbol=symbol.upper(), order=token_tx)
+    sent = await send_orbit_api(buyer_address, EXCHANGE_ADDRESS, total_cost, order=token_tx)
     if not sent:
         return False, "Token delivery failed."
 

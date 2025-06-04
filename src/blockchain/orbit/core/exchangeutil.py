@@ -21,10 +21,8 @@ def send_token_transaction(sender, receiver, amount, token_symbol, note=""):
     tx_type = list(unsigned_tx["type"].keys())[0]
     tx_data = unsigned_tx["type"][tx_type]
     unsigned_tx["type"][tx_type] = tx_data
-
     if validate_token_transfer(unsigned_tx):
         send_orbit(sender, "mining", 0.1, order=unsigned_tx)
-
 
 def get_user_token_balance(address, symbol):
     chain = fetch_chain()
