@@ -14,7 +14,7 @@ from config import DISCORD_TOKEN
 BOT_OPS_CHANNEL_ID = 1379630873174872197
 EXCHANGE_ADDR = "orbitxchg123"
 
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 intents.messages = True
 intents.guilds = True
 
