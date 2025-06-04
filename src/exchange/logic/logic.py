@@ -1,15 +1,18 @@
 # logic/logic.py
 
 import uuid
+from core.exchangeutil import get_token_id
 from core.tx_util.tx_types import TXExchange
 from core.tx_util.tx_validator import TXValidator
 from bot.api import get_user_address, send_orbit_api
 
+EXCHANGE_ADDRESS="ORB.A6C19210F2B823246BA1DCA7"
 
 def create_buy_order(symbol, amount, buyer_addr):
+    token_id = get_token_id(symbol)
     tx = TXExchange.buy_token(
         order_id=str(uuid.uuid4()),
-        token_id="0001",  # TODO: get_token_id(symbol)
+        token_id=token_id,
         symbol=symbol,
         amount=amount,
         buyer_address=buyer_addr,
@@ -20,9 +23,10 @@ def create_buy_order(symbol, amount, buyer_addr):
     return (True, tx) if valid else (False, msg)
 
 def create_sell_order(symbol, amount, seller_addr):
+    token_id = get_token_id(symbol)
     tx = TXExchange.sell_token(
         order_id=str(uuid.uuid4()),
-        token_id="0001",  # TODO: get_token_id(symbol)
+        token_id=token_id,
         symbol=symbol,
         amount=amount,
         seller_address=seller_addr,
@@ -33,11 +37,9 @@ def create_sell_order(symbol, amount, seller_addr):
     return (True, tx) if valid else (False, msg)
 
 def cancel_order(order_id):
-    # Placeholder logic
     return True, f"Order {order_id} canceled (not really, just a stub)."
 
 def quote_symbol(symbol):
-    # Placeholder response
     return True, {
         "symbol": symbol,
         "price": 1.23,
@@ -46,7 +48,9 @@ def quote_symbol(symbol):
     }
 
 async def create_token(name, symbol, supply, creator):
-    exchange="ORB.A6C19210F2B823246BA1DCA7"
+    if get_token_id(symbol):
+       msg = "Token already exists"
+       return (False, msg)
     tx = TXExchange.create_token(
         token_id=str(uuid.uuid4()),
         name=name,
@@ -58,7 +62,7 @@ async def create_token(name, symbol, supply, creator):
 
     unsigned_tx = TXExchange.create_token_transfer_tx(
         sender="system",
-        receiver=exchange,
+        receiver=EXCHANGE_ADDRESS,
         amount=supply,
         token_symbol=symbol,
         note="Token Mint",
@@ -76,6 +80,44 @@ async def create_token(name, symbol, supply, creator):
     if valid:
         creator = tx['type']['create_token']['creator']
         listing_fee = tx['type']['create_token']['listing_fee']
-        mint_token = await send_orbit_api(creator, exchange, 250, order=tx)
+        mint_token = await send_orbit_api(creator, EXCHANGE_ADDRESS, 250, order=tx)
         tranfer_token = await send_orbit_api(creator, "system", 2.5, order=unsigned_tx)
     return (True, tx) if valid else (False, msg)
+
+
+
+EXCHANGE_PRICE = 0.1
+
+async def buy_token_from_exchange(symbol, amount, buyer_address):
+    token_id = get_token_id(symbol)
+    if not token_id:
+        return False, f"Token '{symbol}' not found."
+
+    exchange_balance = get_user_token_balance(EXCHANGE_ADDRESS, symbol)
+    if exchange_balance < amount:
+        return False, "Exchange does not have enough token supply available."
+
+    total_cost = round(amount * EXCHANGE_PRICE, 6)
+
+
+    token_tx = TXExchange.create_token_transfer_tx(
+        sender=EXCHANGE_ADDRESS,
+        receiver=buyer_address,
+        amount=amount,
+        token_symbol=symbol,
+        note="Token purchased from exchange"
+    )
+    token_validator = TXValidator(token_tx)
+    valid, msg = token_validator.validate()
+    if not valid:
+        return False, f"Token TX invalid: {msg}"
+
+    sent = await send_orbit_api(buyer_address, EXCHANGE_ADDRESS, total_cost, token_symbol=symbol, order=token_tx)
+    if not sent:
+        return False, "Token delivery failed."
+
+    return True, {
+        "orbit_spent": total_cost,
+        "tokens_received": amount,
+        "symbol": symbol
+    }

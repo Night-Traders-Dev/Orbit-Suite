@@ -17,6 +17,17 @@ def parse_exchange_command(message_content):
                     "buyer": buyer
                 }
 
+            elif cmd_type == "BUYEX":
+                symbol = parts[2]
+                amount = float(parts[3])
+                buyer = parts[4]
+                return {
+                    "action": "buy_from_exchange",
+                    "symbol": symbol,
+                    "amount": amount,
+                    "buyer": buyer
+                }
+
             elif cmd_type == "SELL":
                 symbol = parts[2]
                 amount = float(parts[3])
@@ -54,7 +65,6 @@ def parse_exchange_command(message_content):
                     "supply": supply,
                     "creator": creator
                 }
-
 
         return None
     except Exception as e:

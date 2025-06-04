@@ -3,7 +3,7 @@ import json
 import os
 import time
 from blockchain.tokenutil import send_orbit
-from core.ioutils import fetch_chain
+from core.ioutil import fetch_chain
 from core.tx_util.tx_types import TXExchange
 
 
@@ -90,3 +90,17 @@ def validate_token_transfer(tx, chain=None):
         return False, "Insufficient balance"
 
     return True, "Valid token transfer"
+
+
+def get_token_id(symbol):
+    """
+    Search the blockchain ledger for a token creation transaction with the given symbol
+    and return its token_id.
+    """
+    for block in reversed(fetch_chain()):  # Iterate from latest to oldest
+        for tx in block["transactions"]:
+            if "create_token" in tx.get("type", {}):
+                token_data = tx["type"]["create_token"]
+                if token_data.get("symbol") == symbol:
+                    return token_data.get("token_id")
+    return None  # Token not found

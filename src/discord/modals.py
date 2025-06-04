@@ -114,6 +114,32 @@ class SellTokenModal(Modal):
             await interaction.response.send_message("❌ Bot-ops channel not found.", ephemeral=True)
 
 
+class BuyFromExchangeModal(Modal):
+    def __init__(self, uid):
+        super().__init__(title="Buy From Exchange")
+        self.address = ""
+        self.uid = uid
+
+        self.symbol = TextInput(label="Token Symbol", placeholder="e.g., ORBIT")
+        self.amount = TextInput(label="Amount", placeholder="e.g., 50", style=discord.TextStyle.short)
+
+        self.add_item(self.symbol)
+        self.add_item(self.amount)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        self.address = await get_user_address(self.uid)
+        message = f"[ExchangeRequest] BUY_TOKEN_FROM_EXCHANGE {self.symbol.value.upper()} {self.amount.value} {self.address}"
+        bot_ops_channel = interaction.client.get_channel(BOT_OPS_CHANNEL_ID)
+
+        if bot_ops_channel:
+            await bot_ops_channel.send(message)
+            await interaction.response.send_message(
+                f"🟢 Sent direct exchange buy request for `{self.amount.value}` {self.symbol.value.upper()}",
+                ephemeral=True
+            )
+        else:
+            await interaction.response.send_message("❌ Bot-ops channel not found.", ephemeral=True)
+
 
 TOKEN_CREATION_FEE = 250  # ORBIT
 

@@ -1,7 +1,7 @@
 from discord.ui import View, Button
 import discord
 import asyncio
-from modals import SendOrbitModal, LockOrbitModal, CreateTokenModal, BuyTokenModal, SellTokenModal
+from modals import SendOrbitModal, LockOrbitModal, CreateTokenModal, BuyTokenModal, SellTokenModal, BuyFromExchangeModal
 from wallet import claim_rewards, wallet_info
 from api import create_2fa_api, get_user_address, mine_orbit_api
 
@@ -103,3 +103,7 @@ class ExchangeView(View):
     @discord.ui.button(label="My Tokens", style=discord.ButtonStyle.gray, custom_id="my_tokens")
     async def my_tokens_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_message("📊 Portfolio view under development.", ephemeral=True)
+
+    @discord.ui.button(label="Buy ICO", style=discord.ButtonStyle.green, custom_id="buy_ico")
+    async def buy_ico(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_modal(BuyFromExchangeModal(self.user_id))
