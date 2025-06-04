@@ -14,5 +14,12 @@
   <div><strong>Unique Buyers:</strong> {{ token.unique_buyers | commas }}</div>
   <div><strong>Unique Sellers:</strong> {{ token.unique_sellers | commas }}</div>
   <div><strong>Created At:</strong> {{ token.created_at | ts }}</div>
+  <div><strong>Current Price:</strong>
+    {% if token.current_price %}
+      {{ token.current_price | commas }} ORB
+    {% else %}
+      <span class="text-gray-500 italic">No recent buy</span>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

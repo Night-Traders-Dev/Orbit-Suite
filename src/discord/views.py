@@ -134,19 +134,25 @@ class ExchangeView(View):
                     qty = data.get("amount")
                     sender = data.get("sender")
                     receiver = data.get("receiver")
+                    is_exchange = data.get("note")
                     if not token or not isinstance(qty, (int, float)):
                         continue
+
+                    stats = token_stats.setdefault(token, {"buy_tokens": 0, "buy_orbit": 0.0, "sell_tokens": 0, "sell_orbit": 0.0})
+
                     if receiver == address:
                         tokens[token] = tokens.get(token, 0) + qty
-                        stats = token_stats.setdefault(token, {"buy_tokens": 0, "buy_orbit": 0.0, "sell_tokens": 0, "sell_orbit": 0.0})
-                        stats["buy_tokens"] += qty
-                        if orbit_amount:
+                        if is_exchange == "Token purchased from exchange":
+                            stats["buy_tokens"] += qty
+                            stats["buy_orbit"] += qty * 0.1
+                        elif orbit_amount:
+                            stats["buy_tokens"] += qty
                             stats["buy_orbit"] += orbit_amount
+
                     elif sender == address:
                         tokens[token] = tokens.get(token, 0) - qty
-                        stats = token_stats.setdefault(token, {"buy_tokens": 0, "buy_orbit": 0.0, "sell_tokens": 0, "sell_orbit": 0.0})
-                        stats["sell_tokens"] += qty
                         if orbit_amount:
+                            stats["sell_tokens"] += qty
                             stats["sell_orbit"] += orbit_amount
 
                 # Buy token
@@ -154,24 +160,24 @@ class ExchangeView(View):
                     data = tx_type["buy_token"]
                     token = data.get("symbol")
                     qty = data.get("amount")
-                    if data.get("seller") != address:
-                        tokens[token] = tokens.get(token, 0) + qty
-                        stats = token_stats.setdefault(token, {"buy_tokens": 0, "buy_orbit": 0.0, "sell_tokens": 0, "sell_orbit": 0.0})
-                        stats["buy_tokens"] += qty
-                        if orbit_amount:
-                            stats["buy_orbit"] += orbit_amount
+                    if not token or data.get("seller") == address:
+                        continue
+                    tokens[token] = tokens.get(token, 0) + qty
+                    stats = token_stats.setdefault(token, {"buy_tokens": 0, "buy_orbit": 0.0, "sell_tokens": 0, "sell_orbit": 0.0})
+                    stats["buy_tokens"] += qty
+                    stats["buy_orbit"] += qty * data.get("price", 0)
 
                 # Sell token
                 elif "sell_token" in tx_type:
                     data = tx_type["sell_token"]
                     token = data.get("symbol")
                     qty = data.get("amount")
-                    if data.get("seller") == address:
-                        tokens[token] = tokens.get(token, 0) - qty
-                        stats = token_stats.setdefault(token, {"buy_tokens": 0, "buy_orbit": 0.0, "sell_tokens": 0, "sell_orbit": 0.0})
-                        stats["sell_tokens"] += qty
-                        if orbit_amount:
-                            stats["sell_orbit"] += orbit_amount
+                    if not token or data.get("seller") != address:
+                        continue
+                    tokens[token] = tokens.get(token, 0) - qty
+                    stats = token_stats.setdefault(token, {"buy_tokens": 0, "buy_orbit": 0.0, "sell_tokens": 0, "sell_orbit": 0.0})
+                    stats["sell_tokens"] += qty
+                    stats["sell_orbit"] += qty * data.get("price", 0)
 
         # Build embed
         embed = discord.Embed(title="📊 Your Token Holdings", color=discord.Color.blue())
@@ -179,12 +185,29 @@ class ExchangeView(View):
             embed.description = "You don't own any tokens."
         else:
             for token, balance in tokens.items():
+                if abs(balance) < 1e-8:
+                    continue
+
                 stats = token_stats.get(token, {})
+                buy_tokens = stats.get("buy_tokens", 0)
+                buy_orbit = stats.get("buy_orbit", 0)
+                sell_tokens = stats.get("sell_tokens", 0)
+                sell_orbit = stats.get("sell_orbit", 0)
+
+                avg_buy_price = (buy_orbit / buy_tokens) if buy_tokens else None
+                avg_sell_price = (sell_orbit / sell_tokens) if sell_tokens else None
+
+                if avg_buy_price and avg_sell_price:
+                    current_price = (avg_buy_price + avg_sell_price) / 2
+                else:
+                    current_price = avg_buy_price or avg_sell_price or 0.0
+
                 embed.add_field(
                     name=f"{token} — {balance:.2f} tokens",
                     value=(
-                        f"**Bought:** {stats.get('buy_tokens', 0):.2f} for {stats.get('buy_orbit', 0):.2f} ORB\n"
-                        f"**Sold:** {stats.get('sell_tokens', 0):.2f} for {stats.get('sell_orbit', 0):.2f} ORB"
+                        f"**Bought:** {buy_tokens:.2f} for {buy_orbit:.2f} ORB\n"
+                        f"**Sold:** {sell_tokens:.2f} for {sell_orbit:.2f} ORB\n"
+                        f"**Current Price:** {current_price:.4f} ORB"
                     ),
                     inline=False
                 )

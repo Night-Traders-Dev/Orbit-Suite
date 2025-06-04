@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, g, Response
 import json, os, datetime, math, time
 
+from collections import defaultdict
+
 from config.configutil import OrbitDB
 from core.ioutil import load_chain, load_nodes
 from core.walletutil import load_balance
@@ -214,7 +216,6 @@ def load_node(node_id):
         avg_block_size=avg_block_size
     )
 
-
 @app.route("/token/<symbol>")
 def token_metrics(symbol):
     symbol = symbol.upper()
@@ -223,8 +224,10 @@ def token_metrics(symbol):
 
     total_tokens_received = 0.0
     total_tokens_sent = 0.0
-    total_orbit_spent = 0.0  # Orbit used to buy this token
-    total_orbit_earned = 0.0  # Orbit earned from selling this token
+    total_orbit_spent = 0.0
+    total_orbit_earned = 0.0
+
+    latest_valid_price = None
 
     unique_receivers = set()
     unique_senders = set()
@@ -247,7 +250,7 @@ def token_metrics(symbol):
                         "token_id": data.get("token_id"),
                         "name": data.get("name"),
                         "symbol": data.get("symbol"),
-                        "supply": data.get("supply"),
+                        "supply": float(data.get("supply", 0)),
                         "creator": data.get("creator"),
                         "created_at": data.get("timestamp")
                     }
@@ -270,11 +273,12 @@ def token_metrics(symbol):
                     total_tokens_sent += amount
                     unique_senders.add(sender)
 
-                # Buy (receiver got token, orbit_amount is what they paid)
-                if receiver and orbit_amount:
+                # Buy (receiver got token and paid Orbit)
+                if receiver and orbit_amount and amount > 0:
                     total_orbit_spent += orbit_amount
+                    latest_valid_price = orbit_amount / amount
 
-                # Sell (sender gave token, orbit_amount is what they earned)
+                # Sell (sender gave token and earned Orbit)
                 if sender and orbit_amount:
                     total_orbit_earned += orbit_amount
 
@@ -289,6 +293,7 @@ def token_metrics(symbol):
         "unique_holders": len(unique_receivers | unique_senders),
         "unique_buyers": len(unique_receivers),
         "unique_sellers": len(unique_senders),
+        "current_price": round(latest_valid_price, 6) if latest_valid_price else None
     })
 
     return render_template("token_metrics.html", token=token_info)
