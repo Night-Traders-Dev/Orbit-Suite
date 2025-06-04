@@ -1,5 +1,5 @@
 import time, math
-from core.tx_types import TXTypes
+from core.tx_util.tx_types import TXTypes
 from core.ioutil import load_users, save_users, fetch_chain
 from core.walletutil import load_balance
 from blockchain.blockutil import add_block

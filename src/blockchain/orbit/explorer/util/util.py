@@ -5,7 +5,7 @@ from core.walletutil import load_balance
 from core.ioutil import load_nodes, fetch_chain
 import time
 from collections import defaultdict
-from core.tx_types import TXTypes
+from core.tx_util.tx_types import TXTypes
 
 def search_chain(query):
     query = query.lower()

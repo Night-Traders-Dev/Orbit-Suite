@@ -3,7 +3,7 @@ from config.configutil import TXConfig, get_node_for_user
 from blockchain.blockutil import add_block
 from blockchain.tokenutil import send_orbit
 from core.ioutil import fetch_chain, load_users, save_users
-from core.tx_types import TXTypes
+from core.tx_util.tx_types import TXTypes
 from core.walletutil import load_balance
 from core.logutil import log_event
 import json

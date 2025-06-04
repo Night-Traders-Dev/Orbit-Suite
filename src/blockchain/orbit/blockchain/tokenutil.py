@@ -3,7 +3,7 @@ from core.walletutil import load_balance
 from core.ioutil import load_users, save_users
 from blockchain.blockutil import add_block
 from config.configutil import TXConfig, get_node_for_user
-from core.tx_types import TXTypes
+from core.tx_util.tx_types import TXTypes
 
 MIN_TRANSFER_AMOUNT = 0.0001
 FEE_RATE = 0.02
