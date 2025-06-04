@@ -216,7 +216,7 @@ class TXExchange:
     # --- Exchange Metadata Utilities ---
 
     @staticmethod
-    def create_token(name, symbol, supply, creator_address, token_id=None):
+    def create_token(name, symbol, supply, creator, listing_fee=250, token_id=None):
         return {
             "type": {
                 "create_token": {
@@ -224,7 +224,8 @@ class TXExchange:
                     "name": name,
                     "symbol": symbol.upper(),
                     "supply": float(supply),
-                    "creator": creator_address,
+                    "creator": creator,
+                    "listing_fee": listing_fee,
                     "timestamp": time.time()
                 }
             }

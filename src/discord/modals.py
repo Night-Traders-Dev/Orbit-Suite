@@ -151,7 +151,7 @@ class CreateTokenModal(Modal):
         channel = interaction.client.get_channel(BOT_OPS_CHANNEL_ID)
         if channel:
             await channel.send(
-                f"[ExchangeRequest] LIST {self.name.value.strip()} {self.symbol.value.strip().upper()} {supply_val} {self.address}"
+                f"[ExchangeRequest] CREATE {self.name.value.strip()} {self.symbol.value.strip().upper()} {supply_val} {self.address}"
             )
             await interaction.response.send_message(
                 f"✅ Token listing request submitted to Exchange Bot.",

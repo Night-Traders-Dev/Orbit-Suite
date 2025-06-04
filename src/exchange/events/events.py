@@ -44,7 +44,7 @@ def register_events(bot):
         elif action == "quote":
             success, result = quote_symbol(command["symbol"])
         elif action == "create":
-            success, result = list_token(
+            success, result = create_token(
                 name=command["name"],
                 symbol=command["symbol"],
                 supply=command["supply"],

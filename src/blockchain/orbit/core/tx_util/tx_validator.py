@@ -30,7 +30,7 @@ class TXValidator:
             "timestamp": lambda: self._autofix(data, "timestamp", time.time())
         }
         return self._validate_fields(data, required, {
-            "supply": lambda x: x > 0,
+            "supply": self._is_positive_number,
             "timestamp": self._is_recent_timestamp
         }, autofix)
 
@@ -41,8 +41,8 @@ class TXValidator:
             "exchange_fee": lambda: self._autofix(data, "exchange_fee", 0.01)
         }
         return self._validate_fields(data, required, {
-            "price": lambda x: x > 0,
-            "exchange_fee": lambda x: x >= 0,
+            "price": self._is_positive_number,
+            "exchange_fee": self._is_non_negative_number,
             "timestamp": self._is_recent_timestamp
         }, autofix)
 
@@ -54,8 +54,8 @@ class TXValidator:
             "order_id": lambda: self._autofix(data, "order_id", str(uuid.uuid4()))
         }
         return self._validate_fields(data, required, {
-            "amount": lambda x: x > 0,
-            "exchange_fee": lambda x: x >= 0,
+            "amount": self._is_positive_number,
+            "exchange_fee": self._is_non_negative_number,
             "timestamp": self._is_recent_timestamp
         }, autofix)
 
@@ -67,8 +67,8 @@ class TXValidator:
             "order_id": lambda: self._autofix(data, "order_id", str(uuid.uuid4()))
         }
         return self._validate_fields(data, required, {
-            "amount": lambda x: x > 0,
-            "exchange_fee": lambda x: x >= 0,
+            "amount": self._is_positive_number,
+            "exchange_fee": self._is_non_negative_number,
             "timestamp": self._is_recent_timestamp
         }, autofix)
 
@@ -83,9 +83,12 @@ class TXValidator:
 
         for field, check in custom_checks.items():
             try:
+                # Try converting to float if it looks like a string number
+                if isinstance(data[field], str) and data[field].replace('.', '', 1).isdigit():
+                    data[field] = float(data[field]) if '.' in data[field] else int(data[field])
                 if not check(data[field]):
                     if field in autofix:
-                        autofix[field]()  # Auto-fix and recheck
+                        autofix[field]()
                         if not check(data[field]):
                             return False, f"Invalid value for field: {field}"
                     else:
@@ -97,7 +100,19 @@ class TXValidator:
 
     def _is_recent_timestamp(self, ts):
         now = time.time()
-        return now - 300 < ts < now + 300  # ±5 min
+        return now - 300 < ts < now + 300  # ±5 minutes
+
+    def _is_positive_number(self, val):
+        try:
+            return float(val) > 0
+        except:
+            return False
+
+    def _is_non_negative_number(self, val):
+        try:
+            return float(val) >= 0
+        except:
+            return False
 
     def _autofix(self, data, key, default_value):
         data[key] = default_value
