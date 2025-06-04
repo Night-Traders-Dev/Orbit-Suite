@@ -9,11 +9,13 @@ def parse_exchange_command(message_content):
             if cmd_type == "BUY":
                 symbol = parts[2]
                 amount = float(parts[3])
-                buyer = parts[4]
+                price = parts[4]
+                buyer = parts[5]
                 return {
                     "action": "buy",
                     "symbol": symbol,
                     "amount": amount,
+                    "price": price,
                     "buyer": buyer
                 }
 
@@ -31,11 +33,13 @@ def parse_exchange_command(message_content):
             elif cmd_type == "SELL":
                 symbol = parts[2]
                 amount = float(parts[3])
-                seller = parts[4]
+                price = parts[4]
+                seller = parts[5]
                 return {
                     "action": "sell",
                     "symbol": symbol,
                     "amount": amount,
+                    "price": price,
                     "seller": seller
                 }
 

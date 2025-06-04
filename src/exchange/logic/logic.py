@@ -8,13 +8,14 @@ from bot.api import get_user_address, send_orbit_api
 
 EXCHANGE_ADDRESS="ORB.A6C19210F2B823246BA1DCA7"
 
-def create_buy_order(symbol, amount, buyer_addr):
+def create_buy_order(symbol, amount, price, buyer_addr):
     token_id = get_token_id(symbol.upper())
     tx = TXExchange.buy_token(
         order_id=str(uuid.uuid4()),
         token_id=token_id,
         symbol=symbol,
         amount=amount,
+        price=price
         buyer_address=buyer_addr,
         exchange_fee=0.01
     )
@@ -22,13 +23,14 @@ def create_buy_order(symbol, amount, buyer_addr):
     valid, msg = validator.validate()
     return (True, tx) if valid else (False, msg)
 
-def create_sell_order(symbol, amount, seller_addr):
+def create_sell_order(symbol, amount, price, seller_addr):
     token_id = get_token_id(symbol.upper())
     tx = TXExchange.sell_token(
         order_id=str(uuid.uuid4()),
         token_id=token_id,
         symbol=symbol,
         amount=amount,
+        price=price
         seller_address=seller_addr,
         exchange_fee=0.01
     )

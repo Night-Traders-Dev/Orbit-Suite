@@ -231,6 +231,7 @@ class TXExchange:
             }
         }
 
+
     @staticmethod
     def list_token(symbol, price, lister_address, token_id=None, exchange_fee=0.0):
         return {
@@ -254,6 +255,7 @@ class TXExchange:
                     "order_id": order_id or str(uuid.uuid4()),
                     "token_id": token_id or symbol.upper(),
                     "symbol": symbol.upper(),
+                    "price": float(price),
                     "amount": float(amount),
                     "buyer": buyer_address,
                     "exchange_fee": float(exchange_fee),
@@ -270,6 +272,7 @@ class TXExchange:
                     "order_id": order_id or str(uuid.uuid4()),
                     "token_id": token_id or symbol.upper(),
                     "symbol": symbol.upper(),
+                    "price": float(price),
                     "amount": float(amount),
                     "seller": seller_address,
                     "exchange_fee": float(exchange_fee),
