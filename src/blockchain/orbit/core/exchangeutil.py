@@ -3,112 +3,90 @@ import json
 import os
 import time
 from blockchain.tokenutil import send_orbit
-EXCHANGE_DB = "data/exchange_data.json"
-
-# Load or initialize exchange state
-def load_exchange():
-    if os.path.exists(EXCHANGE_DB):
-        with open(EXCHANGE_DB, 'r') as f:
-            return json.load(f)
-    return {"orders": []}
-
-def save_exchange(data):
-    with open(EXCHANGE_DB, 'w') as f:
-        json.dump(data, f, indent=2)
-
-def append_order(order):
-    data = load_exchange()
-    data.setdefault("orders", [])
-    data["orders"].append(order)
-    save_exchange(data)
-
-def place_order(user, side, amount, price, wallet):
-    data = load_exchange()
-    recipient = "exchange01"
-    order = {
-        "id": f"{user}-{int(time.time() * 1000)}",
-        "user": user,
-        "side": side,
-        "amount": amount,
-        "price": price,
-        "timestamp": time.time(),
-    }
-    if side == "buy":
-        total_value = (amount * price)
-        if wallet < total_value:
-            return False, "Insufficient USD"
-        note = {
-            "type": "order",
-            "order_id": order["id"],
-            "side": side,
-            "amount": amount,
-            "price": price
-        }
-        send_orbit(user, recipient, total_value, order=note)
-    elif side == "sell":
-        if wallet < amount:
-            return False, "Insufficient ORBIT"
-    else:
-        return False, "Invalid side"
-
-    append_order(order)
-    return True, order["id"]
-
-def cancel_order(user, order_id):
-    data = load_exchange()
-    for order in data["orders"]:
-        if order["id"] == order_id and order["user"] == user:
-            if order["side"] == "buy":
-                refund = order["amount"] * order["price"]
-                send_orbit("exchange01", user, refund)
-                data["orders"].remove(order)
-                save_exchange(data)
-                return True
-    return False
+from core.ioutils import fetch_chain
+from core.tx_util.tx_types import TXExchange
 
 
-def match_orders(data):
-    buys = sorted([o for o in data["orders"] if o["side"] == "buy"], key=lambda o: (-o["price"], o["timestamp"]))
-    sells = sorted([o for o in data["orders"] if o["side"] == "sell"], key=lambda o: (o["price"], o["timestamp"]))
-    matched = []
+def send_token_transaction(sender, receiver, amount, token_symbol, note=""):
 
-    for buy in buys:
-        for sell in sells:
-            if buy["price"] >= sell["price"] and buy["amount"] > 0 and sell["amount"] > 0:
-                trade_amount = min(buy["amount"], sell["amount"])
-                trade_price = sell["price"]
-
-                update_balance(data, buy["user"], delta_orbit=trade_amount)
-                update_balance(data, sell["user"], delta_usd=trade_amount * trade_price)
-
-                buy["amount"] -= trade_amount
-                sell["amount"] -= trade_amount
-
-                data["trades"].append({
-                    "buyer": buy["user"],
-                    "seller": sell["user"],
-                    "amount": trade_amount,
-                    "price": trade_price,
-                    "timestamp": time.time()
-                })
-
-                matched.append((buy["id"], sell["id"]))
-
-    data["orders"] = [o for o in data["orders"] if o["amount"] > 0]
-    return matched
-
-def get_order_book():
-    data = load_exchange()
-    data.setdefault("orders", [])
-    buys = sorted(
-        [o for o in data["orders"] if o.get("side") == "buy"],
-        key=lambda o: (-o.get("price", 0), o.get("timestamp", 0))
+    unsigned_tx = TXExchange.create_token_transfer_tx(
+        sender=sender,
+        receiver=receiver,
+        amount=amount,
+        token_symbol=token_symbol,
+        note=note,
+        signature=""
     )
-    sells = sorted(
-        [o for o in data["orders"] if o.get("side") == "sell"],
-        key=lambda o: (o.get("price", 0), o.get("timestamp", 0))
-    )
-    return buys, sells
 
-def get_recent_trades(data, limit=10):
-    return data["trades"][-limit:]
+    tx_type = list(unsigned_tx["type"].keys())[0]
+    tx_data = unsigned_tx["type"][tx_type]
+    unsigned_tx["type"][tx_type] = tx_data
+
+    if validate_token_transfer(unsigned_tx):
+        send_orbit(sender, "mining", 0.1, order=unsigned_tx)
+
+
+def get_user_token_balance(address, token_symbol):
+    chain = fetch_chain()
+    balance = 0
+
+    for block in chain:
+        for tx in block.get("transactions", []):
+            if "type" not in tx or "token_transfer" not in tx["type"]:
+                continue
+
+            data = tx["type"]["token_transfer"]
+            if data["token_symbol"] != token_symbol:
+                continue
+            if data["receiver"] == address:
+                balance += data["amount"]
+            if data["sender"] == address:
+                balance -= data["amount"]
+
+    return balance
+
+def get_all_user_token_holdings(address):
+    chain = fetch_chain()
+    holdings = {}
+
+    for block in chain:
+        for tx in block.get("transactions", []):
+            if "type" not in tx or "token_transfer" not in tx["type"]:
+                continue
+
+            data = tx["type"]["token_transfer"]
+            symbol = data["token_symbol"]
+
+            if data["receiver"] == address:
+                holdings[symbol] = holdings.get(symbol, 0) + data["amount"]
+            if data["sender"] == address:
+                holdings[symbol] = holdings.get(symbol, 0) - data["amount"]
+
+    return {sym: amt for sym, amt in holdings.items() if amt > 0}
+
+
+def validate_token_transfer(tx, chain=None):
+    if "type" not in tx or "token_transfer" not in tx["type"]:
+        return False, "Invalid transaction type"
+
+    data = tx["type"]["token_transfer"]
+    required_fields = ["sender", "receiver", "amount", "token_symbol", "timestamp", "signature"]
+    if not all(field in data for field in required_fields):
+        return False, "Missing required fields"
+
+    if data["amount"] <= 0:
+        return False, "Invalid amount"
+
+    # Signature verification
+    signature_valid = verify_signature(data, data["signature"], data["sender"])
+    if not signature_valid:
+        return False, "Invalid signature"
+
+    # Balance check
+    if chain is None:
+        chain = fetch_chain()
+    balance = get_user_token_balance(data["sender"], data["token_symbol"])
+    if balance < data["amount"]:
+        return False, "Insufficient balance"
+
+    return True, "Valid token transfer"

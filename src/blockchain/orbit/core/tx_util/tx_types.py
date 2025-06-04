@@ -277,3 +277,20 @@ class TXExchange:
                 }
             }
         }
+
+
+    @staticmethod
+    def create_token_transfer_tx(sender, receiver, amount, token_symbol, note="", signature=""):
+        return {
+            "type": {
+                "token_transfer": {
+                    "sender": sender,
+                    "receiver": receiver,
+                    "amount": amount,
+                    "token_symbol": token_symbol,
+                    "note": note,
+                    "timestamp": time.time(),
+                    "signature": signature
+                }
+            }
+        }

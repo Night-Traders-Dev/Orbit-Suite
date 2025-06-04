@@ -46,6 +46,7 @@ def quote_symbol(symbol):
     }
 
 async def create_token(name, symbol, supply, creator):
+    exchange="ORB.A6C19210F2B823246BA1DCA7"
     tx = TXExchange.create_token(
         token_id=str(uuid.uuid4()),
         name=name,
@@ -54,11 +55,27 @@ async def create_token(name, symbol, supply, creator):
         creator=creator,
         listing_fee=250  # Could be pulled from config
     )
+
+    unsigned_tx = TXExchange.create_token_transfer_tx(
+        sender="system",
+        receiver=exchange,
+        amount=supply,
+        token_symbol=symbol,
+        note="Token Mint",
+        signature=""
+    )
+
+    tx_type = list(unsigned_tx["type"].keys())[0]
+    tx_data = unsigned_tx["type"][tx_type]
+    unsigned_tx["type"][tx_type] = tx_data
+
+
+
     validator = TXValidator(tx)
     valid, msg = validator.validate()
     if valid:
-        exchange="ORB.A6C19210F2B823246BA1DCA7"
         creator = tx['type']['create_token']['creator']
         listing_fee = tx['type']['create_token']['listing_fee']
-        success = await send_orbit_api(creator, exchange, 250, order=tx)
+        mint_token = await send_orbit_api(creator, exchange, 250, order=tx)
+        tranfer_token = await send_orbit_api(creator, "system", 2.5, order=unsigned_tx)
     return (True, tx) if valid else (False, msg)
