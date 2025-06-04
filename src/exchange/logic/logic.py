@@ -24,7 +24,7 @@ async def create_buy_order(symbol, price, amount, buyer_addr):
     sent = await send_orbit_api(
         sender=buyer_addr,
         recipient=EXCHANGE_ADDRESS,
-        amount=exchange_fee,
+        amount=0.01,
         order=tx
     )
     return (True, tx) if valid else (False, msg)
@@ -45,7 +45,7 @@ async def create_sell_order(symbol, price, amount, seller_addr):
     sent = await send_orbit_api(
         sender=seller_addr,
         recipient=EXCHANGE_ADDRESS,
-        amount=exchange_fee,
+        amount=0.01,
         order=tx
     )
     return (True, tx) if valid else (False, msg)

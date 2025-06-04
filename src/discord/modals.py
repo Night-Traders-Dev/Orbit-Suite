@@ -73,7 +73,7 @@ class BuyTokenModal(Modal):
         self.uid = uid
 
         self.symbol = TextInput(label="Token Symbol", placeholder="e.g., ORBIT")
-        self.amount = TextInput(label="Amount", placeholder="e.g., 50", style=discord.TextStyle.short)
+        self.amount = TextInput(label="Amount", placeholder="e.g., 50")
         self.price = TextInput(label="Price", placeholder="e.g., 10", style=discord.TextStyle.short)
 
         self.add_item(self.symbol)
@@ -99,7 +99,7 @@ class SellTokenModal(Modal):
         self.uid = uid
 
         self.symbol = TextInput(label="Token Symbol", placeholder="e.g., ORBIT")
-        self.amount = TextInput(label="Amount", placeholder="e.g., 50", style=discord.TextStyle.short)
+        self.amount = TextInput(label="Amount", placeholder="e.g., 50")
         self.price = TextInput(label="Price", placeholder="e.g., 10", style=discord.TextStyle.short)
 
         self.add_item(self.symbol)
