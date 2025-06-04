@@ -41,10 +41,9 @@ def setup(bot, GUILD):
         guild=GUILD
     )
     async def exchange(interaction: discord.Interaction):
-
+        uid = interaction.user.id
         embed = discord.Embed(
             title="Orbit Exchange",
-#            description="Trade community tokens using ORBIT",
             color=0x00ffcc
         )
         embed.add_field(
@@ -55,7 +54,7 @@ def setup(bot, GUILD):
 
         await interaction.response.send_message(
             embed=embed,
-            view=ExchangeView(),
+            view=ExchangeView(uid),
             delete_after=120
         )
 

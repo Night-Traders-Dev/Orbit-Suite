@@ -1,7 +1,10 @@
 from discord.ui import Modal, TextInput
 import discord
+import asyncio
 from api import verify_2fa_api, send_orbit_api, get_user_address
 from wallet import lock_orbit, wallet_info
+
+BOT_OPS_CHANNEL_ID = 1379630873174872197
 
 class SendOrbitModal(Modal):
     def __init__(self, uid):
@@ -61,9 +64,61 @@ class LockOrbitModal(Modal):
 
 
 
+
+
+class BuyTokenModal(Modal):
+    def __init__(self, uid):
+        super().__init__(title="Buy Tokens")
+        self.address = ""
+        self.uid = uid
+
+        self.symbol = TextInput(label="Token Symbol", placeholder="e.g., ORBIT")
+        self.amount = TextInput(label="Amount", placeholder="e.g., 50", style=discord.TextStyle.short)
+
+        self.add_item(self.symbol)
+        self.add_item(self.amount)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        self.address = await get_user_address(self.uid)
+        message = f"[ExchangeRequest] BUY {self.symbol.value.upper()} {self.amount.value} {self.address}"
+        bot_ops_channel = interaction.client.get_channel(BOT_OPS_CHANNEL_ID)
+
+        if bot_ops_channel:
+            await bot_ops_channel.send(message)
+            await interaction.response.send_message(f"🟢 Sent buy request for `{self.amount.value}` {self.symbol.value.upper()}", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ Bot-ops channel not found.", ephemeral=True)
+
+
+class SellTokenModal(Modal):
+    def __init__(self, uid):
+        super().__init__(title="Sell Tokens")
+        self.address = ""
+        self.uid = uid
+
+        self.symbol = TextInput(label="Token Symbol", placeholder="e.g., ORBIT")
+        self.amount = TextInput(label="Amount", placeholder="e.g., 50", style=discord.TextStyle.short)
+
+        self.add_item(self.symbol)
+        self.add_item(self.amount)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        self.address = await get_user_address(self.uid)
+        message = f"[ExchangeRequest] SELL {self.symbol.value.upper()} {self.amount.value} {self.address}"
+        bot_ops_channel = interaction.client.get_channel(BOT_OPS_CHANNEL_ID)
+
+        if bot_ops_channel:
+            await bot_ops_channel.send(message)
+            await interaction.response.send_message(f"🔴 Sent sell request for `{self.amount.value}` {self.symbol.value.upper()}", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ Bot-ops channel not found.", ephemeral=True)
+
+
 class TokenListingModal(Modal):
-    def __init__(self):
+    def __init__(self, uid):
         super().__init__(title="Orbit Exchange")
+        self.address = ""
+        self.uid = uid
         self.name = TextInput(label="Token Name", placeholder="ExampleToken", max_length=32)
         self.symbol = TextInput(label="Symbol", placeholder="EXT", max_length=8)
         self.supply = TextInput(label="Total Supply", placeholder="1000000", max_length=18)
@@ -72,6 +127,7 @@ class TokenListingModal(Modal):
         self.add_item(self.supply)
 
     async def on_submit(self, interaction: discord.Interaction):
+        self.address = await get_user_address(self.uid)
         await interaction.response.send_message(
             f"✅ Token submitted for review",
             ephemeral=True
