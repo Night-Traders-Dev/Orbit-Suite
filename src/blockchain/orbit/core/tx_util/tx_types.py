@@ -211,6 +211,8 @@ class TXTypes:
         }
 
 
+class TXExchange:
+
     # --- Exchange Metadata Utilities ---
 
     @staticmethod

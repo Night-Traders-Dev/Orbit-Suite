@@ -1,0 +1,9 @@
+secret
+**secret
+secret**
+# Ignore all __pycache__ folders
+**/__pycache__/
+
+# Ignore all compiled Python files
+*.pyc
+*.pyo
