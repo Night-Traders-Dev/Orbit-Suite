@@ -209,6 +209,55 @@ def load_node(node_id):
     )
 
 
+
+@app.route("/token/<symbol>")
+def token_metrics(symbol):
+    symbol = symbol.upper()
+    ledger = load_chain()
+    token_info = None
+    total_bought = 0.0
+    total_sold = 0.0
+    buyers = set()
+    sellers = set()
+
+    for block in ledger:
+        for tx in block.get("transactions", []):
+            tx_type = tx.get("type", {})
+            if "create_token" in tx_type:
+                data = tx_type["create_token"]
+                if data["symbol"].upper() == symbol:
+                    token_info = {
+                        "token_id": data["token_id"],
+                        "name": data["name"],
+                        "symbol": data["symbol"],
+                        "supply": data["supply"],
+                        "creator": data["creator"],
+                        "created_at": data["timestamp"]
+                    }
+
+            elif "buy_token" in tx_type:
+                data = tx_type["buy_token"]
+                if data["symbol"].upper() == symbol:
+                    total_bought += float(data["amount"])
+                    buyers.add(data["buyer"])
+
+            elif "sell_token" in tx_type:
+                data = tx_type["sell_token"]
+                if data["symbol"].upper() == symbol:
+                    total_sold += float(data["amount"])
+                    sellers.add(data["seller"])
+
+    if not token_info:
+        return render_template("token_not_found.html", symbol=symbol), 404
+
+    token_info["volume_bought"] = round(total_bought, 6)
+    token_info["volume_sold"] = round(total_sold, 6)
+    token_info["unique_buyers"] = len(buyers)
+    token_info["unique_sellers"] = len(sellers)
+
+    return render_template("token_metrics.html", token=token_info)
+
+
 # ===================== Auth + Identity APIs ==================
 
 
@@ -323,6 +372,7 @@ def api_send():
         sender = data.get('sender')
         recipient = data.get('recipient')
         amount = data.get('amount')
+        order = data.get('order')
 
         if not sender or not recipient or amount is None:
             return jsonify({"error": "Missing required fields"}), 400
@@ -336,7 +386,7 @@ def api_send():
             return jsonify({"error": "Invalid amount format"}), 400
 
         # Call core logic
-        success, message = send_orbit(sender, recipient, amount)
+        success, message = send_orbit(sender, recipient, amount, order)
 
         if success:
             return jsonify({"status": "success", "message": message}), 200

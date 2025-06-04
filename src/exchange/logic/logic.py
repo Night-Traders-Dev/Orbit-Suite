@@ -3,8 +3,8 @@
 import uuid
 from core.tx_util.tx_types import TXExchange
 from core.tx_util.tx_validator import TXValidator
+from bot.api import get_user_address, send_orbit_api
 
-EXCHANGE_ADDR = "orbitxchg123"
 
 def create_buy_order(symbol, amount, buyer_addr):
     tx = TXExchange.buy_token(
@@ -45,15 +45,20 @@ def quote_symbol(symbol):
         "updated": "Just now"
     }
 
-def create_token(name, symbol, supply, creator):
+async def create_token(name, symbol, supply, creator):
     tx = TXExchange.create_token(
         token_id=str(uuid.uuid4()),
         name=name,
         symbol=symbol,
         supply=supply,
         creator=creator,
-        listing_fee=100  # Could be pulled from config
+        listing_fee=250  # Could be pulled from config
     )
     validator = TXValidator(tx)
     valid, msg = validator.validate()
+    if valid:
+        exchange="ORB.A6C19210F2B823246BA1DCA7"
+        creator = tx['type']['create_token']['creator']
+        listing_fee = tx['type']['create_token']['listing_fee']
+        success = await send_orbit_api(creator, exchange, 250, order=tx)
     return (True, tx) if valid else (False, msg)

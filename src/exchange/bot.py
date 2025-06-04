@@ -1,7 +1,7 @@
 # bot.py
 import discord
 from discord.ext import commands
-from config import DISCORD_TOKEN
+from configure import DISCORD_TOKEN
 from events.events import register_events
 
 intents = discord.Intents.all()

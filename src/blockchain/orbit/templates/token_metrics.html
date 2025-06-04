@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2 class="text-2xl font-bold mb-4">Token Metrics: {{ token.name }} ({{ token.symbol }})</h2>
+
+<div class="grid grid-cols-2 gap-4">
+  <div><strong>Token ID:</strong> {{ token.token_id }}</div>
+  <div><strong>Creator:</strong> <a href="/address/{{ token.creator }}">{{ token.creator }}</a></div>
+  <div><strong>Supply:</strong> {{ token.supply }}</div>
+  <div><strong>Volume Bought:</strong> {{ token.volume_bought }}</div>
+  <div><strong>Volume Sold:</strong> {{ token.volume_sold }}</div>
+  <div><strong>Unique Buyers:</strong> {{ token.unique_buyers }}</div>
+  <div><strong>Unique Sellers:</strong> {{ token.unique_sellers }}</div>
+  <div><strong>Created At:</strong> {{ token.created_at | datetime }}</div>
+</div>
+{% endblock %}

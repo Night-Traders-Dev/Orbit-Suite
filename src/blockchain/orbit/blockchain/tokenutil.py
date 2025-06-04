@@ -12,13 +12,13 @@ def send_orbit(sender, recipient, amount, order=None):
     users = load_users()
 
     if sender not in users:
-        print("Sender not found.")
+        print(f"{sender} not found.")
         return
     if recipient == sender:
         print("You cannot send Orbit to yourself.")
         return
     if recipient not in users:
-        print("Recipient not found.")
+        print(f"{recipient} not found.")
         return
 
     try:
