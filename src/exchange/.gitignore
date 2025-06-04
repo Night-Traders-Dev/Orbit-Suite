@@ -7,3 +7,4 @@ secret**
 # Ignore all compiled Python files
 *.pyc
 *.pyo
+*.json
