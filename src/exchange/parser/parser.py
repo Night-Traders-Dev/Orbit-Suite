@@ -22,7 +22,7 @@ def parse_exchange_command(message_content):
                 amount = float(parts[3])
                 buyer = parts[4]
                 return {
-                    "action": "buy_from_exchange",
+                    "action": "buy_token_from_exchange",
                     "symbol": symbol,
                     "amount": amount,
                     "buyer": buyer

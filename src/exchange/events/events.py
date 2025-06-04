@@ -37,7 +37,7 @@ def register_events(bot):
         if action == "buy":
             success, result = create_buy_order(command["symbol"], command["amount"], command["buyer"])
         elif action == "buy_token_from_exchange":
-            success, result = await buy_from_exchange(command["symbol"], command["amount"], command["buyer"])
+            success, result = await buy_token_from_exchange(command["symbol"], command["amount"], command["buyer"])
         elif action == "sell":
             success, result = create_sell_order(command["symbol"], command["amount"], command["seller"])
         elif action == "cancel":
