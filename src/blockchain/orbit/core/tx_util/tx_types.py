@@ -248,7 +248,7 @@ class TXExchange:
         }
 
     @staticmethod
-    def buy_token(symbol, amount, buyer_address, order_id=None, token_id=None, exchange_fee=0.0):
+    def buy_token(symbol, price,  amount, buyer_address, order_id=None, token_id=None, exchange_fee=0.0):
         return {
             "type": {
                 "buy_token": {
@@ -265,7 +265,7 @@ class TXExchange:
         }
 
     @staticmethod
-    def sell_token(symbol, amount, seller_address, order_id=None, token_id=None, exchange_fee=0.0):
+    def sell_token(symbol, price, amount, seller_address, order_id=None, token_id=None, exchange_fee=0.0):
         return {
             "type": {
                 "sell_token": {

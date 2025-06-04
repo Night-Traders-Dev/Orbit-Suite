@@ -27,7 +27,7 @@ def register_events(bot):
         if message.author == bot.user or message.channel.id != BOT_OPS_CHANNEL_ID:
             return
 
-        command = parse_exchange_command(message.content)
+        command = await parse_exchange_command(message.content)
         if not command:
             await message.channel.send("[ExchangeBot] Unrecognized or malformed command.")
             return
@@ -35,15 +35,15 @@ def register_events(bot):
         action = command["action"]
 
         if action == "buy":
-            success, result = create_buy_order(command["symbol"], command["amount"], command["buyer"])
+            success, result = await create_buy_order(command["symbol"], command["price"], command["amount"], command["buyer"])
         elif action == "buy_token_from_exchange":
             success, result = await buy_token_from_exchange(command["symbol"], command["amount"], command["buyer"])
         elif action == "sell":
-            success, result = create_sell_order(command["symbol"], command["amount"], command["seller"])
+            success, result = await create_sell_order(command["symbol"], command["price"], command["amount"], command["seller"])
         elif action == "cancel":
-            success, result = cancel_order(command["order_id"])
+            success, result = await cancel_order(command["order_id"])
         elif action == "quote":
-            success, result = quote_symbol(command["symbol"])
+            success, result = await quote_symbol(command["symbol"])
         elif action == "create":
             success, result = await create_token(
                 name=command["name"],

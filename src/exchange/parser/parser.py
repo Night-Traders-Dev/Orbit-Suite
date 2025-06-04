@@ -1,6 +1,6 @@
 # parser/parser.py
 
-def parse_exchange_command(message_content):
+async def parse_exchange_command(message_content):
     try:
         if message_content.startswith("[ExchangeRequest]"):
             parts = message_content.split()

@@ -8,34 +8,46 @@ from bot.api import get_user_address, send_orbit_api
 
 EXCHANGE_ADDRESS="ORB.A6C19210F2B823246BA1DCA7"
 
-def create_buy_order(symbol, amount, price, buyer_addr):
+async def create_buy_order(symbol, price, amount, buyer_addr):
     token_id = get_token_id(symbol.upper())
     tx = TXExchange.buy_token(
         order_id=str(uuid.uuid4()),
         token_id=token_id,
         symbol=symbol,
+        price=price,
         amount=amount,
-        price=price
         buyer_address=buyer_addr,
         exchange_fee=0.01
     )
     validator = TXValidator(tx)
     valid, msg = validator.validate()
+    sent = await send_orbit_api(
+        sender=buyer_addr,
+        recipient=EXCHANGE_ADDRESS,
+        amount=exchange_fee,
+        order=tx
+    )
     return (True, tx) if valid else (False, msg)
 
-def create_sell_order(symbol, amount, price, seller_addr):
+async def create_sell_order(symbol, price, amount, seller_addr):
     token_id = get_token_id(symbol.upper())
     tx = TXExchange.sell_token(
         order_id=str(uuid.uuid4()),
         token_id=token_id,
         symbol=symbol,
+        price=price,
         amount=amount,
-        price=price
         seller_address=seller_addr,
         exchange_fee=0.01
     )
     validator = TXValidator(tx)
     valid, msg = validator.validate()
+    sent = await send_orbit_api(
+        sender=seller_addr,
+        recipient=EXCHANGE_ADDRESS,
+        amount=exchange_fee,
+        order=tx
+    )
     return (True, tx) if valid else (False, msg)
 
 async def cancel_order(order_id, canceller_address, symbol=None):

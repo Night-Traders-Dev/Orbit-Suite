@@ -6,8 +6,11 @@
   <div><strong>Token ID:</strong> {{ token.token_id }}</div>
   <div><strong>Creator:</strong> <a href="/address/{{ token.creator }}">{{ token.creator }}</a></div>
   <div><strong>Supply:</strong> {{ token.supply | commas }}</div>
-  <div><strong>Volume Bought:</strong> {{ token.volume_bought }}</div>
-  <div><strong>Volume Sold:</strong> {{ token.volume_sold }}</div>
+  <div><strong>Volume Received:</strong> {{ token.volume_received | commas }}</div>
+  <div><strong>Volume Sent:</strong> {{ token.volume_sent | commas }}</div>
+  <div><strong>Orbit Spent Buying:</strong> {{ token.orbit_spent_buying | commas }}</div>
+  <div><strong>Orbit Earned Selling:</strong> {{ token.orbit_earned_selling | commas }}</div>
+  <div><strong>Unique Holders:</strong> {{ token.unique_holders | commas }}</div>
   <div><strong>Unique Buyers:</strong> {{ token.unique_buyers | commas }}</div>
   <div><strong>Unique Sellers:</strong> {{ token.unique_sellers | commas }}</div>
   <div><strong>Created At:</strong> {{ token.created_at | ts }}</div>
