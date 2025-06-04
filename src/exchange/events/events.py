@@ -2,8 +2,15 @@
 
 import json
 from parser.parser import parse_exchange_command
-from logic.logic import create_buy_order, create_sell_order, cancel_order, quote_symbol
+from logic.logic import (
+    create_buy_order,
+    create_sell_order,
+    cancel_order,
+    quote_symbol,
+    create_token
+)
 from bot.api import get_user_address
+
 EXCHANGE_UID = 1379645991782846608
 BOT_OPS_CHANNEL_ID = 1379630873174872197
 
@@ -36,6 +43,13 @@ def register_events(bot):
             success, result = cancel_order(command["order_id"])
         elif action == "quote":
             success, result = quote_symbol(command["symbol"])
+        elif action == "create":
+            success, result = list_token(
+                name=command["name"],
+                symbol=command["symbol"],
+                supply=command["supply"],
+                creator=command["creator"]
+            )
         else:
             success, result = False, "Unknown action."
 

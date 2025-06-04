@@ -42,6 +42,20 @@ def parse_exchange_command(message_content):
                     "symbol": symbol
                 }
 
+            elif cmd_type == "CREATE":
+                name = parts[2]
+                symbol = parts[3]
+                supply = int(float(parts[4]) * 1e6)
+                creator = parts[5]
+                return {
+                    "action": "create",
+                    "name": name,
+                    "symbol": symbol,
+                    "supply": supply,
+                    "creator": creator
+                }
+
+
         return None
     except Exception as e:
         print(f"[ParserError] Failed to parse command: {e}")

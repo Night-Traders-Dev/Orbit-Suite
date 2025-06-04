@@ -1,7 +1,7 @@
 from discord.ui import View, Button
 import discord
 import asyncio
-from modals import SendOrbitModal, LockOrbitModal, TokenListingModal, BuyTokenModal, SellTokenModal
+from modals import SendOrbitModal, LockOrbitModal, CreateTokenModal, BuyTokenModal, SellTokenModal
 from wallet import claim_rewards, wallet_info
 from api import create_2fa_api, get_user_address, mine_orbit_api
 
@@ -96,9 +96,9 @@ class ExchangeView(View):
     async def sell_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(SellTokenModal(self.user_id))
 
-    @discord.ui.button(label="List a Token", style=discord.ButtonStyle.blurple, custom_id="list_token")
+    @discord.ui.button(label="Create Token", style=discord.ButtonStyle.blurple, custom_id="create_token")
     async def list_button(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_modal(TokenListingModal(self.user_id))
+        await interaction.response.send_modal(CreateTokenModal(self.user_id))
 
     @discord.ui.button(label="My Tokens", style=discord.ButtonStyle.gray, custom_id="my_tokens")
     async def my_tokens_button(self, interaction: discord.Interaction, button: Button):

@@ -44,3 +44,16 @@ def quote_symbol(symbol):
         "volume": 10000,
         "updated": "Just now"
     }
+
+def create_token(name, symbol, supply, creator):
+    tx = TXExchange.create_token(
+        token_id=str(uuid.uuid4()),
+        name=name,
+        symbol=symbol,
+        supply=supply,
+        creator=creator,
+        listing_fee=100  # Could be pulled from config
+    )
+    validator = TXValidator(tx)
+    valid, msg = validator.validate()
+    return (True, tx) if valid else (False, msg)

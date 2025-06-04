@@ -117,9 +117,9 @@ class SellTokenModal(Modal):
 
 TOKEN_CREATION_FEE = 250  # ORBIT
 
-class TokenListingModal(Modal):
+class CreateTokenModal(Modal):
     def __init__(self, uid):
-        super().__init__(title="Orbit Exchange - List New Token")
+        super().__init__(title="Orbit Exchange - Create Token")
         self.uid = uid
         self.address = ""
         self.name = TextInput(label="Token Name", placeholder="ExampleToken", max_length=32)
@@ -132,7 +132,6 @@ class TokenListingModal(Modal):
     async def on_submit(self, interaction: discord.Interaction):
         self.address = await get_user_address(self.uid)
 
-        # Validate supply
         try:
             supply_val = float(self.supply.value)
             if supply_val <= 0:
@@ -141,16 +140,14 @@ class TokenListingModal(Modal):
             await interaction.response.send_message("❌ Invalid supply amount.", ephemeral=True)
             return
 
-        # Check balance
-        balance = await get_user_balance(self.address)
-        if balance < TOKEN_CREATION_FEE:
+        total, available, locked = await get_user_balance(self.address)
+        if available < TOKEN_CREATION_FEE:
             await interaction.response.send_message(
                 f"❌ You need at least {TOKEN_CREATION_FEE} ORBIT to list a token. Your balance: {balance:.2f}",
                 ephemeral=True
             )
             return
 
-        # Format the listing request message for Exchange Bot
         channel = interaction.client.get_channel(BOT_OPS_CHANNEL_ID)
         if channel:
             await channel.send(
