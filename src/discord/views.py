@@ -1,9 +1,10 @@
 from discord.ui import View, Button
 import discord
 import asyncio
-from modals import SendOrbitModal, LockOrbitModal, CreateTokenModal, BuyTokenModal, SellTokenModal, BuyFromExchangeModal
+from modals import SendOrbitModal, LockOrbitModal, CreateTokenModal, BuyTokenModal, SellTokenModal, BuyFromExchangeModal, MyTokensModal
 from wallet import claim_rewards, wallet_info
 from api import create_2fa_api, get_user_address, mine_orbit_api
+from core.ioutil import fetch_chain
 
 BOT_OPS_CHANNEL_ID = 1379630873174872197
 
@@ -102,7 +103,27 @@ class ExchangeView(View):
 
     @discord.ui.button(label="My Tokens", style=discord.ButtonStyle.gray, custom_id="my_tokens")
     async def my_tokens_button(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_message("📊 Portfolio view under development.", ephemeral=True)
+        address = await get_user_address(self.user_id)
+        chain = fetch_chain()
+        tokens = {}
+
+        for block in reversed(chain):
+            for tx in block["transactions"]:
+                note = tx.get("note", [])
+                if isinstance(note, dict) and "token_transfer" in note.get("type", {}):
+                    data = note["type"]["token_transfer"]
+                    if data.get("token_symbol"):
+                        if data.get("receiver") == address:
+                            tokens[symbol] = data.get(token_symbol) + data.get("amount", 0)
+                        if data.get("sender") == address:
+                            tokens[symbol] = data.get(token_symbol) - data.get("amount", 0)
+
+        if not tokens:
+            portfolio_text = "No tokens found."
+        else:
+            portfolio_text = "\n".join(f"{symbol}: {amount}" for symbol, amount in tokens.items())
+
+        await interaction.response.send_modal(MyTokensModal(self.user_id, portfolio_text))
 
     @discord.ui.button(label="Buy ICO", style=discord.ButtonStyle.green, custom_id="buy_ico")
     async def buy_ico(self, interaction: discord.Interaction, button: Button):

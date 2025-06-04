@@ -185,3 +185,23 @@ class CreateTokenModal(Modal):
             )
         else:
             await interaction.response.send_message("❌ Could not reach Exchange Bot channel.", ephemeral=True)
+
+
+
+class MyTokensModal(Modal):
+    def __init__(self, uid, portfolio_text="No tokens found."):
+        super().__init__(title="My Tokens")
+        self.uid = uid
+
+        self.portfolio_display = TextInput(
+            label="Your Token Holdings",
+            style=discord.TextStyle.paragraph,
+            required=False,
+            max_length=4000
+        )
+        self.portfolio_display.default = portfolio_text
+
+        self.add_item(self.portfolio_display)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.send_message("✅ Portfolio viewed.", ephemeral=True)
