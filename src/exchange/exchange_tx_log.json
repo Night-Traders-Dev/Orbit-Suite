@@ -1,0 +1,15 @@
+[
+  {
+    "type": {
+      "buy_token": {
+        "order_id": "8efddaa2-c627-4770-aecf-675d84572d5a",
+        "token_id": "0001",
+        "symbol": "DOGE",
+        "amount": 10.0,
+        "buyer": "ORB.B77AC60F52529B834E4DAF21",
+        "exchange_fee": 0.01,
+        "timestamp": 1749006189.401149
+      }
+    }
+  }
+]
