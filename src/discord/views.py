@@ -101,30 +101,44 @@ class ExchangeView(View):
     async def list_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(CreateTokenModal(self.user_id))
 
-    @discord.ui.button(label="My Tokens", style=discord.ButtonStyle.gray, custom_id="my_tokens")
-    async def my_tokens_button(self, interaction: discord.Interaction, button: Button):
-        address = await get_user_address(self.user_id)
-        chain = fetch_chain()
-        tokens = {}
-
-        for block in reversed(chain):
-            for tx in block["transactions"]:
-                note = tx.get("note", [])
-                if isinstance(note, dict) and "token_transfer" in note.get("type", {}):
-                    data = note["type"]["token_transfer"]
-                    if data.get("token_symbol"):
-                        if data.get("receiver") == address:
-                            tokens[symbol] = data.get(token_symbol) + data.get("amount", 0)
-                        if data.get("sender") == address:
-                            tokens[symbol] = data.get(token_symbol) - data.get("amount", 0)
-
-        if not tokens:
-            portfolio_text = "No tokens found."
-        else:
-            portfolio_text = "\n".join(f"{symbol}: {amount}" for symbol, amount in tokens.items())
-
-        await interaction.response.send_modal(MyTokensModal(self.user_id, portfolio_text))
-
     @discord.ui.button(label="Buy ICO", style=discord.ButtonStyle.green, custom_id="buy_ico")
     async def buy_ico(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(BuyFromExchangeModal(self.user_id))
+
+
+    @discord.ui.button(label="My Tokens", style=discord.ButtonStyle.gray, custom_id="my_tokens")
+    async def my_tokens_button(self, interaction: discord.Interaction, button: Button):
+        address = await get_user_address(self.user_id)
+        if not address:
+            await interaction.response.send_message("Could not find your address. Please ensure you've linked it.", ephemeral=True)
+            return
+
+        chain = fetch_chain()
+        tokens = {}
+
+        for block in chain:
+            for tx in block.get("transactions", []):
+                note = tx.get("note")
+                if isinstance(note, dict) and note.get("type", {}).get("token_transfer"):
+                    data = note["type"]["token_transfer"]
+                    symbol = data.get("token_symbol")
+                    amount = data.get("amount")
+
+                    if symbol and isinstance(amount, (int, float)):
+                        if data.get("receiver") == address:
+                            tokens[symbol] = tokens.get(symbol, 0.0) + amount
+                        elif data.get("sender") == address:
+                            tokens[symbol] = tokens.get(symbol, 0.0) - amount
+
+        if not tokens:
+           description = "You don't have any tokens."
+        else:
+            description = "\n".join(f"**{symbol}**: {amount:,}" for symbol, amount in tokens.items())
+
+        embed = discord.Embed(
+            title="📊 Your Token Portfolio",
+            description=description,
+            color=discord.Color.blue()
+        )
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
