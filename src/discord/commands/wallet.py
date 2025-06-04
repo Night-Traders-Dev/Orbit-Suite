@@ -33,15 +33,29 @@ def setup(bot, GUILD):
             delete_after=60
         )
 
+
+
     @bot.tree.command(
         name="exchange",
         description="Access the Orbit token exchange",
         guild=GUILD
     )
     async def exchange(interaction: discord.Interaction):
+
+        embed = discord.Embed(
+            title="Orbit Exchange",
+#            description="Trade community tokens using ORBIT",
+            color=0x00ffcc
+        )
+        embed.add_field(
+            name="Exchange Info",
+            value="• Use buttons below to buy, sell, or list tokens.\n• Only community-created tokens are listed.",
+            inline=False
+        )
+
         await interaction.response.send_message(
-            "🌐 Welcome to the Orbit Exchange!",
+            embed=embed,
             view=ExchangeView(),
             delete_after=120
-            )
+        )
 

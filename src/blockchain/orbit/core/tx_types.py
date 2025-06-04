@@ -1,5 +1,6 @@
 import time
 import json
+import uuid
 from core.hashutil import generate_lock_id
 
 class TXTypes:
@@ -204,6 +205,71 @@ class TXTypes:
                 "delegation": {
                     "to": delegate_to,
                     "amount": amount,
+                    "timestamp": time.time()
+                }
+            }
+        }
+
+
+    # --- Exchange Metadata Utilities ---
+
+    @staticmethod
+    def create_token(name, symbol, supply, creator_address, token_id=None):
+        return {
+            "type": {
+                "create_token": {
+                    "token_id": token_id or str(uuid.uuid4()),
+                    "name": name,
+                    "symbol": symbol.upper(),
+                    "supply": float(supply),
+                    "creator": creator_address,
+                    "timestamp": time.time()
+                }
+            }
+        }
+
+    @staticmethod
+    def list_token(symbol, price, lister_address, token_id=None, exchange_fee=0.0):
+        return {
+            "type": {
+                "list_token": {
+                    "token_id": token_id or symbol.upper(),
+                    "symbol": symbol.upper(),
+                    "price": float(price),
+                    "lister": lister_address,
+                    "exchange_fee": float(exchange_fee),
+                    "timestamp": time.time()
+                }
+            }
+        }
+
+    @staticmethod
+    def buy_token(symbol, amount, buyer_address, order_id=None, token_id=None, exchange_fee=0.0):
+        return {
+            "type": {
+                "buy_token": {
+                    "order_id": order_id or str(uuid.uuid4()),
+                    "token_id": token_id or symbol.upper(),
+                    "symbol": symbol.upper(),
+                    "amount": float(amount),
+                    "buyer": buyer_address,
+                    "exchange_fee": float(exchange_fee),
+                    "timestamp": time.time()
+                }
+            }
+        }
+
+    @staticmethod
+    def sell_token(symbol, amount, seller_address, order_id=None, token_id=None, exchange_fee=0.0):
+        return {
+            "type": {
+                "sell_token": {
+                    "order_id": order_id or str(uuid.uuid4()),
+                    "token_id": token_id or symbol.upper(),
+                    "symbol": symbol.upper(),
+                    "amount": float(amount),
+                    "seller": seller_address,
+                    "exchange_fee": float(exchange_fee),
                     "timestamp": time.time()
                 }
             }

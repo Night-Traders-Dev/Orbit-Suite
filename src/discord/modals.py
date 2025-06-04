@@ -64,12 +64,15 @@ class LockOrbitModal(Modal):
 class TokenListingModal(Modal):
     def __init__(self):
         super().__init__(title="Orbit Exchange")
-        name = TextInput(label="Token Name", placeholder="ExampleToken", max_length=32)
-        symbol = TextInput(label="Symbol", placeholder="EXT", max_length=8)
-        supply = TextInput(label="Total Supply", placeholder="1000000", max_length=18)
+        self.name = TextInput(label="Token Name", placeholder="ExampleToken", max_length=32)
+        self.symbol = TextInput(label="Symbol", placeholder="EXT", max_length=8)
+        self.supply = TextInput(label="Total Supply", placeholder="1000000", max_length=18)
+        self.add_item(self.name)
+        self.add_item(self.symbol)
+        self.add_item(self.supply)
 
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.send_message(
-            f"✅ Token listed:\n**Name:** {self.name}\n**Symbol:** {self.symbol}\n**Supply:** {self.supply}",
+            f"✅ Token submitted for review",
             ephemeral=True
         )
