@@ -11,18 +11,21 @@ async def get_user_address(uid):
         except Exception as e:
             return f"Request failed: {str(e)}"
 
-def get_user_balance(address, host=explorer):
-    try:
-        response = requests.get(f"{host}/api/balance/{address}")
-        if response.status_code == 200:
-            data = response.json()
-            return data['total_balance'], data['available_balance'], data['locked_balance']
-        else:
-            print(f"Error {response.status_code}: {response.json().get('error')}")
+
+async def get_user_balance(address, host=explorer):
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(f"{host}/api/balance/{address}") as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data['total_balance'], data['available_balance'], data['locked_balance']
+                else:
+                    error_data = await response.json()
+                    print(f"Error {response.status}: {error_data.get('error')}")
+                    return None
+        except Exception as e:
+            print(f"Request failed: {e}")
             return None
-    except Exception as e:
-        print(f"Request failed: {e}")
-        return None
 
 async def create_2fa_api(address):
     async with aiohttp.ClientSession() as session:

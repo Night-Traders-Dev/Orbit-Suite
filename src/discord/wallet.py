@@ -3,7 +3,7 @@ from discord.ext import commands
 import discord
 
 
-def get_wallet_balance(address):
+async def get_wallet_balance(address):
     return {
         "address": address,
         "available": 0.0,
@@ -26,8 +26,8 @@ async def claim_rewards(address):
 
 async def wallet_info(uid):
     address = await get_user_address(uid)
-    balance = get_wallet_balance(address)
-    total, wallet, locked = get_user_balance(address)
+    balance = await get_wallet_balance(address)
+    total, wallet, locked = await get_user_balance(address)
 
     embed = discord.Embed(title="Orbit Wallet", color=0x00ffcc)
     embed.add_field(name="Address", value=address, inline=False)

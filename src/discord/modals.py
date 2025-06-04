@@ -1,7 +1,7 @@
 from discord.ui import Modal, TextInput
 import discord
 import asyncio
-from api import verify_2fa_api, send_orbit_api, get_user_address
+from api import verify_2fa_api, send_orbit_api, get_user_address, get_user_balance
 from wallet import lock_orbit, wallet_info
 
 BOT_OPS_CHANNEL_ID = 1379630873174872197
@@ -114,11 +114,14 @@ class SellTokenModal(Modal):
             await interaction.response.send_message("❌ Bot-ops channel not found.", ephemeral=True)
 
 
+
+TOKEN_CREATION_FEE = 250  # ORBIT
+
 class TokenListingModal(Modal):
     def __init__(self, uid):
-        super().__init__(title="Orbit Exchange")
-        self.address = ""
+        super().__init__(title="Orbit Exchange - List New Token")
         self.uid = uid
+        self.address = ""
         self.name = TextInput(label="Token Name", placeholder="ExampleToken", max_length=32)
         self.symbol = TextInput(label="Symbol", placeholder="EXT", max_length=8)
         self.supply = TextInput(label="Total Supply", placeholder="1000000", max_length=18)
@@ -128,7 +131,34 @@ class TokenListingModal(Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         self.address = await get_user_address(self.uid)
-        await interaction.response.send_message(
-            f"✅ Token submitted for review",
-            ephemeral=True
-        )
+
+        # Validate supply
+        try:
+            supply_val = float(self.supply.value)
+            if supply_val <= 0:
+                raise ValueError("Supply must be positive.")
+        except ValueError:
+            await interaction.response.send_message("❌ Invalid supply amount.", ephemeral=True)
+            return
+
+        # Check balance
+        balance = await get_user_balance(self.address)
+        if balance < TOKEN_CREATION_FEE:
+            await interaction.response.send_message(
+                f"❌ You need at least {TOKEN_CREATION_FEE} ORBIT to list a token. Your balance: {balance:.2f}",
+                ephemeral=True
+            )
+            return
+
+        # Format the listing request message for Exchange Bot
+        channel = interaction.client.get_channel(BOT_OPS_CHANNEL_ID)
+        if channel:
+            await channel.send(
+                f"[ExchangeRequest] LIST {self.name.value.strip()} {self.symbol.value.strip().upper()} {supply_val} {self.address}"
+            )
+            await interaction.response.send_message(
+                f"✅ Token listing request submitted to Exchange Bot.",
+                ephemeral=True
+            )
+        else:
+            await interaction.response.send_message("❌ Could not reach Exchange Bot channel.", ephemeral=True)
