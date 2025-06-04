@@ -6,3 +6,6 @@
 1749045727.9806497 | Node Node5516 | [DISCOVERY] | Added new peer: Node7863
 1749045727.981287 | Node Node5516 | [DISCOVERY] | Added new peer: Node9944
 1749045730.3021822 | Node Node9944 | [DISCOVERY] | Added new peer: Node5516
+1749051990.4936614 | Node Node9944 | [INFO] | Validating Block.
+1749055016.2095373 | Node Node5516 | [HEARTBEAT] | Exception: HTTPConnectionPool(host='127.0.0.1', port=7000): Max retries exceeded with url: /node_ping (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7ce6c62480>: Failed to establish a new connection: [Errno 111] Connection refused'))
+1749055017.3620486 | Node Node5516 | [DISCOVERY ERROR] | HTTPConnectionPool(host='127.0.0.1', port=7000): Max retries exceeded with url: /active_nodes (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7ce6c630b0>: Failed to establish a new connection: [Errno 111] Connection refused'))

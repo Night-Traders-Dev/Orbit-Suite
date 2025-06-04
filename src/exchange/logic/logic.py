@@ -36,8 +36,31 @@ def create_sell_order(symbol, amount, seller_addr):
     valid, msg = validator.validate()
     return (True, tx) if valid else (False, msg)
 
-def cancel_order(order_id):
-    return True, f"Order {order_id} canceled (not really, just a stub)."
+async def cancel_order(order_id, canceller_address, symbol=None):
+    tx = TXExchange.cancel_order(
+        order_id=order_id,
+        canceller_address=canceller_address,
+        symbol=symbol
+    )
+
+    validator = TXValidator(tx)
+    valid, msg = validator.validate()
+    if not valid:
+        return False, msg
+
+    cancel_fee = 0.01
+
+    sent = await send_orbit_api(
+        sender=canceller_address,
+        recipient=EXCHANGE_ADDRESS,
+        amount=cancel_fee,
+        order=tx
+    )
+
+    if not sent:
+        return False, "Transaction submission failed."
+
+    return True, f"Cancel request for order {order_id} submitted successfully."
 
 def quote_symbol(symbol):
     return True, {

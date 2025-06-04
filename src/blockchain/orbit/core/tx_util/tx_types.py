@@ -278,6 +278,18 @@ class TXExchange:
             }
         }
 
+    @staticmethod
+    def cancel_order(order_id, canceller_address, symbol=None):
+        return {
+            "type": {
+                "cancel_order": {
+                    "order_id": order_id,
+                    "symbol": symbol.upper() if symbol else None,
+                    "canceller": canceller_address,
+                    "timestamp": time.time()
+                }
+            }
+        }
 
     @staticmethod
     def create_token_transfer_tx(sender, receiver, amount, token_symbol, note="", signature=""):
