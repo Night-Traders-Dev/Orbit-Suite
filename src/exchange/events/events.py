@@ -3,13 +3,15 @@
 import json
 from parser.parser import parse_exchange_command
 from logic.logic import create_buy_order, create_sell_order, cancel_order, quote_symbol
-
+from bot.api import get_user_address
+EXCHANGE_UID = 1379645991782846608
 BOT_OPS_CHANNEL_ID = 1379630873174872197
 
 def register_events(bot):
     @bot.event
     async def on_ready():
-        print(f"[✓] Orbit Exchange Bot is online as {bot.user.name}")
+        address = await get_user_address(bot.user.id)
+        print(f"[✓] Orbit Exchange Bot is online as {address}")
         channel = bot.get_channel(BOT_OPS_CHANNEL_ID)
         if channel:
             await channel.send("[ExchangeBot] Ready and listening for orders.")
