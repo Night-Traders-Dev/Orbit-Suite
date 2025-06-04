@@ -1,7 +1,7 @@
 # logic/logic.py
 
 import uuid
-from core.exchangeutil import get_token_id
+from core.exchangeutil import get_token_id, get_user_token_balance
 from core.tx_util.tx_types import TXExchange
 from core.tx_util.tx_validator import TXValidator
 from bot.api import get_user_address, send_orbit_api
@@ -9,7 +9,7 @@ from bot.api import get_user_address, send_orbit_api
 EXCHANGE_ADDRESS="ORB.A6C19210F2B823246BA1DCA7"
 
 def create_buy_order(symbol, amount, buyer_addr):
-    token_id = get_token_id(symbol)
+    token_id = get_token_id(symbol.upper())
     tx = TXExchange.buy_token(
         order_id=str(uuid.uuid4()),
         token_id=token_id,
@@ -23,7 +23,7 @@ def create_buy_order(symbol, amount, buyer_addr):
     return (True, tx) if valid else (False, msg)
 
 def create_sell_order(symbol, amount, seller_addr):
-    token_id = get_token_id(symbol)
+    token_id = get_token_id(symbol.upper())
     tx = TXExchange.sell_token(
         order_id=str(uuid.uuid4()),
         token_id=token_id,
@@ -48,7 +48,7 @@ def quote_symbol(symbol):
     }
 
 async def create_token(name, symbol, supply, creator):
-    if get_token_id(symbol):
+    if get_token_id(symbol).upper():
        msg = "Token already exists"
        return (False, msg)
     tx = TXExchange.create_token(
@@ -89,11 +89,11 @@ async def create_token(name, symbol, supply, creator):
 EXCHANGE_PRICE = 0.1
 
 async def buy_token_from_exchange(symbol, amount, buyer_address):
-    token_id = get_token_id(symbol)
+    token_id = get_token_id(symbol.upper())
     if not token_id:
-        return False, f"Token '{symbol}' not found."
+        return False, f"Token '{symbol.upper()}' not found."
 
-    exchange_balance = get_user_token_balance(EXCHANGE_ADDRESS, symbol)
+    exchange_balance = get_user_token_balance(EXCHANGE_ADDRESS, symbol.upper())
     if exchange_balance < amount:
         return False, "Exchange does not have enough token supply available."
 
@@ -104,7 +104,7 @@ async def buy_token_from_exchange(symbol, amount, buyer_address):
         sender=EXCHANGE_ADDRESS,
         receiver=buyer_address,
         amount=amount,
-        token_symbol=symbol,
+        token_symbol=symbol.upper(),
         note="Token purchased from exchange"
     )
     token_validator = TXValidator(token_tx)
@@ -112,12 +112,12 @@ async def buy_token_from_exchange(symbol, amount, buyer_address):
     if not valid:
         return False, f"Token TX invalid: {msg}"
 
-    sent = await send_orbit_api(buyer_address, EXCHANGE_ADDRESS, total_cost, token_symbol=symbol, order=token_tx)
+    sent = await send_orbit_api(buyer_address, EXCHANGE_ADDRESS, total_cost, token_symbol=symbol.upper(), order=token_tx)
     if not sent:
         return False, "Token delivery failed."
 
     return True, {
         "orbit_spent": total_cost,
         "tokens_received": amount,
-        "symbol": symbol
+        "symbol": symbol.upper()
     }
