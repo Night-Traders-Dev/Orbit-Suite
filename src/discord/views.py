@@ -93,6 +93,11 @@ class ExchangeView(View):
     async def buy_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(BuyTokenModal(self.user_id))
 
+    @discord.ui.button(label="Buy ICO", style=discord.ButtonStyle.green, custom_id="buy_ico")
+    async def buy_ico(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_modal(BuyFromExchangeModal(self.user_id))
+
+
     @discord.ui.button(label="Sell Tokens", style=discord.ButtonStyle.red, custom_id="sell_tokens")
     async def sell_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(SellTokenModal(self.user_id))
@@ -101,13 +106,10 @@ class ExchangeView(View):
     async def list_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(CreateTokenModal(self.user_id))
 
-    @discord.ui.button(label="Buy ICO", style=discord.ButtonStyle.green, custom_id="buy_ico")
-    async def buy_ico(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_modal(BuyFromExchangeModal(self.user_id))
-
 
     @discord.ui.button(label="My Tokens", style=discord.ButtonStyle.gray, custom_id="my_tokens")
     async def my_tokens_button(self, interaction: discord.Interaction, button: Button):
+
         address = await get_user_address(self.user_id)
         if not address:
             await interaction.response.send_message("Could not find your address. Please ensure you've linked it.", ephemeral=True)
@@ -116,6 +118,7 @@ class ExchangeView(View):
         chain = fetch_chain()
         tokens = {}
         token_stats = {}
+        latest_prices = {}
 
         for block in chain:
             for tx in block.get("transactions", []):
@@ -132,23 +135,37 @@ class ExchangeView(View):
                     if not token_symbol or not isinstance(token_qty, (int, float)):
                         continue
 
-                    # Net holdings
+                    # Holdings calculation
                     if receiver == address:
                         tokens[token_symbol] = tokens.get(token_symbol, 0.0) + token_qty
                     elif sender == address:
                         tokens[token_symbol] = tokens.get(token_symbol, 0.0) - token_qty
 
-                    # Buy stats (user receives token, spends Orbit)
+                    # Buy stats
                     if receiver == address and orbit_amount:
                         stats = token_stats.setdefault(token_symbol, {"buy_tokens": 0, "buy_orbit": 0.0, "sell_tokens": 0, "sell_orbit": 0.0})
                         stats["buy_tokens"] += token_qty
                         stats["buy_orbit"] += orbit_amount
 
-                    # Sell stats (user sends token, receives Orbit)
+                    # Sell stats
                     if sender == address and orbit_amount:
                         stats = token_stats.setdefault(token_symbol, {"buy_tokens": 0, "buy_orbit": 0.0, "sell_tokens": 0, "sell_orbit": 0.0})
                         stats["sell_tokens"] += token_qty
                         stats["sell_orbit"] += orbit_amount
+
+        for block in reversed(chain):
+            for tx in reversed(block.get("transactions", [])):
+                note = tx.get("note")
+                orbit_amount = tx.get("amount")
+
+                if isinstance(note, dict) and note.get("type", {}).get("token_transfer"):
+                    data = note["type"]["token_transfer"]
+                    token_symbol = data.get("token_symbol")
+                    token_qty = data.get("amount")
+
+                    if token_symbol and token_symbol not in latest_prices and isinstance(token_qty, (int, float)) and orbit_amount:
+                        if token_qty > 0:
+                            latest_prices[token_symbol] = orbit_amount / token_qty
 
         embed = discord.Embed(
             title="📊 My Token Portfolio",
@@ -162,10 +179,12 @@ class ExchangeView(View):
                 stats = token_stats.get(symbol, {})
                 buy_avg = (stats["buy_orbit"] / stats["buy_tokens"]) if stats.get("buy_tokens") else None
                 sell_avg = (stats["sell_orbit"] / stats["sell_tokens"]) if stats.get("sell_tokens") else None
+                current_price = latest_prices.get(symbol)
 
                 value = f"**Holdings:** {amount:.2f} {symbol}\n"
                 value += f"**Avg Buy Price:** {f'{buy_avg:.4f}' if buy_avg else 'N/A'} Orbit\n"
-                value += f"**Avg Sell Price:** {f'{sell_avg:.4f}' if sell_avg else 'N/A'} Orbit"
+                value += f"**Avg Sell Price:** {f'{sell_avg:.4f}' if sell_avg else 'N/A'} Orbit\n"
+                value += f"**Current Price:** {f'{current_price:.4f}' if current_price else 'N/A'} Orbit"
 
                 embed.add_field(name=symbol, value=value, inline=False)
 
