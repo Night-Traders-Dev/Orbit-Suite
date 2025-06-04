@@ -5,11 +5,11 @@
 <div class="grid grid-cols-2 gap-4">
   <div><strong>Token ID:</strong> {{ token.token_id }}</div>
   <div><strong>Creator:</strong> <a href="/address/{{ token.creator }}">{{ token.creator }}</a></div>
-  <div><strong>Supply:</strong> {{ token.supply }}</div>
+  <div><strong>Supply:</strong> {{ token.supply | commas }}</div>
   <div><strong>Volume Bought:</strong> {{ token.volume_bought }}</div>
   <div><strong>Volume Sold:</strong> {{ token.volume_sold }}</div>
-  <div><strong>Unique Buyers:</strong> {{ token.unique_buyers }}</div>
-  <div><strong>Unique Sellers:</strong> {{ token.unique_sellers }}</div>
-  <div><strong>Created At:</strong> {{ token.created_at | datetime }}</div>
+  <div><strong>Unique Buyers:</strong> {{ token.unique_buyers | commas }}</div>
+  <div><strong>Unique Sellers:</strong> {{ token.unique_sellers | commas }}</div>
+  <div><strong>Created At:</strong> {{ token.created_at | ts }}</div>
 </div>
 {% endblock %}

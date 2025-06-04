@@ -6,15 +6,57 @@ from core.ioutil import load_nodes, fetch_chain
 import time
 from collections import defaultdict
 from core.tx_util.tx_types import TXTypes
+from flask import redirect, url_for, render_template
+from explorer.util.tokens import get_all_tokens
 
 def search_chain(query):
-    query = query.lower()
+    query_lower = query.lower()
+    query_upper = query.upper()
+
     if query.isdigit():
-        return redirect(url_for('block_detail', index=int(query)))
+        return redirect(url_for('get_block', index=int(query)))
+
     if len(query) >= 50:
         return redirect(url_for('tx_detail', txid=query))
-    return redirect(url_for('address_detail', address=query))
 
+    chain = fetch_chain()
+
+    matched_tokens = []
+    results = []
+
+    for idx, block in enumerate(chain):
+        for tx in block.get("transactions", []):
+            # Match transactions
+            if query_lower in tx.get("sender", "").lower() or query_lower in tx.get("recipient", "").lower():
+                results.append({
+                    "block": idx,
+                    "tx": tx
+                })
+
+            # Match token metadata
+            note = tx.get("note", {})
+            if isinstance(note, dict) and "type" in note and isinstance(note["type"], dict) and "create_token" in note["type"]:
+                token = note["type"]["create_token"]
+                name = token.get("name", "").lower()
+                symbol = token.get("symbol", "").upper()
+
+                if query_lower in name or query_upper in symbol:
+                    matched_tokens.append({
+                        "name": token.get("name"),
+                        "symbol": token.get("symbol"),
+                        "creator": token.get("creator"),
+                        "supply": token.get("supply"),
+                        "token_id": token.get("token_id"),
+                        "created_at": token.get("timestamp")
+                    })
+
+    # If exactly one token match, redirect to token page
+    if len(matched_tokens) == 1 and not results:
+        return redirect(url_for("token_metrics", symbol=matched_tokens[0]["symbol"]))
+
+    return render_template("results.html", query=query,
+                           matched_tokens=matched_tokens,
+                           results=results)
 
 def last_transactions(address, limit=10):
     txs = []

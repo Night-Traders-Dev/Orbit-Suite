@@ -1,5 +1,5 @@
 from explorer.util.util import get_chain_summary, search_chain
-from flask import request
+from flask import request, render_template
 import math
 
 PAGE_SIZE = 5
@@ -7,6 +7,9 @@ PAGE_SIZE = 5
 def home(chain):
     query = request.args.get("q", "").strip()
     if query:
+#        result = search_chain(query)
+#        if not isinstance(result, tuple):
+        print(query)
         return search_chain(query)
 
     page = int(request.args.get("page", 1))

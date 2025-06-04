@@ -1,5 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, g
-#from flask_lt import run_with_lt
+from flask import Flask, render_template, request, jsonify, redirect, url_for, g, Response
 import json, os, datetime, math, time
 
 from config.configutil import OrbitDB
@@ -26,7 +25,6 @@ from explorer.util.util import search_chain, last_transactions, get_validator_st
 
 orbit_db = OrbitDB()
 app = Flask(__name__)
-#run_with_lt(app, subdomain="orbit-blockchain")
 
 CHAIN_PATH = orbit_db.blockchaindb
 PORT = 7000
@@ -43,10 +41,19 @@ def format_timestamp(value):
     except:
         return str(value)
 
+@app.template_filter('commas')
+def format_commas(value):
+    return "{:,.0f}".format(value)
+
+
 # ===================== General UI Routes =====================
+
 
 @app.route("/")
 def get_home():
+    query = request.args.get("q")
+    if query:
+        return search_chain(query)
     (
         html,
         chain,
@@ -64,7 +71,6 @@ def get_home():
                            total_pages=total_pages,
                            blocks=blocks,
                            summary=summary)
-
 
 
 @app.route("/orbit-stats")
@@ -209,7 +215,6 @@ def load_node(node_id):
     )
 
 
-
 @app.route("/token/<symbol>")
 def token_metrics(symbol):
     symbol = symbol.upper()
@@ -224,39 +229,43 @@ def token_metrics(symbol):
         for tx in block.get("transactions", []):
             note = tx.get("note", {})
             if note and "type" in note:
-                if "create_token" in note["type"]:
-                    data = note["type"]["create_token"]
-                    if data["symbol"].upper() == symbol:
+                tx_type = note["type"]
+
+                if "create_token" in tx_type:
+                    data = tx_type["create_token"]
+                    if data.get("symbol", "").upper() == symbol:
                         token_info = {
-                            "token_id": data["token_id"],
-                            "name": data["name"],
-                            "symbol": data["symbol"],
-                            "supply": data["supply"],
-                            "creator": data["creator"],
-                            "created_at": data["timestamp"]
+                            "token_id": data.get("token_id"),
+                            "name": data.get("name"),
+                            "symbol": data.get("symbol"),
+                            "supply": data.get("supply"),
+                            "creator": data.get("creator"),
+                            "created_at": data.get("timestamp")
                         }
 
-                elif "buy_token" in note["type"]:
+                elif "buy_token" in tx_type:
                     data = tx_type["buy_token"]
-                    if data["symbol"].upper() == symbol:
-                        total_bought += float(data["amount"])
-                        buyers.add(data["buyer"])
+                    if data.get("symbol", "").upper() == symbol:
+                        total_bought += float(data.get("amount", 0))
+                        buyers.add(data.get("buyer"))
 
-                elif "sell_token" in note["type"]:
+                elif "sell_token" in tx_type:
                     data = tx_type["sell_token"]
-                    if data["symbol"].upper() == symbol:
-                        total_sold += float(data["amount"])
-                        sellers.add(data["seller"])
+                    if data.get("symbol", "").upper() == symbol:
+                        total_sold += float(data.get("amount", 0))
+                        sellers.add(data.get("seller"))
 
-        if not token_info:
-            return render_template("token_not_found.html", symbol=symbol), 404
+    if not token_info:
+        return render_template("token_not_found.html", symbol=symbol), 404
 
-        token_info["volume_bought"] = round(total_bought, 6)
-        token_info["volume_sold"] = round(total_sold, 6)
-        token_info["unique_buyers"] = len(buyers)
-        token_info["unique_sellers"] = len(sellers)
+    token_info["volume_bought"] = round(total_bought, 6)
+    token_info["volume_sold"] = round(total_sold, 6)
+    token_info["unique_buyers"] = len(buyers)
+    token_info["unique_sellers"] = len(sellers)
 
-        return render_template("token_metrics.html", token=token_info)
+    return render_template("token_metrics.html", token=token_info)
+
+
 
 
 # ===================== Auth + Identity APIs ==================
