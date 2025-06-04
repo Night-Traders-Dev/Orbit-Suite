@@ -82,7 +82,7 @@ class BuyTokenModal(Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         self.address = await get_user_address(self.uid)
-        message = f"[ExchangeRequest] BUY {self.symbol.value.upper()} {self.amount.value} {self.price.value} {self.address}"
+        message = f"[ExchangeRequest] BUY {self.symbol.value.upper()} {self.price.value} {self.amount.value} {self.address}"
         bot_ops_channel = interaction.client.get_channel(BOT_OPS_CHANNEL_ID)
 
         if bot_ops_channel:
@@ -108,7 +108,7 @@ class SellTokenModal(Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         self.address = await get_user_address(self.uid)
-        message = f"[ExchangeRequest] SELL {self.symbol.value.upper()} {self.amount.value} {self.price.value} {self.address}"
+        message = f"[ExchangeRequest] SELL {self.symbol.value.upper()} {self.price.value} {self.amount.value} {self.address}"
         bot_ops_channel = interaction.client.get_channel(BOT_OPS_CHANNEL_ID)
 
         if bot_ops_channel:
