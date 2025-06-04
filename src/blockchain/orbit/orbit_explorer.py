@@ -222,40 +222,41 @@ def token_metrics(symbol):
 
     for block in ledger:
         for tx in block.get("transactions", []):
-            tx_type = tx.get("type", {})
-            if "create_token" in tx_type:
-                data = tx_type["create_token"]
-                if data["symbol"].upper() == symbol:
-                    token_info = {
-                        "token_id": data["token_id"],
-                        "name": data["name"],
-                        "symbol": data["symbol"],
-                        "supply": data["supply"],
-                        "creator": data["creator"],
-                        "created_at": data["timestamp"]
-                    }
+            note = tx.get("note", {})
+            if note and "type" in note:
+                if "create_token" in note["type"]:
+                    data = note["type"]["create_token"]
+                    if data["symbol"].upper() == symbol:
+                        token_info = {
+                            "token_id": data["token_id"],
+                            "name": data["name"],
+                            "symbol": data["symbol"],
+                            "supply": data["supply"],
+                            "creator": data["creator"],
+                            "created_at": data["timestamp"]
+                        }
 
-            elif "buy_token" in tx_type:
-                data = tx_type["buy_token"]
-                if data["symbol"].upper() == symbol:
-                    total_bought += float(data["amount"])
-                    buyers.add(data["buyer"])
+                elif "buy_token" in note["type"]:
+                    data = tx_type["buy_token"]
+                    if data["symbol"].upper() == symbol:
+                        total_bought += float(data["amount"])
+                        buyers.add(data["buyer"])
 
-            elif "sell_token" in tx_type:
-                data = tx_type["sell_token"]
-                if data["symbol"].upper() == symbol:
-                    total_sold += float(data["amount"])
-                    sellers.add(data["seller"])
+                elif "sell_token" in note["type"]:
+                    data = tx_type["sell_token"]
+                    if data["symbol"].upper() == symbol:
+                        total_sold += float(data["amount"])
+                        sellers.add(data["seller"])
 
-    if not token_info:
-        return render_template("token_not_found.html", symbol=symbol), 404
+        if not token_info:
+            return render_template("token_not_found.html", symbol=symbol), 404
 
-    token_info["volume_bought"] = round(total_bought, 6)
-    token_info["volume_sold"] = round(total_sold, 6)
-    token_info["unique_buyers"] = len(buyers)
-    token_info["unique_sellers"] = len(sellers)
+        token_info["volume_bought"] = round(total_bought, 6)
+        token_info["volume_sold"] = round(total_sold, 6)
+        token_info["unique_buyers"] = len(buyers)
+        token_info["unique_sellers"] = len(sellers)
 
-    return render_template("token_metrics.html", token=token_info)
+        return render_template("token_metrics.html", token=token_info)
 
 
 # ===================== Auth + Identity APIs ==================
