@@ -1,12 +1,40 @@
 # logic/logic.py
 
-import uuid
+import uuid, time
 from core.exchangeutil import get_token_id, get_user_token_balance
 from core.tx_util.tx_types import TXExchange
 from core.tx_util.tx_validator import TXValidator
 from bot.api import get_user_address, send_orbit_api
+from configure import EXCHANGE_ADDRESS
 
-EXCHANGE_ADDRESS="ORB.A6C19210F2B823246BA1DCA7"
+
+async def create_order(type, symbol, price, amount, address):
+    token_id = get_token_id(symbol.upper())
+
+    tx = TXExchange.tx_token(
+        type=type,
+        order_id=str(uuid.uuid4()),
+        token_id=token_id,
+        symbol=symbol,
+        price=price,
+        amount=amount,
+        address=address,
+        exchange_fee=0.01,
+        status="open"
+    )
+
+    validator = TXValidator(tx)
+    valid, msg = validator.validate()
+
+    sent = await send_orbit_api(
+        sender=address,
+        recipient=EXCHANGE_ADDRESS,
+        amount=0.01,
+        order=tx
+    )
+
+    return (True, tx) if valid else (False, msg)
+
 
 async def create_buy_order(symbol, price, amount, buyer_addr):
     token_id = get_token_id(symbol.upper())

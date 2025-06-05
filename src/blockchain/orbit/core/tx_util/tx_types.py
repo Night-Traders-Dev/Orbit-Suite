@@ -248,7 +248,7 @@ class TXExchange:
         }
 
     @staticmethod
-    def buy_token(symbol, price,  amount, buyer_address, order_id=None, token_id=None, exchange_fee=0.0):
+    def buy_token(symbol, price,  amount, buyer_address, order_id=None, token_id=None, status=None, exchange_fee=0.0):
         return {
             "type": {
                 "buy_token": {
@@ -259,13 +259,50 @@ class TXExchange:
                     "amount": float(amount),
                     "buyer": buyer_address,
                     "exchange_fee": float(exchange_fee),
+                    "status": status,
+                    "timestamp": time.time()
+                }
+            }
+        }
+
+
+
+
+    @staticmethod
+    def tx_token(
+        type,
+        symbol,
+        price,
+        amount,
+        address,
+        order_id=None,
+        token_id=None,
+        status=None,
+        exchange_fee=0.0
+    ):
+        if type == "buy":
+            addr_key = "buyer"
+        else:
+            addr_key = "seller"
+
+        return {
+            "type": {
+                f"{type}_token": {
+                    "order_id": order_id or str(uuid.uuid4()),
+                    "token_id": token_id or symbol.upper(),
+                    "symbol": symbol.upper(),
+                    "price": float(price),
+                    "amount": float(amount),
+                    addr_key: address,
+                    "exchange_fee": float(exchange_fee),
+                    "status": status,
                     "timestamp": time.time()
                 }
             }
         }
 
     @staticmethod
-    def sell_token(symbol, price, amount, seller_address, order_id=None, token_id=None, exchange_fee=0.0):
+    def sell_token(symbol, price, amount, seller_address, order_id=None, token_id=None, status=None, exchange_fee=0.0):
         return {
             "type": {
                 "sell_token": {
@@ -276,6 +313,7 @@ class TXExchange:
                     "amount": float(amount),
                     "seller": seller_address,
                     "exchange_fee": float(exchange_fee),
+                    "status": status,
                     "timestamp": time.time()
                 }
             }

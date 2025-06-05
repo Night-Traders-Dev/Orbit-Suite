@@ -571,3 +571,6 @@
 1749126564.9031975 | Node Node12 | [INFO] | Validating Block.
 1749126582.9644506 | Node Node12 | [INFO] | Validating Block.
 1749126583.1325111 | Node Node12 | [INFO] | Validating Block.
+1749129123.1347165 | Node Node12 | [INFO] | Validating Block.
+1749129231.8224778 | Node Node12 | [INFO] | Validating Block.
+1749135582.4309993 | Node Node1163 | [DISCOVERY ERROR] | HTTPConnectionPool(host='127.0.0.1', port=7000): Max retries exceeded with url: /active_nodes (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x76faf354f0>: Failed to establish a new connection: [Errno 111] Connection refused'))
