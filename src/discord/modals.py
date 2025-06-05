@@ -4,6 +4,7 @@ import asyncio
 from core.ioutil import fetch_chain
 from api import verify_2fa_api, send_orbit_api, get_user_address, get_user_balance, get_user_tokens
 from wallet import lock_orbit, wallet_info
+from core.tx_util.tx_types import TXExchange
 
 BOT_OPS_CHANNEL_ID = 1379630873174872197
 
@@ -39,7 +40,18 @@ class SendTokenModal(Modal):
             await interaction.followup.send("⛔️ Invalid 2FA code.", ephemeral=True)
             return
 
-        success = await send_orbit_api(address, self.recipient.value, amount, self.token_symbol)
+        if self.token_symbol.lower() != "orbit":
+            token_tx = TXExchange.create_token_transfer_tx(
+            sender=address,
+            receiver=self.recipient.value,
+            amount=amount,
+            token_symbol=self.token_symbol.upper(),
+            note=""
+            )
+        else:
+            token_tx = ""
+
+        success = await send_orbit_api(address, self.recipient.value, amount, token_tx)
         msg = f"✉️ Sent {amount} {self.token_symbol} to {self.recipient.value}" if success else "⛔️ Transaction failed."
         await interaction.followup.send(msg, ephemeral=True)
 
