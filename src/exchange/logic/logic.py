@@ -8,19 +8,23 @@ from bot.api import get_user_address, send_orbit_api
 from configure import EXCHANGE_ADDRESS
 
 
-async def create_order(type, symbol, price, amount, address):
+async def create_order(type, symbol, price, amount, address, status="open", order_id=None):
     token_id = get_token_id(symbol.upper())
 
+    if order_id == None:
+        order_id=str(uuid.uuid4()),
+    else:
+        order_id=order_id
     tx = TXExchange.tx_token(
         type=type,
-        order_id=str(uuid.uuid4()),
+        order_id=order_id,
         token_id=token_id,
         symbol=symbol,
         price=price,
         amount=amount,
         address=address,
         exchange_fee=0.01,
-        status="open"
+        status=status
     )
 
     validator = TXValidator(tx)

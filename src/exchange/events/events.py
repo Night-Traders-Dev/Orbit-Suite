@@ -1,6 +1,7 @@
 import json
 from parser.parser import parse_exchange_command
 from logic.logic import (
+    create_order,
     create_buy_order,
     create_sell_order,
     cancel_order,
@@ -35,11 +36,11 @@ def register_events(bot):
         action = command["action"]
 
         if action == "buy":
-            success, result = await create_buy_order(command["symbol"], command["price"], command["amount"], command["buyer"])
+            success, result = await create_order(action, command["symbol"], command["price"], command["amount"], command["buyer"])
         elif action == "buy_token_from_exchange":
             success, result = await buy_token_from_exchange(command["symbol"], command["amount"], command["buyer"])
         elif action == "sell":
-            success, result = await create_sell_order(command["symbol"], command["price"], command["amount"], command["seller"])
+            success, result = await create_order(action, command["symbol"], command["price"], command["amount"], command["seller"])
         elif action == "cancel":
             success, result = await cancel_order(command["order_id"])
         elif action == "quote":
