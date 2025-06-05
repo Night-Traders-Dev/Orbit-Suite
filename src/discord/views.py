@@ -111,43 +111,101 @@ class Register2FAView(View):
 
 
 class ExchangeView(View):
-    def __init__(self, discord_id):
+    def __init__(self, user_id):
         super().__init__(timeout=None)
-        self.user_id = discord_id
+        self.user_id = user_id
 
-    @discord.ui.button(label="Buy Tokens", style=discord.ButtonStyle.green, custom_id="buy_tokens")
-    async def buy_button(self, interaction: discord.Interaction, button: Button):
+    @discord.ui.button(label="💱 Trading", style=discord.ButtonStyle.green)
+    async def trading_menu(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.edit_message(content="**💱 Trading Menu**", view=TradingView(self.user_id))
+
+    @discord.ui.button(label="📃 Orders", style=discord.ButtonStyle.gray)
+    async def orders_menu(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.edit_message(content="**📃 Orders Menu**", view=OrdersView(self.user_id))
+
+    @discord.ui.button(label="🧬 Token Management", style=discord.ButtonStyle.blurple)
+    async def token_menu(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.edit_message(content="**🧬 Token Management Menu**", view=TokenView(self.user_id))
+
+
+# 💱 Trading View
+class TradingView(View):
+    def __init__(self, user_id):
+        super().__init__(timeout=None)
+        self.user_id = user_id
+
+    @discord.ui.button(label="Buy Tokens", style=discord.ButtonStyle.green)
+    async def buy_tokens(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(BuyTokenModal(self.user_id))
 
-    @discord.ui.button(label="Buy ICO", style=discord.ButtonStyle.green, custom_id="buy_ico")
+    @discord.ui.button(label="Buy ICO", style=discord.ButtonStyle.green)
     async def buy_ico(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(BuyFromExchangeModal(self.user_id))
 
-
-    @discord.ui.button(label="Sell Tokens", style=discord.ButtonStyle.red, custom_id="sell_tokens")
-    async def sell_button(self, interaction: discord.Interaction, button: Button):
+    @discord.ui.button(label="Sell Tokens", style=discord.ButtonStyle.red)
+    async def sell_tokens(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(SellTokenModal(self.user_id))
 
-    @discord.ui.button(label="View Orders", style=discord.ButtonStyle.gray, custom_id="view_orders")
-    async def view_orders_button(self, interaction: discord.Interaction, button: Button):
+    @discord.ui.button(label="🔙 Back", style=discord.ButtonStyle.gray)
+    async def back(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.edit_message(content="**📊 Exchange Menu**", view=ExchangeView(self.user_id))
+
+
+# 📃 Orders View
+class OrdersView(View):
+    def __init__(self, user_id):
+        super().__init__(timeout=None)
+        self.user_id = user_id
+
+    @discord.ui.button(label="View Orders", style=discord.ButtonStyle.gray)
+    async def view_orders(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(ViewOrdersModal(self.user_id))
 
+    @discord.ui.button(label="🔙 Back", style=discord.ButtonStyle.gray)
+    async def back(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.edit_message(content="**📊 Exchange Menu**", view=ExchangeView(self.user_id))
 
-    @discord.ui.button(label="Create Token", style=discord.ButtonStyle.blurple, custom_id="create_token")
-    async def list_button(self, interaction: discord.Interaction, button: Button):
+
+# 🧬 Token Management View
+class TokenView(View):
+    def __init__(self, user_id):
+        super().__init__(timeout=None)
+        self.user_id = user_id
+
+    @discord.ui.button(label="Create Token", style=discord.ButtonStyle.blurple)
+    async def create_token(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(CreateTokenModal(self.user_id))
 
-
-    @discord.ui.button(label="My Tokens", style=discord.ButtonStyle.gray, custom_id="my_tokens")
-    async def my_tokens_button(self, interaction: discord.Interaction, button: Button):
+    @discord.ui.button(label="My Tokens", style=discord.ButtonStyle.gray)
+    async def my_tokens(self, interaction: discord.Interaction, button: Button):
         address = await get_user_address(self.user_id)
-        if not address:
-            await interaction.response.send_message("Could not find your address. Please ensure you've linked it.", ephemeral=True)
-            return
+        result = await self.token_stats(address)
+        embed = discord.Embed(title="📊 Your Token Holdings", color=discord.Color.blue())
 
+        if not result:
+            embed.description = "You don't own any tokens."
+        else:
+            for token_data in result:
+                embed.add_field(
+                    name=f"{token_data[0]} — {float(token_data[1]):.2f} tokens",
+                    value=(
+                        f"**Bought:** {float(token_data[2]):.2f} for {float(token_data[3]):.2f} Orbit\n"
+                        f"**Sold:** {float(token_data[4]):.2f} for {float(token_data[5]):.2f} Orbit\n"
+                        f"**Current Price:** {float(token_data[8]):.4f} Orbit"
+                    ),
+                    inline=False
+                )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @discord.ui.button(label="🔙 Back", style=discord.ButtonStyle.gray)
+    async def back(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.edit_message(content="**📊 Exchange Menu**", view=ExchangeView(self.user_id))
+
+    async def token_stats(self, address):
         chain = fetch_chain()
         tokens = {}
         token_stats = {}
+        stat_list = []
 
         for block in reversed(chain):
             for tx in block.get("transactions", []):
@@ -158,7 +216,6 @@ class ExchangeView(View):
 
                 tx_type = note.get("type", {})
 
-                # Token transfer
                 if "token_transfer" in tx_type:
                     data = tx_type["token_transfer"]
                     token = data.get("token_symbol")
@@ -179,14 +236,12 @@ class ExchangeView(View):
                         elif orbit_amount:
                             stats["buy_tokens"] += qty
                             stats["buy_orbit"] += orbit_amount
-
                     elif sender == address:
                         tokens[token] = tokens.get(token, 0) - qty
                         if orbit_amount:
                             stats["sell_tokens"] += qty
                             stats["sell_orbit"] += orbit_amount
 
-                # Buy token
                 elif "buy_token" in tx_type:
                     data = tx_type["buy_token"]
                     token = data.get("symbol")
@@ -198,7 +253,6 @@ class ExchangeView(View):
                     stats["buy_tokens"] += qty
                     stats["buy_orbit"] += qty * data.get("price", 0)
 
-                # Sell token
                 elif "sell_token" in tx_type:
                     data = tx_type["sell_token"]
                     token = data.get("symbol")
@@ -210,37 +264,31 @@ class ExchangeView(View):
                     stats["sell_tokens"] += qty
                     stats["sell_orbit"] += qty * data.get("price", 0)
 
-        # Build embed
-        embed = discord.Embed(title="📊 Your Token Holdings", color=discord.Color.blue())
         if not tokens:
-            embed.description = "You don't own any tokens."
-        else:
-            for token, balance in tokens.items():
-                if abs(balance) < 1e-8:
-                    continue
+            return False
 
-                stats = token_stats.get(token, {})
-                buy_tokens = stats.get("buy_tokens", 0)
-                buy_orbit = stats.get("buy_orbit", 0)
-                sell_tokens = stats.get("sell_tokens", 0)
-                sell_orbit = stats.get("sell_orbit", 0)
+        for token, balance in tokens.items():
+            if abs(balance) < 1e-8:
+                continue
+            stats = token_stats.get(token, {})
+            buy_tokens = stats.get("buy_tokens", 0)
+            buy_orbit = stats.get("buy_orbit", 0)
+            sell_tokens = stats.get("sell_tokens", 0)
+            sell_orbit = stats.get("sell_orbit", 0)
 
-                avg_buy_price = (buy_orbit / buy_tokens) if buy_tokens else None
-                avg_sell_price = (sell_orbit / sell_tokens) if sell_tokens else None
+            avg_buy_price = (buy_orbit / buy_tokens) if buy_tokens else None
+            avg_sell_price = (sell_orbit / sell_tokens) if sell_tokens else None
+            current_price = (avg_buy_price + avg_sell_price) / 2 if avg_buy_price and avg_sell_price else avg_buy_price or avg_sell_price or 0.0
 
-                if avg_buy_price and avg_sell_price:
-                    current_price = (avg_buy_price + avg_sell_price) / 2
-                else:
-                    current_price = avg_buy_price or avg_sell_price or 0.0
-
-                embed.add_field(
-                    name=f"{token} — {balance:.2f} tokens",
-                    value=(
-                        f"**Bought:** {buy_tokens:.2f} for {buy_orbit:.2f} ORB\n"
-                        f"**Sold:** {sell_tokens:.2f} for {sell_orbit:.2f} ORB\n"
-                        f"**Current Price:** {current_price:.4f} ORB"
-                    ),
-                    inline=False
-                )
-
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+            stat_list.append((
+                token,
+                balance,
+                buy_tokens,
+                buy_orbit,
+                sell_tokens,
+                sell_orbit,
+                avg_buy_price,
+                avg_sell_price,
+                current_price
+            ))
+        return stat_list
