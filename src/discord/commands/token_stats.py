@@ -90,4 +90,5 @@ async def token_stats(address):
             avg_sell_price,
             current_price
         ))
-        return stat_list
+
+    return stat_list

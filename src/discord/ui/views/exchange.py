@@ -86,11 +86,11 @@ class TokenView(View):
         else:
             for token_data in result:
                 embed.add_field(
-                    name=f"{token_data[0]} — {float(token_data[1]):.2f} tokens",
+                    name=f"{token_data[0]} — {float(token_data[1]):,.2f} tokens",
                     value=(
-                        f"**Bought:** {float(token_data[2]):.2f} for {float(token_data[3]):.2f} Orbit\n"
-                        f"**Sold:** {float(token_data[4]):.2f} for {float(token_data[5]):.2f} Orbit\n"
-                        f"**Current Price:** {float(token_data[8]):.4f} Orbit"
+                        f"**Bought:** {float(token_data[2]):,.2f} for {float(token_data[3]):,.2f} Orbit\n"
+                        f"**Sold:** {float(token_data[4]):,.2f} for {float(token_data[5]):,.2f} Orbit\n"
+                        f"**Current Price:** {float(token_data[8]):,.4f} Orbit"
                     ),
                     inline=False
                 )
