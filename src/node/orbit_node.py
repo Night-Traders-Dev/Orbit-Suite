@@ -12,6 +12,7 @@ from core.ioutil import load_nodes, save_nodes, fetch_chain, save_chain
 from blockchain.blockutil import validate_block
 from blockchain.orbitutil import simulate_peer_vote
 from core.logutil import log_node_activity
+from utils.orders import match_orders
 
 FETCH_INTERVAL = 30
 
@@ -167,6 +168,7 @@ class OrbitNode:
             kwargs={"host": '0.0.0.0', "port": self.port, "debug": False, "use_reloader": False}
         ).start()
 
+
     def heartbeat_loop(self, new_node, new_node_id):
         while self.running:
             try:
@@ -183,6 +185,9 @@ class OrbitNode:
                     new_uptime = max(0.0, current_uptime * 0.995)
 
                 new_node["uptime"] = round(new_uptime, 4)
+
+                # Match and fill orders on each heartbeat
+                match_orders(self.chain)
 
                 response = requests.post(
                     f"{EXPLORER}/node_ping",
@@ -202,6 +207,7 @@ class OrbitNode:
                 self.block_received_event.clear()
 
             time.sleep(self.get_dynamic_heartbeat_interval())
+
 
     def start_heartbeat_thread(self, new_node, new_node_id):
         self.heartbeat_thread = threading.Thread(
