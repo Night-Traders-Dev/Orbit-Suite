@@ -5,6 +5,7 @@ async def token_stats(address):
     tokens = {}
     token_stats = {}
     stat_list = []
+    seen_order_ids = set()  # To track already processed orders
 
     for block in reversed(chain):
         for tx in block.get("transactions", []):
@@ -25,7 +26,10 @@ async def token_stats(address):
                 if not token or not isinstance(qty, (int, float)):
                     continue
 
-                stats = token_stats.setdefault(token, {"buy_tokens": 0, "buy_orbit": 0.0, "sell_tokens": 0, "sell_orbit": 0.0})
+                stats = token_stats.setdefault(token, {
+                    "buy_tokens": 0, "buy_orbit": 0.0,
+                    "sell_tokens": 0, "sell_orbit": 0.0
+                })
 
                 if receiver == address:
                     tokens[token] = tokens.get(token, 0) + qty
@@ -43,23 +47,49 @@ async def token_stats(address):
 
             elif "buy_token" in tx_type:
                 data = tx_type["buy_token"]
+                order_id = data.get("order_id")
+
+                if not order_id or order_id in seen_order_ids:
+                    continue
+                if data.get("status") != "filled":
+                    continue
+
+                seen_order_ids.add(order_id)
+
                 token = data.get("symbol")
                 qty = data.get("amount")
                 if not token or data.get("seller") == address:
                     continue
+
                 tokens[token] = tokens.get(token, 0) + qty
-                stats = token_stats.setdefault(token, {"buy_tokens": 0, "buy_orbit": 0.0, "sell_tokens": 0, "sell_orbit": 0.0})
+                stats = token_stats.setdefault(token, {
+                    "buy_tokens": 0, "buy_orbit": 0.0,
+                    "sell_tokens": 0, "sell_orbit": 0.0
+                })
                 stats["buy_tokens"] += qty
                 stats["buy_orbit"] += qty * data.get("price", 0)
 
             elif "sell_token" in tx_type:
                 data = tx_type["sell_token"]
+                order_id = data.get("order_id")
+
+                if not order_id or order_id in seen_order_ids:
+                    continue
+                if data.get("status") != "filled":
+                    continue
+
+                seen_order_ids.add(order_id)
+
                 token = data.get("symbol")
                 qty = data.get("amount")
                 if not token or data.get("seller") != address:
                     continue
+
                 tokens[token] = tokens.get(token, 0) - qty
-                stats = token_stats.setdefault(token, {"buy_tokens": 0, "buy_orbit": 0.0, "sell_tokens": 0, "sell_orbit": 0.0})
+                stats = token_stats.setdefault(token, {
+                    "buy_tokens": 0, "buy_orbit": 0.0,
+                    "sell_tokens": 0, "sell_orbit": 0.0
+                })
                 stats["sell_tokens"] += qty
                 stats["sell_orbit"] += qty * data.get("price", 0)
 
@@ -69,6 +99,7 @@ async def token_stats(address):
     for token, balance in tokens.items():
         if abs(balance) < 1e-8:
             continue
+
         stats = token_stats.get(token, {})
         buy_tokens = stats.get("buy_tokens", 0)
         buy_orbit = stats.get("buy_orbit", 0)

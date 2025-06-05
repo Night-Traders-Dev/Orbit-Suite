@@ -40,68 +40,6 @@ async def create_order(type, symbol, price, amount, address, status="open", orde
     return (True, tx) if valid else (False, msg)
 
 
-async def create_buy_order(symbol, price, amount, buyer_addr):
-    token_id = get_token_id(symbol.upper())
-    tx = TXExchange.buy_token(
-        order_id=str(uuid.uuid4()),
-        token_id=token_id,
-        symbol=symbol,
-        price=price,
-        amount=amount,
-        buyer_address=buyer_addr,
-        exchange_fee=0.01
-    )
-    validator = TXValidator(tx)
-    valid, msg = validator.validate()
-    sent = await send_orbit_api(
-        sender=buyer_addr,
-        recipient=EXCHANGE_ADDRESS,
-        amount=0.01,
-        order=tx
-    )
-
-    return (True, tx) if valid else (False, msg)
-
-async def create_sell_order(symbol, price, amount, seller_addr):
-    token_id = get_token_id(symbol.upper())
-    tx = TXExchange.sell_token(
-        order_id=str(uuid.uuid4()),
-        token_id=token_id,
-        symbol=symbol,
-        price=price,
-        amount=amount,
-        seller_address=seller_addr,
-        exchange_fee=0.01
-    )
-    validator = TXValidator(tx)
-    valid, msg = validator.validate()
-    sent = await send_orbit_api(
-        sender=seller_addr,
-        recipient=EXCHANGE_ADDRESS,
-        amount=0.01,
-        order=tx
-    )
-    unsigned_tx = TXExchange.create_token_transfer_tx(
-        sender=seller_addr,
-        receiver=EXCHANGE_ADDRESS,
-        amount=amount,
-        token_symbol=symbol,
-        note="",
-        signature=""
-    )
-
-    tx_type = list(unsigned_tx["type"].keys())[0]
-    tx_data = unsigned_tx["type"][tx_type]
-    unsigned_tx["type"][tx_type] = tx_data
-
-
-
-    validator = TXValidator(tx)
-    valid, msg = validator.validate()
-    if valid:
-        tranfer_token = await send_orbit_api(seller_addr, EXCHANGE_ADDRESS, 0.01, order=unsigned_tx)
-    return (True, tx) if valid else (False, msg)
-
 async def cancel_order(order_id, canceller_address, symbol=None):
     tx = TXExchange.cancel_order(
         order_id=order_id,
