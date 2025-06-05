@@ -216,6 +216,8 @@ def load_node(node_id):
         avg_block_size=avg_block_size
     )
 
+
+
 @app.route("/token/<symbol>")
 def token_metrics(symbol):
     symbol = symbol.upper()
@@ -226,11 +228,11 @@ def token_metrics(symbol):
     total_tokens_sent = 0.0
     total_orbit_spent = 0.0
     total_orbit_earned = 0.0
-
     latest_valid_price = None
 
     unique_receivers = set()
     unique_senders = set()
+    seen_order_ids = set()
 
     for block in ledger:
         for tx in block.get("transactions", []):
@@ -281,6 +283,54 @@ def token_metrics(symbol):
                 # Sell (sender gave token and earned Orbit)
                 if sender and orbit_amount:
                     total_orbit_earned += orbit_amount
+
+            # Buy token
+            elif "buy_token" in tx_type:
+                data = tx_type["buy_token"]
+                order_id = data.get("order_id")
+                if (
+                    not order_id
+                    or order_id in seen_order_ids
+                    or data.get("status") != "filled"
+                    or data.get("symbol", "").upper() != symbol
+                ):
+                    continue
+                seen_order_ids.add(order_id)
+
+                amount = float(data.get("amount", 0))
+                buyer = data.get("buyer")
+                price = float(data.get("price", 0))
+
+                total_tokens_received += amount
+                total_orbit_spent += amount * price
+                latest_valid_price = price
+
+                if buyer:
+                    unique_receivers.add(buyer)
+
+            # Sell token
+            elif "sell_token" in tx_type:
+                data = tx_type["sell_token"]
+                order_id = data.get("order_id")
+                if (
+                    not order_id
+                    or order_id in seen_order_ids
+                    or data.get("status") != "filled"
+                    or data.get("symbol", "").upper() != symbol
+                ):
+                    continue
+                seen_order_ids.add(order_id)
+
+                amount = float(data.get("amount", 0))
+                seller = data.get("seller")
+                price = float(data.get("price", 0))
+
+                total_tokens_sent += amount
+                total_orbit_earned += amount * price
+                latest_valid_price = price
+
+                if seller:
+                    unique_senders.add(seller)
 
     if not token_info:
         return render_template("token_not_found.html", symbol=symbol), 404

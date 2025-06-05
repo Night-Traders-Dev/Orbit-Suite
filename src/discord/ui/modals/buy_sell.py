@@ -6,6 +6,35 @@ from api import verify_2fa_api, send_orbit_api, get_user_address, get_user_balan
 from core.tx_util.tx_types import TXExchange
 from configure import BOT_OPS_CHANNEL_ID
 
+class PlaceOrderModal(Modal):
+    def __init__(self, uid):
+        super().__init__(title="Place Order")
+        self.address = ""
+        self.uid = uid
+
+        self.order = TextInput(label="Order Type", placeholder="e.g., Buy/Sell")
+        self.symbol = TextInput(label="Token Symbol", placeholder="e.g., ORBIT")
+        self.amount = TextInput(label="Amount", placeholder="e.g., 50")
+        self.price = TextInput(label="Price", placeholder="e.g., 10", style=discord.TextStyle.short)
+
+        self.add_item(self.order)
+        self.add_item(self.symbol)
+        self.add_item(self.amount)
+        self.add_item(self.price)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if self.order.value.upper() not in ["BUY", "SELL"]:
+            await interaction.response.send_message("❌ Order type incorrect, buy/sell", ephemeral=True) 
+        self.address = await get_user_address(self.uid)
+        message = f"[ExchangeRequest] {self.order.value.upper()} {self.symbol.value.upper()} {self.price.value} {self.amount.value} {self.address}"
+        bot_ops_channel = interaction.client.get_channel(BOT_OPS_CHANNEL_ID)
+
+        if bot_ops_channel:
+            await bot_ops_channel.send(message)
+            await interaction.response.send_message(f"🟢 Sent buy request for `{self.amount.value}` {self.symbol.value.upper()} at `{self.price.value} ORBIT`", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ Bot-ops channel not found.", ephemeral=True)
+
 
 class BuyTokenModal(Modal):
     def __init__(self, uid):

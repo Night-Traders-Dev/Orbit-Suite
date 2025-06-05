@@ -2,8 +2,6 @@ import json
 from parser.parser import parse_exchange_command
 from logic.logic import (
     create_order,
-    create_buy_order,
-    create_sell_order,
     cancel_order,
     quote_symbol,
     create_token,

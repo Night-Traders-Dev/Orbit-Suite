@@ -4,7 +4,7 @@ import asyncio
 from api import create_2fa_api, get_user_address, mine_orbit_api, get_user_tokens
 from commands.token_stats import token_stats
 from core.ioutil import fetch_chain
-from ui.modals.buy_sell import BuyTokenModal, SellTokenModal, BuyFromExchangeModal
+from ui.modals.buy_sell import BuyTokenModal, SellTokenModal, BuyFromExchangeModal, PlaceOrderModal
 from ui.modals.create_token import CreateTokenModal
 from ui.modals.orders import ViewOrdersModal
 
@@ -33,13 +33,17 @@ class TradingView(View):
         super().__init__(timeout=None)
         self.user_id = user_id
 
+    @discord.ui.button(label="Place Order", style=discord.ButtonStyle.green)
+    async def place_order(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_modal(PlaceOrderModal(self.user_id))
+
+    @discord.ui.button(label="ICO", style=discord.ButtonStyle.green)
+    async def buy_ico(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_modal(BuyFromExchangeModal(self.user_id))
+
     @discord.ui.button(label="Buy Tokens", style=discord.ButtonStyle.green)
     async def buy_tokens(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(BuyTokenModal(self.user_id))
-
-    @discord.ui.button(label="Buy ICO", style=discord.ButtonStyle.green)
-    async def buy_ico(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_modal(BuyFromExchangeModal(self.user_id))
 
     @discord.ui.button(label="Sell Tokens", style=discord.ButtonStyle.red)
     async def sell_tokens(self, interaction: discord.Interaction, button: Button):
