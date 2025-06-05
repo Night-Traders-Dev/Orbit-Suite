@@ -1,0 +1,23 @@
+from discord.ui import View, Button, Select
+import discord
+import asyncio
+from api import create_2fa_api, get_user_address
+
+
+class Register2FAView(View):
+    def __init__(self, discord_id):
+        super().__init__(timeout=None)
+        self.user_id = discord_id
+
+    @discord.ui.button(label="Register 2FA", style=discord.ButtonStyle.primary)
+    async def register(self, interaction: discord.Interaction, button: Button):
+        address = await get_user_address(self.user_id)
+        secret = await create_2fa_api(address)
+        ROLE_ID = 1379507259180060742
+        role = interaction.guild.get_role(ROLE_ID)
+        if role:
+            await interaction.user.add_roles(role)
+            await interaction.response.send_message(
+                content=f"Address: {address}\n2FA Secret: {secret}", ephemeral=True
+            )
+

@@ -1,8 +1,10 @@
 from discord.ext import commands
 import discord
-from wallet import get_wallet_balance, wallet_info
+from commands.wallet_tools import get_wallet_balance, wallet_info
 from api import get_user_balance, get_user_address
-from views import WalletDashboard, Register2FAView, ExchangeView
+from ui.views.register import Register2FAView
+from ui.views.wallet import WalletDashboard
+from ui.views.exchange import ExchangeView
 
 def setup(bot, GUILD):
     @bot.tree.command(
