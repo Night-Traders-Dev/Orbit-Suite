@@ -1,7 +1,30 @@
 from api import get_user_balance, get_user_address, lock_orbit_api, claim_rewards_api, claim_check_api, mine_check_api
 from discord.ext import commands
 import discord
+from core.ioutil import fetch_chain
 
+def find_best_price(symbol, direction, user_address):
+    ledger = fetch_chain()
+    if not ledger:
+        return None
+
+    relevant_orders = [
+        tx for tx in ledger if tx.get("type") == "order"
+        and tx.get("symbol", "").upper() == symbol.upper()
+        and tx.get("direction") == direction
+        and tx.get("address") != user_address
+    ]
+
+    if not relevant_orders:
+        return None
+
+    if direction == "SELL":
+        # For BUY: Look for lowest SELL price
+        return min(relevant_orders, key=lambda x: float(x.get("price", float("inf")))).get("price")
+    elif direction == "BUY":
+        # For SELL: Look for highest BUY price
+        return max(relevant_orders, key=lambda x: float(x.get("price", 0))).get("price")
+    return None
 
 async def get_wallet_balance(address):
     return {
