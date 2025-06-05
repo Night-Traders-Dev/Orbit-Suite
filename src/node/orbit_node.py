@@ -14,7 +14,6 @@ from blockchain.orbitutil import simulate_peer_vote
 from core.logutil import log_node_activity
 
 FETCH_INTERVAL = 30
-NODE_LEDGER = "data/orbit_chain.node"
 
 orbit_db = OrbitDB()
 EXPLORER = orbit_db.explorer
@@ -26,7 +25,8 @@ class OrbitNode:
         self.port = port or self.get_available_port()
         self.node_id = f"Node{random.randint(0, 9999)}"
         self.running = True
-        self.chain = self.fetch_latest_chain()
+        self.node_ledger = f"data/orbit_chain.{self.node_id}"
+        self.chain = fetch_chain()
         self.nodes = load_nodes()
         self.users = [address]
         self.heartbeat_min = 10
@@ -67,17 +67,43 @@ class OrbitNode:
         return self.nodes[self.node_id]
 
     def fetch_latest_chain(self):
+        def is_valid_blockchain(chain):
+            if not isinstance(chain, list) or not chain:
+                return False
+            required_fields = ["index", "hash", "timestamp", "transactions"]
+            for block in chain:
+                if not isinstance(block, dict):
+                    return False
+                if not all(field in block for field in required_fields):
+                    return False
+            return True
+
         try:
-            return fetch_chain()
+            chain = fetch_chain()
+            if is_valid_blockchain(chain):
+                return chain
+            else:
+                raise ValueError("Local chain malformed or corrupted.")
         except Exception as e:
-            log_node_activity(self.node_id, "[ERROR]",  f"Fetching chain failed: {e}")
-            return []
+            log_node_activity(self.node_id, "[RECOVERY]", f"Local chain failed integrity check: {e}")
+            try:
+                res = requests.get(f"{EXPLORER}/api/chain", timeout=5)
+                if res.status_code == 200:
+                    remote_chain = res.json()
+                    if is_valid_blockchain(remote_chain):
+                        save_chain(remote_chain, owner_id=self.node_id, chain_file=self.node_ledger)
+                        log_node_activity(self.node_id, "[RECOVERY]", f"Fetched fresh chain from explorer.")
+                        return remote_chain
+            except Exception as ex:
+                log_node_activity(self.node_id, "[ERROR]", f"Failed to recover chain from explorer: {ex}")
+        return []
+
 
     def update_chain(self):
         new_chain = self.fetch_latest_chain()
         if new_chain and len(new_chain) > len(self.chain):
             self.chain = new_chain
-            save_chain(self.chain, owner_id=self.node_id, chain_file=NODE_LEDGER)
+            save_chain(self.chain, owner_id=self.node_id, chain_file=self.node_ledger)
 
     def validate_incoming_block(self, block):
         if any(b.get("hash") == block.get("hash") for b in self.chain):
@@ -86,7 +112,7 @@ class OrbitNode:
         log_node_activity(self.node_id, "[INFO]",  "Validating Block.")
         if validate_block(block, self.node_id):
             self.chain.append(block)
-            save_chain(self.chain, owner_id=self.node_id, chain_file=NODE_LEDGER)
+            save_chain(self.chain, owner_id=self.node_id, chain_file=self.node_ledger)
             self.block_timestamps.append(time.time())
             self.nodes[self.node_id]["trust"] = min(1.0, self.nodes[self.node_id]["trust"] + 0.01)
             self.nodes[self.node_id]["uptime"] = min(1.0, self.nodes[self.node_id]["uptime"] + 0.01)
@@ -144,6 +170,7 @@ class OrbitNode:
     def heartbeat_loop(self, new_node, new_node_id):
         while self.running:
             try:
+                self.update_chain()
                 new_node["last_seen"] = time.time()
                 latest_block_index = self.get_latest_validated_block_index()
                 validated_new_block = latest_block_index > self.last_validated_block

@@ -12,7 +12,7 @@ async def create_order(type, symbol, price, amount, address, status="open", orde
     token_id = get_token_id(symbol.upper())
 
     if order_id == None:
-        order_id=str(uuid.uuid4()),
+        order_id=str(uuid.uuid4())
     else:
         order_id=order_id
     tx = TXExchange.tx_token(
