@@ -48,10 +48,12 @@ class SendTokenModal(Modal):
             token_symbol=self.token_symbol.upper(),
             note=""
             )
+            orbit_amount = 0.5
         else:
+            orbit_amount = amount
             token_tx = ""
 
-        success = await send_orbit_api(address, self.recipient.value, amount, token_tx)
+        success = await send_orbit_api(address, self.recipient.value, orbit_amount, token_tx)
         msg = f"✉️ Sent {amount} {self.token_symbol} to {self.recipient.value}" if success else "⛔️ Transaction failed."
         await interaction.followup.send(msg, ephemeral=True)
 
