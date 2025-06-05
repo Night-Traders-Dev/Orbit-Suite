@@ -547,3 +547,9 @@
 1749073513.8730128 | Node Node9944 | [INFO] | Validating Block.
 1749073550.0270793 | Node Node9944 | [INFO] | Validating Block.
 1749074173.741724 | Node Node9944 | [DISCOVERY ERROR] | HTTPConnectionPool(host='127.0.0.1', port=7000): Max retries exceeded with url: /active_nodes (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x7c37ca28d0>: Failed to establish a new connection: [Errno 111] Connection refused'))
+1749077761.9630232 | Node Node1163 | [DISCOVERY ERROR] | HTTPConnectionPool(host='127.0.0.1', port=7000): Max retries exceeded with url: /active_nodes (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x76fae8d220>: Failed to establish a new connection: [Errno 111] Connection refused'))
+1749077765.29238 | Node Node12 | [DISCOVERY ERROR] | HTTPConnectionPool(host='127.0.0.1', port=7000): Max retries exceeded with url: /active_nodes (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x73dfdd3260>: Failed to establish a new connection: [Errno 111] Connection refused'))
+1749077804.4000752 | Node Node12 | [INFO] | Validating Block.
+1749082261.15946 | Node Node12 | [INFO] | Validating Block.
+1749084275.533997 | Node Node12 | [INFO] | Validating Block.
+1749088375.8533998 | Node Node12 | [INFO] | Validating Block.

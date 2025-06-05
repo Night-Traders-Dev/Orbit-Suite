@@ -1,12 +1,28 @@
-from discord.ui import View, Button
+from discord.ui import View, Button, Select
 import discord
 import asyncio
-from modals import SendOrbitModal, LockOrbitModal, CreateTokenModal, BuyTokenModal, SellTokenModal, BuyFromExchangeModal, MyTokensModal, ViewOrdersModal
+from modals import SendTokenModal, LockOrbitModal, CreateTokenModal, BuyTokenModal, SellTokenModal, BuyFromExchangeModal, MyTokensModal, ViewOrdersModal
 from wallet import claim_rewards, wallet_info
-from api import create_2fa_api, get_user_address, mine_orbit_api
+from api import create_2fa_api, get_user_address, mine_orbit_api, get_user_tokens
 from core.ioutil import fetch_chain
 
 BOT_OPS_CHANNEL_ID = 1379630873174872197
+
+class TokenSelectDropdown(Select):
+    def __init__(self, uid, token_list):
+        self.uid = uid
+        options = [discord.SelectOption(label=token) for token in token_list]
+        super().__init__(placeholder="Select token to send", options=options, min_values=1, max_values=1)
+
+    async def callback(self, interaction: discord.Interaction):
+        token = self.values[0]
+        await interaction.response.send_modal(SendTokenModal(self.uid, token))
+
+class SendTokenView(View):
+    def __init__(self, uid, token_list):
+        super().__init__(timeout=60)
+        self.add_item(TokenSelectDropdown(uid, token_list))
+
 
 class WalletDashboard(View):
     def __init__(self, discord_id):
@@ -15,7 +31,17 @@ class WalletDashboard(View):
 
     @discord.ui.button(label="Send", style=discord.ButtonStyle.primary)
     async def send_orbit(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_modal(SendOrbitModal(self.user_id))
+        address = await get_user_address(self.user_id)
+        tokens = get_user_tokens(address)
+        print(address)
+        print(tokens)
+        if not tokens:
+            await interaction.response.send_message("You don’t own any tokens to send.", ephemeral=True)
+            return
+
+        await interaction.response.send_message(
+            "Select a token to send:", view=SendTokenView(self.user_id, tokens), ephemeral=True
+        )
 
     @discord.ui.button(label="Mine", style=discord.ButtonStyle.green)
     async def mine_orbit(self, interaction: discord.Interaction, button: Button):
