@@ -8,6 +8,8 @@ import argparse
 import shutil
 import asyncio
 from flask import Flask, request, jsonify
+from api import send_orbit_api
+from configure import EXCHANGE_ADDRESS
 from config.configutil import TXConfig, NodeConfig, OrbitDB
 from core.ioutil import load_nodes, save_nodes, fetch_chain, save_chain
 from blockchain.blockutil import validate_block
@@ -19,6 +21,7 @@ FETCH_INTERVAL = 30
 
 orbit_db = OrbitDB()
 EXPLORER = orbit_db.explorer
+
 
 class OrbitNode:
     def __init__(self, address, port=None):
@@ -34,12 +37,12 @@ class OrbitNode:
         self.heartbeat_min = 10
         self.heartbeat_max = 30
         self.block_timestamps = []
-        self.heartbeat_thread = None
+        self.heartbeat_task = None
         self.last_validated_block = self.get_latest_validated_block_index()
         self.block_received_event = threading.Event()
         self.stats_ui_thread = None
         self.peer_discovery_thread = None
-        self.quorum_slice = set()  # Basic placeholder for future PoI use
+        self.quorum_slice = set()
 
     def get_available_port(self, start=5000, end=5999):
         while True:
@@ -100,7 +103,6 @@ class OrbitNode:
                 log_node_activity(self.node_id, "[ERROR]", f"Failed to recover chain from explorer: {ex}")
         return []
 
-
     def update_chain(self):
         new_chain = self.fetch_latest_chain()
         if new_chain and len(new_chain) > len(self.chain):
@@ -109,9 +111,9 @@ class OrbitNode:
 
     def validate_incoming_block(self, block):
         if any(b.get("hash") == block.get("hash") for b in self.chain):
-            log_node_activity(self.node_id, "[INFO]",  "Block already exists in chain.")
+            log_node_activity(self.node_id, "[INFO]", "Block already exists in chain.")
             return False
-        log_node_activity(self.node_id, "[INFO]",  "Validating Block.")
+        log_node_activity(self.node_id, "[INFO]", "Validating Block.")
         if validate_block(block, self.node_id):
             self.chain.append(block)
             save_chain(self.chain, owner_id=self.node_id, chain_file=self.node_ledger)
@@ -149,7 +151,7 @@ class OrbitNode:
                 res = requests.post(f"{url}/receive_block", json=block, timeout=3)
                 if res.status_code == 200:
                     log_node_activity(self.node_id, f"[SYNC]", f"Block sent to {node_id}")
-            except Exception as e:
+            except Exception:
                 log_node_activity(self.node_id, f"[SYNC]", f"Block failed to send to {node_id}")
                 continue
 
@@ -169,8 +171,7 @@ class OrbitNode:
             kwargs={"host": '0.0.0.0', "port": self.port, "debug": False, "use_reloader": False}
         ).start()
 
-
-    def heartbeat_loop(self, new_node, new_node_id):
+    async def heartbeat_loop(self, new_node, new_node_id):
         while self.running:
             try:
                 self.update_chain()
@@ -187,35 +188,34 @@ class OrbitNode:
 
                 new_node["uptime"] = round(new_uptime, 4)
 
-                # Match and fill orders on each heartbeat
-                asyncio.run(match_orders(self.node_id))
+                # 🔄 Async call to match_orders
+                await match_orders(self.node_id)
+
                 response = requests.post(
                     f"{EXPLORER}/node_ping",
                     json=new_node,
                     headers={'Content-Type': 'application/json'},
                     timeout=5
                 )
-
                 if response.status_code == 200:
                     self.nodes[new_node_id] = new_node
                     save_nodes(self.nodes, exclude_id=self.node_id)
 
             except Exception as e:
-                log_node_activity(self.node_id, f"[HEARTBEAT]",  f"Exception: {e}")
+                log_node_activity(self.node_id, "[HEARTBEAT]", f"Exception: {e}")
 
             if self.block_received_event.is_set():
                 self.block_received_event.clear()
 
-            time.sleep(self.get_dynamic_heartbeat_interval())
+            await asyncio.sleep(self.get_dynamic_heartbeat_interval())
 
-
-    def start_heartbeat_thread(self, new_node, new_node_id):
-        self.heartbeat_thread = threading.Thread(
-            target=self.heartbeat_loop,
-            args=(new_node, new_node_id),
-            daemon=True
-        )
-        self.heartbeat_thread.start()
+    def start_heartbeat_task(self, new_node, new_node_id):
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        self.heartbeat_task = loop.create_task(self.heartbeat_loop(new_node, new_node_id))
 
     def get_dynamic_heartbeat_interval(self):
         cutoff = time.time() - 300
@@ -242,9 +242,9 @@ class OrbitNode:
                                 "host": peer["host"],
                                 "port": peer["port"],
                             }
-                            log_node_activity(self.node_id, f"[DISCOVERY]", f"Added new peer: {peer['id']}")
+                            log_node_activity(self.node_id, "[DISCOVERY]", f"Added new peer: {peer['id']}")
             except Exception as e:
-                log_node_activity(self.node_id, f"[DISCOVERY ERROR]", f"{e}")
+                log_node_activity(self.node_id, "[DISCOVERY ERROR]", f"{e}")
             time.sleep(10)
 
     def start_peer_discovery_thread(self):
@@ -262,50 +262,44 @@ class OrbitNode:
             uptime = self.nodes.get(self.node_id, {}).get("uptime", 0.0)
             trust = self.nodes.get(self.node_id, {}).get("trust", 0.0)
             print(f"🔗 Orbit Node Dashboard")
-            print(f"{'='*40}")
+            print(f"{'=' * 40}")
             print(f"Node ID       : {self.node_id}")
             print(f"Address       : {self.address}")
             print(f"Port          : {self.port}")
+            print(f"Validated     : {validated_count} blocks")
+            print(f"Trust         : {trust:.4f}")
             print(f"Uptime        : {uptime:.4f}")
-            print(f"Trust Score   : {trust:.4f}")
-            print(f"Blocks Validated : {validated_count}")
-            print(f"Peers Known   : {len(self.nodes)}")
-            print(f"Quorum Slice  : {list(self.quorum_slice)}")
-            print(f"{'='*40}")
-            print("Press Ctrl+C to stop the node.")
             time.sleep(5)
 
-    def start_stats_ui_thread(self):
+    def start_stats_ui(self):
         self.stats_ui_thread = threading.Thread(
             target=self.display_stats_loop,
             daemon=True
         )
         self.stats_ui_thread.start()
 
-    def run(self):
-        log_node_activity(self.node_id, f"[BOOT]", f"Starting Orbit Node for {self.address} ({self.node_id})")
-        new_node = self.register_node()
-        new_node_id = new_node["id"]
-        self.start_receiver_server()
-        self.start_heartbeat_thread(new_node, new_node_id)
-        self.start_peer_discovery_thread()
-        self.start_stats_ui_thread()
 
-        while self.running:
-            if not self.block_received_event.is_set():
-                self.update_chain()
-            time.sleep(FETCH_INTERVAL)
+def main():
+    parser = argparse.ArgumentParser(description="Start an Orbit Node")
+    parser.add_argument("address", help="Wallet address to assign to this node")
+    parser.add_argument("--port", type=int, help="Port to run node on (optional)")
+    args = parser.parse_args()
 
-    def stop(self):
-        self.running = False
+    node = OrbitNode(address=args.address, port=args.port)
+    new_node_info = node.register_node()
+    node.start_receiver_server()
+    node.start_peer_discovery_thread()
+    node.start_heartbeat_task(new_node_info, node.node_id)
+
+    # Start the dashboard in a separate thread
+    node.stats_ui_thread = threading.Thread(target=node.display_stats_loop, daemon=True)
+    node.stats_ui_thread.start()
+
+    try:
+        asyncio.get_event_loop().run_forever()
+    except KeyboardInterrupt:
+        print("\n[SHUTDOWN] Node is shutting down...")
+        node.running = False
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Start a standalone Orbit Blockchain Node")
-    parser.add_argument("--address", required=True, help="Wallet address to associate with this node")
-    args = parser.parse_args()
-    node = OrbitNode(address=args.address)
-    try:
-        node.run()
-    except KeyboardInterrupt:
-        node.stop()
-        print("\nNode stopped gracefully.")
+    main()

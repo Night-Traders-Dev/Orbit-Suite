@@ -78,30 +78,6 @@ async def match_orders(node_id):
         price = float(buy["price"])
         total_orbit = round(amount * price, 6)
 
-        # Transfer Token from Seller to Buyer
-        if symbol != "ORBIT":
-            token_tx = TXExchange.create_token_transfer_tx(
-                sender=seller,
-                receiver=buyer,
-                amount=amount,
-                token_symbol=symbol,
-                note=f"Exchange: {symbol} to {buyer}"
-            )
-            token_success = await send_orbit_api(seller, buyer, 0.5, token_tx)  # Token tx + fee
-        else:
-            token_tx = ""
-            token_success = True  # No extra transfer for ORBIT
-
-        # Transfer ORBIT from Buyer to Seller
-        orbit_success = await send_orbit_api(buyer, seller, total_orbit, "")
-        if token_success and orbit_success:
-            log_node_activity(node_id, "[ORDERBOOK]", f"\n✅ Token {symbol} sent from {seller} to {buyer}")
-            log_node_activity(node_id, "[ORDERBOOK]", f"✅ {total_orbit} ORBIT sent from {buyer} to {seller}")
-        else:
-            log_node_activity(node_id, "[ORDERBOOK]", "\n⛔️ One or both transfers failed. Skipping order fill.")
-            continue  # Skip creating filled orders if payment failed
-
-
         # Create filled orders
         buy_result = await create_order(
             type="buy",
@@ -122,6 +98,34 @@ async def match_orders(node_id):
             order_id=sell["order_id"],
             status="filled"
         )
+
+
+
+
+        # Transfer Token from Seller to Buyer
+        if symbol != "ORBIT":
+            token_tx = TXExchange.create_token_transfer_tx(
+                sender=seller,
+                receiver=buyer,
+                amount=amount,
+                token_symbol=symbol,
+                note=f"Exchange: {symbol} to {buyer}"
+            )
+            token_success = await send_orbit_api(seller, buyer, 0.5, sell_result)  # Token tx + fee
+        else:
+            token_tx = ""
+            token_success = True  # No extra transfer for ORBIT
+
+        # Transfer ORBIT from Buyer to Seller
+        orbit_success = await send_orbit_api(buyer, seller, total_orbit, buy_result)
+        if token_success and orbit_success:
+            log_node_activity(node_id, "[ORDERBOOK]", f"\n✅ Token {symbol} sent from {seller} to {buyer}")
+            log_node_activity(node_id, "[ORDERBOOK]", f"✅ {total_orbit} ORBIT sent from {buyer} to {seller}")
+        else:
+            log_node_activity(node_id, "[ORDERBOOK]", "\n⛔️ One or both transfers failed. Skipping order fill.")
+            continue  # Skip creating filled orders if payment failed
+
+
 
 
 
