@@ -1,3 +1,4 @@
+
 # Orbit Blockchain Whitepaper
 
 ## Overview
@@ -12,11 +13,12 @@ It runs efficiently on local infrastructure with minimal dependencies and includ
 
 Orbit aims to build a decentralized ecosystem where users can:
 
-* Earn Orbit tokens through time-based simulated mining
-* Lock tokens to passively earn daily rewards
-* Participate in validation via a trust-based consensus model
-* Interact through a Web UI or Discord bot for full wallet/node control
-* Explore real-time network metrics via the integrated Orbit Explorer
+- Earn Orbit tokens through time-based simulated mining  
+- Lock tokens to passively earn daily rewards  
+- Participate in validation via a trust-based consensus model  
+- Interact through a Web UI or Discord bot for full wallet/node control  
+- Explore real-time network metrics via the integrated Orbit Explorer  
+- Trade tokens via a decentralized, node-powered exchange
 
 ---
 
@@ -28,10 +30,10 @@ Orbit uses a local JSON ledger (`data/orbit_chain.json`) that stores all chain a
 
 **Structure Includes:**
 
-* **Genesis Block**: Auto-generated if the ledger is missing
-* **Transactions**: `transfer`, `mining`, `reward`, and `lockup_claim` types
-* **Blocks**: Include index, timestamp, transactions, hash, validator, Merkle root, signatures, and metadata
-* **Merkle Tree**: Root is computed per block for transaction integrity
+- **Genesis Block**: Auto-generated if the ledger is missing  
+- **Transactions**: `transfer`, `mining`, `reward`, `lockup_claim`, and `exchange` types  
+- **Blocks**: Include index, timestamp, transactions, hash, validator, Merkle root, signatures, and metadata  
+- **Merkle Tree**: Root is computed per block for transaction integrity  
 
 ---
 
@@ -39,10 +41,10 @@ Orbit uses a local JSON ledger (`data/orbit_chain.json`) that stores all chain a
 
 Orbit supports a simulated mining model:
 
-* Users choose a mining duration
-* Reward rate: `0.082 ORBIT/sec` (simulated rate)
-* Mining transaction is added to a new block
-* No resource-intensive computation required
+- Users choose a mining duration  
+- Reward rate: `0.082 ORBIT/sec` (simulated rate)  
+- Mining transaction is added to a new block  
+- No resource-intensive computation required  
 
 ---
 
@@ -50,10 +52,10 @@ Orbit supports a simulated mining model:
 
 Orbit features token lockups for passive earning:
 
-* Tokens locked for *n* days receive daily rewards (\~5% APR)
-* Rewards can be claimed after full 24h intervals
-* Claim tracking via `claim_until` field
-* Rewards are issued as special `reward` transactions
+- Tokens locked for *n* days receive daily rewards (~5% APR)  
+- Rewards can be claimed after full 24h intervals  
+- Claim tracking via `claim_until` field  
+- Rewards are issued as special `reward` transactions  
 
 #### Example Lockup Entry:
 
@@ -72,16 +74,16 @@ Orbit features token lockups for passive earning:
 
 Orbit replaces PoW/PoS with a trust-weighted consensus system:
 
-* **Proposal**: Node proposes a block
-* **Voting**: Peers validate/sign based on proposer's trust and uptime
-* **Finalization**: Quorum reached → block added
+- **Proposal**: Node proposes a block  
+- **Voting**: Peers validate/sign based on proposer's trust and uptime  
+- **Finalization**: Quorum reached â†’ block added  
 
 **Trust is influenced by:**
 
-* Session-based uptime tracking
-* Correct proposal history
-* Consensus participation
-* Security Circle relationships
+- Session-based uptime tracking  
+- Correct proposal history  
+- Consensus participation  
+- Security Circle relationships  
 
 ---
 
@@ -89,9 +91,46 @@ Orbit replaces PoW/PoS with a trust-weighted consensus system:
 
 Optional peer trust layer:
 
-* Users define trusted nodes
-* Boosts consensus weight during validation
-* Web-of-Trust style Sybil resistance
+- Users define trusted nodes  
+- Boosts consensus weight during validation  
+- Web-of-Trust style Sybil resistance  
+
+---
+
+### 6. Node Network
+
+Orbit operates a lightweight mesh of validator nodes with:
+
+- Dynamic session-based assignment (one node per active user)  
+- Retry logic for failed block proposals  
+- Trust/uptime tracking per session  
+- Broadcast-based consensus messaging  
+- Nodes listed publicly on the Orbit Explorer  
+- Nodes can serve as validators **and** exchange agents  
+
+---
+
+### 7. Automated Exchange & Order Matching
+
+Orbit includes a built-in, node-based decentralized exchange (DEX):
+
+- Users can submit buy/sell orders via `/exchange` command  
+- Orders are broadcast and matched automatically via node logic  
+- Matching engine runs across active validator nodes  
+- Orders matched based on price, timestamp, and quantity  
+- Matching results are finalized in `exchange` transaction types  
+- All trades are visible on the blockchain and in the Orbit Explorer  
+
+---
+
+### 8. Exchange Bot
+
+The exchange is also accessible through a Discord-integrated bot:
+
+- `/exchange` opens a trading panel  
+- Users can view the order book, submit limit orders, or cancel orders  
+- Node agents continuously monitor and match orders in real time  
+- Order matching is trust-aware: orders are prioritized by honest node track record and uptime  
 
 ---
 
@@ -123,6 +162,20 @@ Optional peer trust layer:
 }
 ```
 
+### Exchange Transaction
+
+```json
+{
+  "type": "exchange",
+  "sender": "alice",
+  "order_type": "sell",
+  "amount": 50,
+  "price": 1.2,
+  "matched_with": "bob",
+  "timestamp": 1747279999.12
+}
+```
+
 ### Block
 
 ```json
@@ -149,56 +202,48 @@ Optional peer trust layer:
 
 ---
 
-## Node Network & Communication
-
-* Nodes listed in the Orbit Explorer
-* TCP socket-based networking
-* Dynamic session-based node assignment
-* Retry logic for failed block proposals
-* Consensus messages broadcast across active nodes
-
----
-
 ## User Interfaces
 
 ### Discord Bot Interface
 
-Orbit integrates a full-featured Discord bot interface:
+Orbit integrates a full-featured Discord bot with these slash commands:
 
-* `!wallet` – View and manage wallet
-* `!register` – Register account with Orbit
-* Role-restricted validator/admin commands
+- `/register` â€“ Register your account  
+- `/wallet` â€“ View balances, lockups, rewards  
+- `/exchange` â€“ Access trading panel and submit orders  
 
-The bot provides a social, real-time interface layer ideal for collaborative mining, staking, and governance discussions.
+The bot provides a social, real-time interface ideal for collaborative mining, staking, and trading.
+
+---
 
 ### Web UI (Orbit Explorer)
 
-* **Block Explorer**: Rich views of transactions, blocks, addresses, and validators
-* **Address Profiles**: Balance, lockups, tx history, inflow/outflow charts
-* **Validator Stats**: Uptime, trust, blocks proposed, processed volume
-* **Smart Search**: Navigate via tx hash, block ID, or address
-* **API Access**: JSON endpoints for block/tx/address lookups
-* **Live Charts**: Block production, wallet distribution, tx volume
-* **Security Circle View**: Web-of-trust node graph visualizations
+- **Block Explorer**: Rich views of transactions, blocks, addresses, and validators  
+- **Address Profiles**: Balance, lockups, tx history, inflow/outflow charts  
+- **Validator Stats**: Uptime, trust, blocks proposed, processed volume  
+- **Order Book View**: Live trading orders and matches  
+- **Smart Search**: Navigate via tx hash, block ID, or address  
+- **API Access**: JSON endpoints for block/tx/address/order lookup  
+- **Live Charts**: Block production, wallet distribution, tx volume  
+- **Security Circle View**: Web-of-trust node graph visualizations  
 
 ---
 
 ## Developer & Community Goals
 
-* Open-source on GitHub (MIT License)
-* Encourages community validator nodes
-* Simple Python modules for rapid extension
-* Ideal for research, learning, and gamified economic experiments
+- Open-source on GitHub (MIT License)  
+- Encourages community validator nodes  
+- Simple Python modules for rapid extension  
+- Ideal for research, learning, and gamified economic experiments  
 
 ---
 
 ## Future Roadmap
 
-* Mobile wallet integration (with QR support)
-* Smart contract support via simplified sandbox
-* On-chain governance system using trust scores
-* Decentralized naming service (OrbitDNS)
-* Real-time messaging layer using the node mesh
+- Smart contract support via simplified sandbox  
+- On-chain governance system using trust scores  
+- Decentralized naming service (OrbitDNS)  
+- Real-time messaging layer using the node mesh  
 
 ---
 
