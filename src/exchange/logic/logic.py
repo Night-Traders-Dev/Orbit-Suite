@@ -4,9 +4,11 @@ import uuid, time
 from core.exchangeutil import get_token_id, get_user_token_balance
 from core.tx_util.tx_types import TXExchange
 from core.tx_util.tx_validator import TXValidator
-from bot.api import get_user_address, send_orbit_api
-from configure import EXCHANGE_ADDRESS
-
+#from bot.api import get_user_address, send_orbit_api
+try:
+    from configure import EXCHANGE_ADDRESS
+except Exception as e:
+    pass
 
 async def create_order(type, symbol, price, amount, address, status="open", order_id=None):
     token_id = get_token_id(symbol.upper())

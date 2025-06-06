@@ -6,13 +6,14 @@ import os
 import random
 import argparse
 import shutil
+import asyncio
 from flask import Flask, request, jsonify
 from config.configutil import TXConfig, NodeConfig, OrbitDB
 from core.ioutil import load_nodes, save_nodes, fetch_chain, save_chain
 from blockchain.blockutil import validate_block
 from blockchain.orbitutil import simulate_peer_vote
 from core.logutil import log_node_activity
-from utils.orders import match_orders
+from utils.match_orders import match_orders
 
 FETCH_INTERVAL = 30
 
@@ -187,8 +188,7 @@ class OrbitNode:
                 new_node["uptime"] = round(new_uptime, 4)
 
                 # Match and fill orders on each heartbeat
-                match_orders(self.chain)
-
+                asyncio.run(match_orders())
                 response = requests.post(
                     f"{EXPLORER}/node_ping",
                     json=new_node,

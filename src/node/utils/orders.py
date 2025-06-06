@@ -1,5 +1,6 @@
 from core.logutil import log_node_activity
 from config.configutil import TXConfig, OrbitDB
+from logic.logic import create_order
 
 orbit_db = OrbitDB()
 
@@ -60,19 +61,7 @@ def match_orders(chain):
 
     # Convert matches into transactions and add to mempool or new block
     for match in matches:
-        tx = TXConfig.Transaction()
-        tx_data = {
-            "type": "exchange",
-            "sender": match["seller"],
-            "receiver": match["buyer"],
-            "amount": match["amount"],
-            "price": match["price"],
-            "note": f"Matched Order: {match['amount']} ORB @ {match['price']} from {match['seller']} to {match['buyer']}",
-            "timestamp": match["timestamp"]
-        }
-        tx.load_from_dict(tx_data)
-        # Append transaction to the pending pool or trigger block creation
-        orbit_db.pending.append(tx.to_dict())
+        success, result = await create_order("buy", "Orbit", 10.23, 50, "test: address", order_id=order_id, status="filled")
 
     if matches:
         log_node_activity(self.node_id, "[MATCH]", f"{len(matches)} orders matched and added to mempool.")

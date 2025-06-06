@@ -1,13 +1,16 @@
+import asyncio
 from logic.logic import create_order
 from core.ioutil import fetch_chain
-import asyncio
+from api import send_orbit_api
+from core.tx_util.tx_types import TXExchange
 
-async def main():
+async def match_orders():
     buy_orders = []
     sell_orders = []
     filled_order_ids = set()
     chain = fetch_chain()
 
+    # Parse orders from chain
     for block in reversed(chain):
         for tx in block.get("transactions", []):
             note = tx.get("note")
@@ -46,10 +49,12 @@ async def main():
     for buy in buy_orders:
         match = None
         for sell in unmatched_sells:
-            if (buy["price"] == sell["price"] and
-                buy["amount"] == sell["amount"] and
-                buy["symbol"].upper() == sell["symbol"].upper() and
-                buy["buyer"] != sell["seller"]):  # ✅ Avoid self-trading
+            if (
+                buy["price"] == sell["price"]
+                and buy["amount"] == sell["amount"]
+                and buy["symbol"].upper() == sell["symbol"].upper()
+                and buy["buyer"] != sell["seller"]  # Prevent self-trading
+            ):
                 match = sell
                 break
 
@@ -65,33 +70,51 @@ async def main():
         print("Buy:", buy)
         print("Sell:", sell)
 
+        buyer = buy["buyer"]
+        seller = sell["seller"]
+        symbol = buy["symbol"].upper()
+        amount = float(buy["amount"])
+        price = float(buy["price"])
+        total_orbit = round(amount * price, 6)
+
+        # Transfer Token from Seller to Buyer
+        if symbol != "ORBIT":
+            token_tx = TXExchange.create_token_transfer_tx(
+                sender=seller,
+                receiver=buyer,
+                amount=amount,
+                token_symbol=symbol,
+                note=f"Exchange: {symbol} to {buyer}"
+            )
+            token_success = await send_orbit_api(seller, buyer, 0.5, token_tx)  # Token tx + fee
+        else:
+            token_tx = ""
+            token_success = True  # No extra transfer for ORBIT
+
+        # Transfer ORBIT from Buyer to Seller
+        orbit_success = await send_orbit_api(buyer, seller, total_orbit, "")
+
+
         # Create filled orders
         buy_result = await create_order(
-            type="buy_token",
-            symbol=buy["symbol"],
-            price=buy["price"],
-            amount=buy["amount"],
-            address=buy["buyer"],
+            type="buy",
+            symbol=symbol,
+            price=price,
+            amount=amount,
+            address=buyer,
             order_id=buy["order_id"],
             status="filled"
         )
-        print("\nBuy Fill Result:", buy_result)
 
         sell_result = await create_order(
-            type="sell_token",
-            symbol=sell["symbol"],
-            price=sell["price"],
-            amount=sell["amount"],
-            address=sell["seller"],
+            type="sell",
+            symbol=symbol,
+            price=price,
+            amount=amount,
+            address=seller,
             order_id=sell["order_id"],
             status="filled"
         )
-        print("\nSell Fill Result:", sell_result)
-
-    # Optional: Show remaining unmatched
-    print("\nUnmatched Buy Orders:", unmatched_buys)
-    print("\nUnmatched Sell Orders:", unmatched_sells)
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+
