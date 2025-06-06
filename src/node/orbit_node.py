@@ -188,7 +188,7 @@ class OrbitNode:
                 new_node["uptime"] = round(new_uptime, 4)
 
                 # Match and fill orders on each heartbeat
-                asyncio.run(match_orders())
+                asyncio.run(match_orders(self.node_id))
                 response = requests.post(
                     f"{EXPLORER}/node_ping",
                     json=new_node,

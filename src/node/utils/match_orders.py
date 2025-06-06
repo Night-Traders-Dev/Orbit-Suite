@@ -1,10 +1,11 @@
 import asyncio
 from logic.logic import create_order
 from core.ioutil import fetch_chain
+from core.logutil import log_node_activity
 from api import send_orbit_api
 from core.tx_util.tx_types import TXExchange
 
-async def match_orders():
+async def match_orders(node_id):
     buy_orders = []
     sell_orders = []
     filled_order_ids = set()
@@ -93,6 +94,12 @@ async def match_orders():
 
         # Transfer ORBIT from Buyer to Seller
         orbit_success = await send_orbit_api(buyer, seller, total_orbit, "")
+        if token_success and orbit_success:
+            log_node_activity(node_id, "[ORDERBOOK]", f"\n✅ Token {symbol} sent from {seller} to {buyer}")
+            log_node_activity(node_id, "[ORDERBOOK]", f"✅ {total_orbit} ORBIT sent from {buyer} to {seller}")
+        else:
+            log_node_activity(node_id, "[ORDERBOOK]", "\n⛔️ One or both transfers failed. Skipping order fill.")
+            continue  # Skip creating filled orders if payment failed
 
 
         # Create filled orders
