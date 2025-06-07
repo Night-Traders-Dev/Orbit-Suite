@@ -217,7 +217,6 @@ def load_node(node_id):
     )
 
 
-
 @app.route("/token/<symbol>")
 def token_metrics(symbol):
     symbol = symbol.upper()
@@ -233,6 +232,14 @@ def token_metrics(symbol):
     unique_receivers = set()
     unique_senders = set()
     seen_order_ids = set()
+
+    # Order book metrics
+    open_buy_orders = []
+    open_sell_orders = []
+    total_orbit_in_buys = 0.0
+    total_tokens_in_sells = 0.0
+    highest_buy_price = None
+    lowest_sell_price = None
 
     for block in ledger:
         for tx in block.get("transactions", []):
@@ -258,7 +265,7 @@ def token_metrics(symbol):
                     }
 
             # Token transfers
-            if "token_transfer" in tx_type:
+            elif "token_transfer" in tx_type:
                 data = tx_type["token_transfer"]
                 if data.get("token_symbol", "").upper() != symbol:
                     continue
@@ -275,12 +282,10 @@ def token_metrics(symbol):
                     total_tokens_sent += amount
                     unique_senders.add(sender)
 
-                # Buy (receiver got token and paid Orbit)
                 if receiver and orbit_amount and amount > 0:
                     total_orbit_spent += orbit_amount
                     latest_valid_price = orbit_amount / amount
 
-                # Sell (sender gave token and earned Orbit)
                 if sender and orbit_amount:
                     total_orbit_earned += orbit_amount
 
@@ -288,49 +293,51 @@ def token_metrics(symbol):
             elif "buy_token" in tx_type:
                 data = tx_type["buy_token"]
                 order_id = data.get("order_id")
-                if (
-                    not order_id
-                    or order_id in seen_order_ids
-                    or data.get("status") != "filled"
-                    or data.get("symbol", "").upper() != symbol
-                ):
+                if not order_id or order_id in seen_order_ids or data.get("symbol", "").upper() != symbol:
                     continue
                 seen_order_ids.add(order_id)
 
                 amount = float(data.get("amount", 0))
-                buyer = data.get("buyer")
                 price = float(data.get("price", 0))
+                buyer = data.get("buyer")
+                status = data.get("status")
 
-                total_tokens_received += amount
-                total_orbit_spent += amount * price
-                latest_valid_price = price
-
-                if buyer:
-                    unique_receivers.add(buyer)
+                if status == "filled":
+                    total_tokens_received += amount
+                    total_orbit_spent += amount * price
+                    latest_valid_price = price
+                    if buyer:
+                        unique_receivers.add(buyer)
+                elif status == "open":
+                    open_buy_orders.append(data)
+                    total_orbit_in_buys += amount * price
+                    if highest_buy_price is None or price > highest_buy_price:
+                        highest_buy_price = price
 
             # Sell token
             elif "sell_token" in tx_type:
                 data = tx_type["sell_token"]
                 order_id = data.get("order_id")
-                if (
-                    not order_id
-                    or order_id in seen_order_ids
-                    or data.get("status") != "filled"
-                    or data.get("symbol", "").upper() != symbol
-                ):
+                if not order_id or order_id in seen_order_ids or data.get("symbol", "").upper() != symbol:
                     continue
                 seen_order_ids.add(order_id)
 
                 amount = float(data.get("amount", 0))
-                seller = data.get("seller")
                 price = float(data.get("price", 0))
+                seller = data.get("seller")
+                status = data.get("status")
 
-                total_tokens_sent += amount
-                total_orbit_earned += amount * price
-                latest_valid_price = price
-
-                if seller:
-                    unique_senders.add(seller)
+                if status == "filled":
+                    total_tokens_sent += amount
+                    total_orbit_earned += amount * price
+                    latest_valid_price = price
+                    if seller:
+                        unique_senders.add(seller)
+                elif status == "open":
+                    open_sell_orders.append(data)
+                    total_tokens_in_sells += amount
+                    if lowest_sell_price is None or price < lowest_sell_price:
+                        lowest_sell_price = price
 
     if not token_info:
         return render_template("token_not_found.html", symbol=symbol), 404
@@ -343,10 +350,19 @@ def token_metrics(symbol):
         "unique_holders": len(unique_receivers | unique_senders),
         "unique_buyers": len(unique_receivers),
         "unique_sellers": len(unique_senders),
-        "current_price": round(latest_valid_price, 6) if latest_valid_price else None
+        "current_price": round(latest_valid_price, 6) if latest_valid_price else None,
+
+        # New orderbook insights
+        "open_buy_order_count": len(open_buy_orders),
+        "open_sell_order_count": len(open_sell_orders),
+        "total_orbit_in_open_buys": round(total_orbit_in_buys, 6),
+        "total_tokens_in_open_sells": round(total_tokens_in_sells, 6),
+        "highest_buy_price": round(highest_buy_price, 6) if highest_buy_price else None,
+        "lowest_sell_price": round(lowest_sell_price, 6) if lowest_sell_price else None
     })
 
     return render_template("token_metrics.html", token=token_info)
+
 
 
 # ===================== Auth + Identity APIs ==================

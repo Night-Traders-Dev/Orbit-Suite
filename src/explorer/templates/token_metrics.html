@@ -21,5 +21,13 @@
       <span class="text-gray-500 italic">No recent buy</span>
     {% endif %}
   </div>
+
+  <!-- 🆕 Additional Orderbook Metrics -->
+  <div><strong>Open Buy Orders:</strong> {{ token.open_buy_orders | default(0) | commas }}</div>
+  <div><strong>Open Sell Orders:</strong> {{ token.open_sell_orders | default(0) | commas }}</div>
+  <div><strong>Filled Buy Orders:</strong> {{ token.filled_buy_orders | default(0) | commas }}</div>
+  <div><strong>Filled Sell Orders:</strong> {{ token.filled_sell_orders | default(0) | commas }}</div>
+  <div><strong>Total Orbit in Open Orders:</strong> {{ token.total_orbit_in_open_orders | default(0.0) | commas }}</div>
+  <div><strong>Total Tokens in Open Orders:</strong> {{ token.total_tokens_in_open_orders | default(0.0) | commas }}</div>
 </div>
 {% endblock %}
