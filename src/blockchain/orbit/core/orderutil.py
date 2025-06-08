@@ -8,7 +8,8 @@ async def get_stats(stats_dict, token):
         "sell_tokens": 0, "sell_orbit": 0.0
     })
 
-async def token_stats():
+TOKEN = "FUEL"
+async def token_stats(token=TOKEN):
     chain = fetch_chain()
     tokens = {}
     filled_stats = {}
@@ -29,6 +30,7 @@ async def token_stats():
 
             tx_type = note.get("type", {})
 
+
             if "token_transfer" in tx_type:
                 data = tx_type["token_transfer"]
                 token = data.get("token_symbol")
@@ -38,7 +40,7 @@ async def token_stats():
                 tx_note = data.get("note")
 
                 if not token or not isinstance(qty, (int, float)):
-                    continue
+                    return None
 
                 stats = await get_stats(filled_stats, token)
 
