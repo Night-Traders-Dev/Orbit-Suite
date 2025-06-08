@@ -1,12 +1,13 @@
 import time, math
 from core.tx_util.tx_types import TXTypes
-from core.ioutil import load_users, save_users, fetch_chain
+from core.ioutil import load_users, save_users, fetch_chain, get_address_from_label
 from core.walletutil import load_balance
 from blockchain.blockutil import add_block
 from config.configutil import MiningConfig, TXConfig, get_node_for_user
 from blockchain.tokenutil import send_orbit
 
 # Load configuration
+mining_address = get_address_from_label("mining")
 mining_config = MiningConfig()
 MODE = "mainnet"
 
@@ -140,7 +141,7 @@ def start_mining(address):
         )
         rate_data = tx_metadata.rate_dict()
         tx_order = TXTypes.MiningTypes.mining_metadata(node_fee, rate_data)
-        send_orbit("mining", address, user_payout, order=tx_order)
+        send_orbit(mining_address, address, user_payout, order=tx_order)
 
         return True, {
             "rate": rate,

@@ -1,12 +1,13 @@
 import time
 from core.walletutil import load_balance
-from core.ioutil import load_users, save_users
+from core.ioutil import load_users, save_users, get_address_from_label
 from blockchain.blockutil import add_block
-from config.configutil import TXConfig, get_node_for_user
+from config.configutil import OrbitDB, TXConfig, get_node_for_user
 from core.tx_util.tx_types import TXTypes
 
 MIN_TRANSFER_AMOUNT = 0.0001
 FEE_RATE = 0.02
+NODE_FEE_ADDRESS = get_address_from_label("nodefeecollector")
 
 def send_orbit(sender, recipient, amount, order=None):
     users = load_users()
@@ -46,10 +47,10 @@ def send_orbit(sender, recipient, amount, order=None):
             note=tx_note,
             timestamp=current_time
         )
-        tx_fee = TXTypes.GasTypes(fee, user_node, sender, "nodefeecollector")
+        tx_fee = TXTypes.GasTypes(fee, user_node, sender, NODE_FEE_ADDRESS)
         tx2 = TXConfig.Transaction(
             sender=sender,
-            recipient="nodefeecollector",
+            recipient=NODE_FEE_ADDRESS,
             amount=fee,
             note=tx_fee.gas_tx(),
             timestamp=current_time

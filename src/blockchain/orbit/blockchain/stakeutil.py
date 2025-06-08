@@ -2,7 +2,7 @@ import time
 from config.configutil import TXConfig, get_node_for_user
 from blockchain.blockutil import add_block
 from blockchain.tokenutil import send_orbit
-from core.ioutil import fetch_chain, load_users, save_users
+from core.ioutil import fetch_chain, load_users, save_users, get_address_from_label
 from core.tx_util.tx_types import TXTypes
 from core.walletutil import load_balance
 from core.logutil import log_event
@@ -11,7 +11,8 @@ import json
 LOCK_REWARD_RATE_PER_DAY = 0.05
 MIN_LOCK_AMOUNT = 0.0001
 MAX_LOCK_DURATION_DAYS = 365 * 5  # 5 years max
-
+NODE_FEE_ADDRESS = get_address_from_label("nodefeecollector")
+LOCK_UP_ADDRESS = get_address_from_label("lockup_rewards")
 
 def get_all_lockups():
     chain = fetch_chain()
@@ -239,7 +240,7 @@ def withdraw_lockup(username):
 
     # Main withdrawal transaction
     txs.append(TXConfig.Transaction(
-        sender="lockup_rewards",
+        sender=LOCK_UP_ADDRESS,
         recipient=username,
         amount=payout,
         note=staking.tx_build("withdraw"),
@@ -249,7 +250,7 @@ def withdraw_lockup(username):
     # Node fee transaction
     txs.append(TXConfig.Transaction(
         sender=username,
-        recipient="nodefeecollector",
+        recipient=NODE_FEE_ADDRESS,
         amount=fee,
         note={"type": f"Lockup Withdrawal Fee: {fee}", "node": node_id},
         timestamp=now
@@ -337,7 +338,7 @@ def claim_lockup_rewards(username, relock_duration=None):
                 if reward > 0:
                     total_reward += reward
                     reward_txs.append(TXConfig.Transaction(
-                        sender="lockup_rewards",
+                        sender=LOCK_UP_ADDRESS,
                         recipient=username,
                         amount=reward,
                         note=staking.tx_build("claim"),
@@ -351,10 +352,10 @@ def claim_lockup_rewards(username, relock_duration=None):
         net_reward = round(total_reward - node_fee, 6)
 
         if total_reward > 0:
-            tx_fee = TXTypes.GasTypes(node_fee, node_id, username, "nodefeecollector")
+            tx_fee = TXTypes.GasTypes(node_fee, node_id, username, NODE_FEE_ADDRESS)
             reward_txs.append(TXConfig.Transaction(
                 sender=username,
-                recipient="nodefeecollector",
+                recipient=NODE_FEE_ADDRESS,
                 amount=node_fee,
                 note=tx_fee.gas_tx(),
                 timestamp=now
@@ -383,7 +384,7 @@ def claim_lockup_rewards(username, relock_duration=None):
                 else:
                     relock_tx = TXConfig.Transaction(
                         sender=username,
-                        recipient="lockup_rewards",
+                        recipient=LOCK_UP_ADDRESS,
                         amount=net_reward,
                         note={"duration": relock_duration},
                         timestamp=time.time()

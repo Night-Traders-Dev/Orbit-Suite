@@ -1,5 +1,6 @@
+from core.hashutil import generate_orbit_address
 explorer = "http://127.0.0.1:7000"
-EXCHANGE_ADDRESS="ORB.A6C19210F2B823246BA1DCA7"
+EXCHANGE_ADDRESS=get_orbit_address(1379645991782846608)
 
 with open("secret", "r") as file:
     DISCORD_TOKEN = file.read().strip()

@@ -16,6 +16,7 @@ class OrbitDB:
         self.peerlog = os.path.join(DATA_DIR, "peers.log")
         self.pendpropdb: str = os.path.join(DATA_DIR, "pending_proposals.json")
         self.stakefile = os.path.join(DATA_DIR, "stake.json")
+        self.walletmapping = os.path.join(DATA_DIR, "wallet_mapping.json")
         self.NodeRegistry = {}
         self.explorer = 'http://127.0.0.1:7000'
 

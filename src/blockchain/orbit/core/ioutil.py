@@ -13,6 +13,7 @@ LOCK_FILE = CHAIN_FILE + ".lock"
 NODES_FILE = orbit_db.nodedb
 PENDING_PROPOSALS_FILE = orbit_db.pendpropdb
 EXPLORER = orbit_db.explorer
+WALLET_MAPPING = orbit_db.walletmapping
 
 # ===================== USER FUNCS =====================
 
@@ -100,6 +101,19 @@ def session_util(option, sessions=None):
         return None
 
 # ===================== CHAIN FUNCS =====================
+
+def get_address_from_label(label):
+    if not os.path.exists(orbit_db.walletmapping):
+        raise FileNotFoundError(f"{orbit_db.walletmapping} does not exist.")
+
+    with open(orbit_db.walletmapping, "r") as f:
+        mapping = json.load(f)
+
+    address = mapping.get(label)
+    if not address:
+        raise ValueError(f"No address found for label '{label}' in wallet_mapping.json.")
+
+    return address
 
 def acquire_soft_lock(owner_id, timeout=5):
     start = time.time()

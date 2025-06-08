@@ -1,10 +1,13 @@
 import time
 from config.configutil import OrbitDB
 from core.logutil import log_node_activity
-from core.ioutil import fetch_chain, save_chain
+from core.ioutil import fetch_chain, save_chain, get_address_from_label
 
 db = OrbitDB()
 VOTE_TYPES = ["nominate", "vote", "accept", "confirm"]
+NODE_FEE_ADDRESS = get_address_from_label("nodefeecollector")
+LOCK_UP_ADDRESS = get_address_from_label("lockup_rewards")
+
 
 def record_vote(node_id, block_hash, state):
     from blockchain.tokenutil import send_orbit
@@ -24,7 +27,7 @@ def record_vote(node_id, block_hash, state):
     }
 
     # This transaction will be stored as a zero-value reward, only logged.
-    send_orbit("nodefeecollector", "lockup_rewards", 0.1, vote_tx)
+    send_orbit(NODE_FEE_ADDRESS, LOCK_UP_ADDRESS, 0.1, vote_tx)
     log_node_activity(node_id, state, f"{state.title()} vote for block {block_hash}")
     return True
 
