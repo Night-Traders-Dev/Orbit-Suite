@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto p-6 bg-white rounded-lg shadow-md space-y-6">
+  <h1 class="text-2xl font-bold text-indigo-600">⛏️ Dynamic Mining Rate</h1>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-800">
+    <div>
+      <p class="font-semibold">Current Rate:</p>
+      <p class="text-lg">{{ rate | round(8) }} ORBIT/sec</p>
+    </div>
+    <div>
+      <p class="font-semibold">Estimated 1-Hour Reward:</p>
+      <p class="text-lg text-green-600">{{ reward }} ORBIT</p>
+    </div>
+  </div>
+
+  <h2 class="text-xl font-semibold mt-6">📊 Formula Breakdown</h2>
+  <div class="bg-gray-50 p-4 rounded border space-y-2">
+    <p><strong>Base Rate:</strong> {{ breakdown.base }}</p>
+    <p><strong>User Factor:</strong> {{ breakdown.user | round(8) }}</p>
+    <p><strong>Supply Factor:</strong> {{ breakdown.supply | round(8) }}</p>
+    <p><strong>Time Decay:</strong> {{ breakdown.time | round(8) }}</p>
+    <p><strong>Node Boost:</strong> {{ breakdown.node | round(8) }}</p>
+  </div>
+
+
+{% endblock %}

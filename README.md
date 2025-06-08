@@ -75,7 +75,7 @@ A social-trust consensus model:
 
 - [`ORBIT.md`](./ORBIT.md): Full technical whitepaper
 - [`MINING.md`](./MINING.md): Dynamic mining algorithm details
-
+- [`TOKENOMICS.md`](./TOKENOMICS.md): Orbit tokenomics
 ---
 
 ## 🗺️ Roadmap Highlights

@@ -91,6 +91,24 @@ def get_top_wallets():
     html, wallet_data = top_wallets(g.chain)
     return render_template(html, wallets=wallet_data)
 
+
+@app.route("/mining")
+def mining_stats():
+    from blockchain.miningutil import get_dynamic_mining_rate
+    from config.configutil import MiningConfig
+
+    # Get dynamic rate and breakdown
+    rate, breakdown = get_dynamic_mining_rate()
+
+    # Estimate reward for 1 hour (3600s)
+    estimated_reward = round(rate * 3600, 6)
+
+    return render_template("mining.html",
+                           rate=rate,
+                           breakdown=breakdown,
+                           reward=estimated_reward,
+                           duration=3600)
+
 @app.route("/tx/<txid>")
 def get_tx(txid):
     result = tx_detail(txid, g.chain)

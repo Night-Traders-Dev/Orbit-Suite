@@ -2,6 +2,7 @@
 
 import uuid, time
 from core.exchangeutil import get_token_id, get_user_token_balance
+from core.ioutil import get_address_from_label
 from core.tx_util.tx_types import TXExchange
 from core.tx_util.tx_validator import TXValidator
 try:
@@ -93,7 +94,7 @@ async def create_token(name, symbol, supply, creator):
     )
 
     unsigned_tx = TXExchange.create_token_transfer_tx(
-        sender="system",
+        sender=get_address_from_label("system"),
         receiver=EXCHANGE_ADDRESS,
         amount=supply,
         token_symbol=symbol,
@@ -113,7 +114,7 @@ async def create_token(name, symbol, supply, creator):
         creator = tx['type']['create_token']['creator']
         listing_fee = tx['type']['create_token']['listing_fee']
         mint_token = await send_orbit_api(creator, EXCHANGE_ADDRESS, 250, order=tx)
-        tranfer_token = await send_orbit_api(creator, "system", 2.5, order=unsigned_tx)
+        tranfer_token = await send_orbit_api(creator, get_address_from_label("system"), 2.5, order=unsigned_tx)
     return (True, tx) if valid else (False, msg)
 
 
