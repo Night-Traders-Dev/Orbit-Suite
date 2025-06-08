@@ -243,7 +243,7 @@ def token_metrics(symbol):
     token_meta = {}
 
     try:
-        filled, open_orders, metadata, tx_cnt, history_data = asyncio.run(token_stats(token_sym))
+        filled, open_orders, metadata, tx_cnt, history_data, price_history_dates, price_history_values = asyncio.run(token_stats(token_sym))
 
         filled_dict = {stat["token"]: stat for stat in filled if isinstance(stat, dict)}
         open_dict = {stat["token"]: stat for stat in open_orders if isinstance(stat, dict)}
@@ -308,10 +308,27 @@ def token_metrics(symbol):
             total_volume = filled_tokens_bought + filled_tokens_sold
             buy_ratio = (filled_tokens_bought / total_volume * 100) if total_volume > 0 else 0
 
-            # 📅 14-day History (can be replaced later with real data)
-            volume_history_dates = [(datetime.datetime.utcnow() - datetime.timedelta(days=i)).strftime("%Y-%m-%d") for i in range(13, -1, -1)]
-            volume_history_buys = [0] * 14
-            volume_history_sells = [0] * 14
+            # 📅 14-day Price History (from history_data)
+            price_history_dates = [(datetime.datetime.utcnow() - datetime.timedelta(days=i)).strftime("%Y-%m-%d") for i in range(13, -1, -1)]
+            price_history_values = [None] * 14
+
+            # Convert timestamped entries to daily price points
+            date_index_map = {date: idx for idx, date in enumerate(price_history_dates)}
+            for entry in history_data:
+                if isinstance(entry, dict):
+                    try:
+                        ts = float(entry.get("time", 0))
+                        dt = datetime.datetime.utcfromtimestamp(ts)
+                        date_str = dt.strftime("%Y-%m-%d")
+                        price = entry.get("price")
+                        if date_str in date_index_map:
+                            idx = date_index_map[date_str]
+                            price_history_values[idx] = price
+                    except Exception as e:
+                         print(f"⚠️ Failed to parse entry: {entry} — {e}")
+                else:
+                    print(f"⚠️ Skipping malformed history entry: {entry}")
+
 
             token_meta.update({
                 "name": meta_name,
@@ -330,9 +347,8 @@ def token_metrics(symbol):
                 "buy_cnt": buy_cnt,
                 "sell_cnt": sell_cnt,
                 "buy_ratio": round(buy_ratio, 2),
-                "volume_history_dates": volume_history_dates,
-                "volume_history_buys": volume_history_buys,
-                "volume_history_sells": volume_history_sells
+                "price_history_dates": price_history_dates,
+                "price_history_values": price_history_values
             })
 
         return render_template("token_metrics.html", token=token_meta)

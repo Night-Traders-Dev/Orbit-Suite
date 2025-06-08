@@ -108,45 +108,34 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const ctx = document.getElementById('volumeChart').getContext('2d');
-const volumeChart = new Chart(ctx, {
-  type: 'line',
-  data: {
-    labels: {{ token.volume_history_dates | tojson }},
-    datasets: [
-      {
-        label: 'Buy Volume',
-        data: {{ token.volume_history_buys | tojson }},
-        borderColor: 'rgb(34,197,94)',
-        backgroundColor: 'rgba(34,197,94,0.1)',
-        fill: true,
-        tension: 0.4
-      },
-      {
-        label: 'Sell Volume',
-        data: {{ token.volume_history_sells | tojson }},
-        borderColor: 'rgb(239,68,68)',
-        backgroundColor: 'rgba(239,68,68,0.1)',
-        fill: true,
-        tension: 0.4
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: { position: 'top' },
-      tooltip: { mode: 'index', intersect: false }
+<canvas id="priceChart" height="100"></canvas>
+<script>
+const ctx = document.getElementById('priceChart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: {{ token.price_history_dates | safe }},
+        datasets: [{
+            label: 'Price (Orbit)',
+            data: {{ token.price_history_values | safe }},
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.4,
+            spanGaps: true
+        }]
     },
-    interaction: {
-      mode: 'nearest',
-      axis: 'x',
-      intersect: false
-    },
-    scales: {
-      y: { beginAtZero: true }
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+            x: { display: true },
+            y: { beginAtZero: false }
+        }
     }
-  }
 });
+</script>
 </script>
 {% endblock %}

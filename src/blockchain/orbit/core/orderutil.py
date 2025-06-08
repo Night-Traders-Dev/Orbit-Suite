@@ -243,5 +243,27 @@ async def token_stats(token=TOKEN):
     # Sort historical data by time
     for tok in history_data:
         history_data[tok] = sorted(history_data[tok], key=lambda x: x["time"])
+    print(dict(history_data))
 
-    return stat_list, open_list, meta_list, tx_counts, dict(history_data)
+    price_history_dates = {}
+    price_history_values = {}
+
+
+    for tok, entries in history_data.items():
+        price_history_dates[tok] = [entry["time"] for entry in entries]
+        price_history_values[tok] = [entry["price"] for entry in entries]
+
+
+#    for entry in valid_entries:
+#        try:
+#            ts = float(entry.get("time", 0))
+#            dt = datetime.datetime.utcfromtimestamp(ts)
+#            date_str = dt.strftime("%Y-%m-%d")
+#            price = entry.get("price")
+#            if date_str in date_index_map:
+#                idx = date_index_map[date_str]
+#                price_history_values[idx] = price
+#        except Exception as e:
+#            print(f"⚠️ Failed to parse entry: {entry} — {e}")
+
+    return stat_list, open_list, meta_list, tx_counts, dict(history_data), price_history_dates, price_history_values
