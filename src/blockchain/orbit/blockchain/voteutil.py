@@ -3,7 +3,6 @@ from config.configutil import OrbitDB
 from core.logutil import log_node_activity
 from core.ioutil import fetch_chain, save_chain, get_address_from_label
 
-db = OrbitDB()
 VOTE_TYPES = ["nominate", "vote", "accept", "confirm"]
 NODE_FEE_ADDRESS = get_address_from_label("nodefeecollector")
 LOCK_UP_ADDRESS = get_address_from_label("lockup_rewards")

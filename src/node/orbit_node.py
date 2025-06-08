@@ -30,7 +30,7 @@ class OrbitNode:
         self.port = port or self.get_available_port()
         self.node_id = f"Node{random.randint(0, 9999)}"
         self.running = True
-        self.node_ledger = f"data/orbit_chain.{self.node_id}"
+        self.node_ledger = f"node_data/orbit_chain.{self.node_id}"
         self.chain = fetch_chain()
         self.nodes = load_nodes()
         self.users = [address]

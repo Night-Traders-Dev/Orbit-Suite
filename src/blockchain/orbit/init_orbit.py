@@ -53,7 +53,7 @@ def generate_user(username, balance):
     pub_pem = pubkey.save_pkcs1().decode()
     encrypted_priv = encrypt_private_key(privkey.save_pkcs1().decode())
     address = derive_orbit_address(pub_pem)
-    return username, {
+    return address, username, {
         "password": hash_password("orbit_system"),
         "public_key": pub_pem,
         "private_key": encrypted_priv,
@@ -83,13 +83,13 @@ def calculate_genesis_hash(block):
 
 def create_genesis_block(user_map):
     transactions = []
-    for username, user in user_map.items():
+    for addr, user in user_map.items():
         transactions.append({
             "sender": "genesis",
             "recipient": user["address"],
             "amount": round(user["balance"], 4),
             "timestamp": int(time.time()),
-            "note": f"Initial allocation for {username}"
+            "note": f"Initial allocation for {user.get('label', addr)}"
         })
 
     block = {
@@ -97,7 +97,7 @@ def create_genesis_block(user_map):
         "timestamp": int(time.time()),
         "transactions": transactions,
         "previous_hash": "0" * 64,
-        "hash": "",  # to be filled in
+        "hash": "",
         "validator": "genesis",
         "signatures": {},
         "merkle_root": "",
@@ -117,19 +117,20 @@ def init_chain():
     if not os.path.exists("data"):
         os.makedirs("data")
 
-    # Create all users
     users = {}
-    address_mapping = {}
-    for name, amount in WALLET_ALLOCATIONS.items():
-        uname, user_data = generate_user(name, amount)
-        users[uname] = user_data
-        address_mapping[uname] = user_data["address"]
+    label_to_address = {}
 
-    # Write users to file
+    for label, amount in WALLET_ALLOCATIONS.items():
+        address, uname, user_data = generate_user(label, amount)
+        user_data["label"] = label  # embed label for genesis notes and explorers
+        users[address] = user_data
+        label_to_address[label] = address
+
+    # Write users to file using address as key
     with open(USERS_FILE, "w") as f:
         json.dump(users, f, indent=4)
 
-    print("Users initialized.")
+    print("Users initialized and saved by address.")
 
     # Create genesis block
     if not os.path.exists(GENESIS_PATH):
@@ -140,10 +141,10 @@ def init_chain():
     else:
         print("Genesis block already exists.")
 
-    # Write explorer-friendly mapping
+    # Write label → address mapping
     with open("data/wallet_mapping.json", "w") as f:
-        json.dump(address_mapping, f, indent=4)
-    print("Explorer wallet name mapping saved.")
+        json.dump(label_to_address, f, indent=4)
+    print("Explorer wallet label-to-address mapping saved.")
 
 if __name__ == "__main__":
     init_chain()

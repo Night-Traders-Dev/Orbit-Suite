@@ -1,0 +1,88 @@
+[
+    {
+        "hash": "5283dc227cb819eb0d7874f6b107f1442c2d8ae1f5903a5eff86675e98f49daf",
+        "index": 0,
+        "merkle_root": "4a94540c4ead88b4f5c269cb28f188b38c6fb95d07b760c73c58e56e18c5011a",
+        "metadata": {
+            "note": "Genesis Block for Orbit Chain",
+            "version": "1.0"
+        },
+        "nonce": 0,
+        "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+        "signatures": {},
+        "timestamp": 1749351211,
+        "transactions": [
+            {
+                "amount": 98900000000.0,
+                "note": "Initial allocation for system",
+                "recipient": "ORB.6A3B898884E46864771A51D7",
+                "sender": "genesis",
+                "timestamp": 1749351211
+            },
+            {
+                "amount": 100000000.0,
+                "note": "Initial allocation for lockup_rewards",
+                "recipient": "ORB.ABF6B9F90060126D0427A353",
+                "sender": "genesis",
+                "timestamp": 1749351211
+            },
+            {
+                "amount": 1000000000.0,
+                "note": "Initial allocation for mining",
+                "recipient": "ORB.0778C7170BBAE2E034B43ABB",
+                "sender": "genesis",
+                "timestamp": 1749351211
+            },
+            {
+                "amount": 0.0,
+                "note": "Initial allocation for nodefeecollector",
+                "recipient": "ORB.F7DB4D9D527E6787B36A133D",
+                "sender": "genesis",
+                "timestamp": 1749351211
+            },
+            {
+                "amount": 3000000000.0,
+                "note": "Initial allocation for community",
+                "recipient": "ORB.B3CDCD83B14B53A38DC2603A",
+                "sender": "genesis",
+                "timestamp": 1749351211
+            },
+            {
+                "amount": 5000000000.0,
+                "note": "Initial allocation for team",
+                "recipient": "ORB.DB0E9117633F649DB4141940",
+                "sender": "genesis",
+                "timestamp": 1749351211
+            },
+            {
+                "amount": 1000000000.0,
+                "note": "Initial allocation for airdrop",
+                "recipient": "ORB.89033F7DEB8D64E3813B0E6A",
+                "sender": "genesis",
+                "timestamp": 1749351211
+            },
+            {
+                "amount": 2000000000.0,
+                "note": "Initial allocation for foundation",
+                "recipient": "ORB.3562A3238941107372A6C7A9",
+                "sender": "genesis",
+                "timestamp": 1749351211
+            },
+            {
+                "amount": 1000000000.0,
+                "note": "Initial allocation for partnerships",
+                "recipient": "ORB.C298581FBECFF39F74D18E76",
+                "sender": "genesis",
+                "timestamp": 1749351211
+            },
+            {
+                "amount": 5000000000.0,
+                "note": "Initial allocation for reserve",
+                "recipient": "ORB.EB2BAF7ABFDF1593CE8EF884",
+                "sender": "genesis",
+                "timestamp": 1749351211
+            }
+        ],
+        "validator": "genesis"
+    }
+]
