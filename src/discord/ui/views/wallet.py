@@ -4,7 +4,8 @@ import asyncio
 from commands.wallet_tools import claim_rewards, wallet_info
 from api import create_2fa_api, get_user_address, mine_orbit_api, get_user_tokens
 from core.ioutil import fetch_chain
-from ui.modals import lock_token, send_token
+from ui.modals.send_token import SendTokenModal
+from ui.modals.lock_token import LockOrbitModal
 
 
 class WalletDashboard(View):
@@ -45,7 +46,7 @@ class WalletDashboard(View):
 
     @discord.ui.button(label="Lock", style=discord.ButtonStyle.secondary)
     async def lock_orbit(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_modal(lock_token(self.user_id))
+        await interaction.response.send_modal(LockOrbitModal(self.user_id))
 
     @discord.ui.button(label="Claim Rewards", style=discord.ButtonStyle.secondary)
     async def claim(self, interaction: discord.Interaction, button: Button):
@@ -79,7 +80,7 @@ class TokenSelectDropdown(Select):
 
     async def callback(self, interaction: discord.Interaction):
         token = self.values[0]
-        await interaction.response.send_modal(send_token(self.uid, token))
+        await interaction.response.send_modal(SendTokenModal(self.uid, token))
 
 class SendTokenView(View):
     def __init__(self, uid, token_list):

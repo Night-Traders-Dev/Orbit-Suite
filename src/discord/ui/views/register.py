@@ -11,7 +11,7 @@ class Register2FAView(View):
 
     @discord.ui.button(label="Register 2FA", style=discord.ButtonStyle.primary)
     async def register(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.defer(thinking=True)
+        await interaction.response.defer(thinking=True, ephemeral=True)
         address = await get_user_address(self.user_id)
         secret = await create_2fa_api(address)
         ROLE_ID = 1379507259180060742
@@ -19,6 +19,8 @@ class Register2FAView(View):
         if role:
             await interaction.user.add_roles(role)
             await interaction.followup.send(
-                content=f"Address: {address}\n2FA Secret: {secret}", ephemeral=True
+                content=f"Address: {address}", ephemeral=True
             )
-
+            await interaction.followup.send(
+                content=f"2FA Secret: {secret}", ephemeral=True
+            )

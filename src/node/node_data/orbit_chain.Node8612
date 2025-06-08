@@ -137,5 +137,58 @@
             }
         ],
         "validator": "Node8612"
+    },
+    {
+        "hash": "3d18b099283ff23f42f1de99698b5214940e29f9274178443cb80fef4940442f",
+        "index": 2,
+        "merkle_root": "24414bf0d921e39e6db29319c2c7fff98238169a2cf5b09f283956dc92afbe39",
+        "metadata": {
+            "version": "1.0"
+        },
+        "nonce": 0,
+        "previous_hash": "b98fdc3c64c8b8e12c38404e635f01451dc38da115122d7f8df771ccd9eb36d2",
+        "signatures": {},
+        "timestamp": 1749361359.075901,
+        "transactions": [
+            {
+                "amount": 314.973932,
+                "note": {
+                    "type": {
+                        "mining": {
+                            "bonuses": {
+                                "formula": {
+                                    "base": 0.082,
+                                    "lockup": 0.999999678724259,
+                                    "referral": 0.999986137152479,
+                                    "security": 1.0
+                                },
+                                "rate": 324.715394
+                            },
+                            "fee": 9.741462
+                        }
+                    }
+                },
+                "recipient": "ORB.54227E7C7564AE9F3483A81E",
+                "sender": "ORB.52234E31F8C4351E2040E6C7",
+                "timestamp": 1749361359.0452123
+            },
+            {
+                "amount": 6.299479,
+                "note": {
+                    "type": {
+                        "gas": {
+                            "fee": 6.299479,
+                            "node": "Node3404",
+                            "timestamp": 1749361359.0687625,
+                            "tx": "ORB.52234E31F8C4351E2040E6C7->ORB.3C0738F00DE16991DDD5B506"
+                        }
+                    }
+                },
+                "recipient": "ORB.3C0738F00DE16991DDD5B506",
+                "sender": "ORB.52234E31F8C4351E2040E6C7",
+                "timestamp": 1749361359.0452123
+            }
+        ],
+        "validator": "Node3404"
     }
 ]
