@@ -15,7 +15,7 @@
 | **ExchangeBot** | Decentralized exchange agent that matches buy/sell orders across active validator nodes. Accessible via Web and Discord. |
 | **Explorer** | Flask-based web UI to explore blocks, transactions, addresses, validators, and token flows. Includes charts, smart search, and JSON API. |
 | **Node** | Mesh network node system with trust/uptime-based block validation, message relay, and exchange matching. Each user session controls a live node. |
-| **Orbin** | Terminal or GUI-based launcher for managing mining sessions, wallet actions, and local Orbit interactions (CLI or desktop-friendly front-end). |
+| **Orbim** | Smart Contract Language, inspired by Nim. Web3 First, General-purpose, Compiles to WASM |
 
 ---
 
