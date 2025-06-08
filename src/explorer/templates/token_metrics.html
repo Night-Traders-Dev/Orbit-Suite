@@ -1,24 +1,152 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2 class="text-2xl font-bold mb-4">Token Metrics: {{ token.name }} ({{ token.symbol }})</h2>
+<h2 class="text-3xl font-bold mb-6 flex items-center gap-3">
+  <svg class="w-7 h-7 text-purple-600" fill="none" stroke="currentColor" stroke-width="2">
+    <use href="#activity" />
+  </svg>
+  Token Metrics: {{ token.name }} ({{ token.symbol }})
+</h2>
 
-<div class="grid grid-cols-2 gap-4">
-  <div><strong>Current Price:</strong> {{ token.current_price}} Orbit</div>
-  <div><strong>Supply:</strong> {{ token.supply | commas }}</div>
-  <div><strong>Volume Received:</strong> {{ token.volume_received | commas }}</div>
-  <div><strong>Orbit Spent Buying:</strong> {{ token.orbit_spent_buying | commas }}</div>
-  <div><strong>Volume Sent:</strong> {{ token.volume_sent | commas }}</div>
-  <div><strong>Orbit Earned Selling:</strong> {{ token.orbit_earned_selling | commas }}</div>
-  <div><strong>Avg Buy Price:</strong> {{ token.avg_buy_price }}</div>
-  <div><strong>Avg Sell Price:</strong> {{ token.avg_sell_price }}</div>
-{% if token.creator %}
-  <div>
-    <strong>Creator:</strong>
-    <a href="/address/{{ token.creator }}">{{ token.creator }}</a>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-white p-6 rounded-xl shadow-md">
+
+  <div title="Current exchange price in Orbit">
+    <strong>Current Price:</strong>
+    <span class="inline-flex items-center gap-1 text-green-600 font-semibold">
+      {{ token.current_price }} Orbit
+    </span>
   </div>
-{% else %}
-  <div><strong>Creator:</strong> Unknown</div>
-{% endif %}
+
+  <div title="Total circulating supply">
+    <strong>Supply:</strong>
+    <span class="text-blue-700 font-medium">{{ token.supply | commas }}</span>
+  </div>
+
+  <div title="Total exchange-related transactions">
+    <strong>Exchange TXs:</strong>
+    <span class="badge bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full text-sm">
+      {{ token.exchange_cnt }}
+    </span>
+  </div>
+
+  <div title="Total buy orders">
+    <strong>Buy TXs:</strong>
+    <span class="badge bg-green-100 text-green-700 px-2 py-1 rounded-full text-sm">
+      {{ token.buy_cnt }}
+    </span>
+  </div>
+
+  <div title="Total sell orders">
+    <strong>Sell TXs:</strong>
+    <span class="badge bg-red-100 text-red-700 px-2 py-1 rounded-full text-sm">
+      {{ token.sell_cnt }}
+    </span>
+  </div>
+
+  <div title="Average buy price based on filled orders">
+    <strong>Avg Buy Price:</strong>
+    <span class="text-green-600">{{ token.avg_buy_price }}</span>
+  </div>
+
+  <div title="Average sell price based on filled orders">
+    <strong>Avg Sell Price:</strong>
+    <span class="text-red-600">{{ token.avg_sell_price }}</span>
+  </div>
+
+  <div><strong>Volume Received:</strong> {{ token.volume_received | commas }}</div>
+
+  <div><strong>Orbit Spent Buying:</strong> {{ token.orbit_spent_buying | commas }}</div>
+
+  <div><strong>Volume Sent:</strong> {{ token.volume_sent | commas }}</div>
+
+  <div><strong>Orbit Earned Selling:</strong> {{ token.orbit_earned_selling | commas }}</div>
+
+  {% if token.creator %}
+    <div>
+      <strong>Creator:</strong>
+      <a href="/address/{{ token.creator }}" class="text-blue-600 hover:underline">{{ token.creator }}</a>
+    </div>
+  {% else %}
+    <div><strong>Creator:</strong> Unknown</div>
+  {% endif %}
+
   <div><strong>Created At:</strong> {{ token.created_at | ts }}</div>
 </div>
+
+<!-- Progress Bar Comparison -->
+<div class="mt-8">
+  <h3 class="text-xl font-semibold mb-2">Buy vs Sell Volume</h3>
+  {% set total_volume = token.volume_received + token.volume_sent %}
+  {% if total_volume > 0 %}
+    {% set buy_ratio = (token.volume_received / total_volume) * 100 %}
+    <div class="w-full bg-gray-200 rounded-lg h-5 overflow-hidden flex shadow-inner">
+      <div class="bg-green-400 h-full" style="width: {{ buy_ratio|round(2) }}%" title="Buy Volume"></div>
+      <div class="bg-red-400 h-full" style="width: {{ 100 - buy_ratio|round(2) }}%" title="Sell Volume"></div>
+    </div>
+    <div class="flex justify-between text-sm mt-1">
+      <span class="text-green-700">Buy: {{ buy_ratio|round(1) }}%</span>
+      <span class="text-red-700">Sell: {{ (100 - buy_ratio)|round(1) }}%</span>
+    </div>
+  {% else %}
+    <p class="text-sm text-gray-500">No volume recorded yet.</p>
+  {% endif %}
+</div>
+
+<!-- Chart.js Volume Chart -->
+<div class="mt-10">
+  <h3 class="text-xl font-semibold mb-2">Volume Over Time</h3>
+  <canvas id="volumeChart" height="100"></canvas>
+</div>
+
+<!-- Lucide Icons -->
+<svg style="display: none;">
+  <symbol id="activity" viewBox="0 0 24 24">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+  </symbol>
+</svg>
+
+<!-- Chart.js (add in layout.html or here) -->
+<!--
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('volumeChart').getContext('2d');
+const volumeChart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: {{ token.volume_history_dates | tojson }},
+    datasets: [
+      {
+        label: 'Buy Volume',
+        data: {{ token.volume_history_buys | tojson }},
+        borderColor: 'rgb(34,197,94)',
+        backgroundColor: 'rgba(34,197,94,0.1)',
+        fill: true,
+        tension: 0.4
+      },
+      {
+        label: 'Sell Volume',
+        data: {{ token.volume_history_sells | tojson }},
+        borderColor: 'rgb(239,68,68)',
+        backgroundColor: 'rgba(239,68,68,0.1)',
+        fill: true,
+        tension: 0.4
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' },
+      tooltip: { mode: 'index', intersect: false }
+    },
+    interaction: {
+      mode: 'nearest',
+      axis: 'x',
+      intersect: false
+    },
+    scales: {
+      y: { beginAtZero: true }
+    }
+  }
+});
+</script>-->
 {% endblock %}

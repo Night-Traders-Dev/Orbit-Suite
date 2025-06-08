@@ -236,19 +236,19 @@ def load_node(node_id):
         avg_block_size=avg_block_size
     )
 
-
 @app.route("/token/<symbol>")
 def token_metrics(symbol):
     token_sym = symbol.upper()
     token_meta = {}
     try:
-        filled, open_orders, metadata = asyncio.run(token_stats(token_sym))
+        filled, open_orders, metadata, tx_cnt = asyncio.run(token_stats(token_sym))
 
         filled_dict = {stat["token"]: stat for stat in filled if isinstance(stat, dict)}
         open_dict = {stat["token"]: stat for stat in open_orders if isinstance(stat, dict)}
         meta_dict = {stat["symbol"]: stat for stat in metadata if isinstance(stat, dict)}
+        cnt_dict = {stat["token"]: stat for stat in tx_cnt if isinstance(stat, dict)}
 
-        all_tokens = sorted(set(filled_dict.keys()) | set(open_dict.keys()) | set(meta_dict.keys()))
+        all_tokens = sorted(set(filled_dict.keys()) | set(open_dict.keys()) | set(meta_dict.keys()) | set(cnt_dict.keys()))
 
         if not all_tokens:
             print("No valid tokens found in stats.")
@@ -259,6 +259,7 @@ def token_metrics(symbol):
             f_stat = filled_dict.get(token, {})
             o_stat = open_dict.get(token, {})
             m_stat = meta_dict.get(token, {})
+            c_stat = cnt_dict.get(token, {})
 
             net_balance = f_stat.get("adjusted_balance", 0)
             filled_tokens_bought = f_stat.get("buy_tokens", 0)
@@ -283,22 +284,42 @@ def token_metrics(symbol):
             meta_owner = m_stat.get("owner")
             meta_created = m_stat.get("created")
 
+            exchange_cnt = c_stat.get("exchange_cnt", 0)
+            buy_cnt = c_stat.get("buy_cnt", 0)
+            sell_cnt = c_stat.get("sell_cnt", 0)
 
+            # 🔢 Volume ratio for progress bar
+            total_volume = filled_tokens_bought + filled_tokens_sold
+            buy_ratio = (filled_tokens_bought / total_volume * 100) if total_volume > 0 else 0
 
-        token_meta.update({
-            "name": meta_name,
-            "symbol": symbol,
-            "current_price": current_price,
-            "supply": net_balance,
-            "volume_received": filled_tokens_bought,
-            "volume_sent": filled_tokens_sold,
-            "orbit_spent_buying": filled_orbit_spent,
-            "orbit_earned_selling": filled_orbit_earned,
-            "avg_buy_price": filled_avg_buy_price,
-            "avg_sell_price": filled_avg_sell_price,
-            "creator": meta_owner,
-            "created": meta_created
-        })
+            # 📈 Dummy 14-day history (you can plug in real data later)
+            volume_history_dates = [(datetime.datetime.utcnow() - datetime.timedelta(days=i)).strftime("%Y-%m-%d") for i in range(13, -1, -1)]
+            volume_history_buys = [0] * 14
+            volume_history_sells = [0] * 14
+
+            # TODO: Replace the above lists with real per-day buy/sell aggregation if available
+
+            token_meta.update({
+                "name": meta_name,
+                "symbol": token_sym,
+                "current_price": current_price,
+                "supply": net_balance,
+                "volume_received": filled_tokens_bought,
+                "volume_sent": filled_tokens_sold,
+                "orbit_spent_buying": filled_orbit_spent,
+                "orbit_earned_selling": filled_orbit_earned,
+                "avg_buy_price": filled_avg_buy_price,
+                "avg_sell_price": filled_avg_sell_price,
+                "creator": meta_owner,
+                "exchange_cnt": exchange_cnt,
+                "buy_cnt": buy_cnt,
+                "sell_cnt": sell_cnt,
+                "created_at": meta_created,
+                "buy_ratio": buy_ratio,
+                "volume_history_dates": volume_history_dates,
+                "volume_history_buys": volume_history_buys,
+                "volume_history_sells": volume_history_sells
+            })
 
         return render_template("token_metrics.html", token=token_meta)
 

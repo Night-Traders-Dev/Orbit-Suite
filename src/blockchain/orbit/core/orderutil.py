@@ -23,6 +23,10 @@ async def token_stats(token=TOKEN):
     filled_order_ids = set()
     traded_tokens = set()
     exchange_only = {}
+    tx_counts = []
+    transfer_cnt = 0
+    buy_cnt = 0
+    sell_cnt = 0
 
     for block in reversed(chain):
         for tx in block.get("transactions", []):
@@ -73,6 +77,7 @@ async def token_stats(token=TOKEN):
                 if tx_note == "Token purchased from exchange":
                     stats["buy_tokens"] += qty
                     stats["buy_orbit"] += qty * BASE_PRICE
+                    transfer_cnt += 1
                     exchange_only[tok] = True
 
             # Buy order
@@ -95,6 +100,7 @@ async def token_stats(token=TOKEN):
                     fill_stats = await get_stats(filled_stats, tok)
                     fill_stats["buy_tokens"] += qty
                     fill_stats["buy_orbit"] += qty * price
+                    buy_cnt += 1
                     traded_tokens.add(tok)
                 else:
                     if order_id in filled_order_ids:
@@ -105,6 +111,7 @@ async def token_stats(token=TOKEN):
                     op_stats = await get_stats(open_stats, tok)
                     op_stats["buy_tokens"] += qty
                     op_stats["buy_orbit"] += qty * price
+                    buy_cnt += 1
                     traded_tokens.add(tok)
 
             # Sell order
@@ -126,6 +133,7 @@ async def token_stats(token=TOKEN):
                     fill_stats = await get_stats(filled_stats, tok)
                     fill_stats["sell_tokens"] += qty
                     fill_stats["sell_orbit"] += qty * price
+                    sell_cnt += 1
                     traded_tokens.add(tok)
                 else:
                     if order_id in filled_order_ids:
@@ -136,6 +144,7 @@ async def token_stats(token=TOKEN):
                     op_stats = await get_stats(open_stats, tok)
                     op_stats["sell_tokens"] += qty
                     op_stats["sell_orbit"] += qty * price
+                    sell_cnt += 1
                     traded_tokens.add(tok)
 
     if not tokens:
@@ -209,4 +218,10 @@ async def token_stats(token=TOKEN):
             "open_price": round(open_price, 4)
         })
 
-    return stat_list, open_list, meta_list
+        tx_counts.append({
+            "token": tok,
+            "exchange_cnt": transfer_cnt,
+            "buy_cnt": buy_cnt,
+            "sell_cnt": sell_cnt
+        })
+    return stat_list, open_list, meta_list, tx_counts
