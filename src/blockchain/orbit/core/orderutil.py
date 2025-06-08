@@ -1,3 +1,4 @@
+from collections import defaultdict
 from core.ioutil import fetch_chain
 
 BASE_PRICE = 0.1
@@ -27,6 +28,7 @@ async def token_stats(token=TOKEN):
     transfer_cnt = 0
     buy_cnt = 0
     sell_cnt = 0
+    history_data = defaultdict(list)
 
     for block in reversed(chain):
         for tx in block.get("transactions", []):
@@ -36,6 +38,7 @@ async def token_stats(token=TOKEN):
                 continue
 
             tx_type = note.get("type", {})
+            created_at = tx.get("timestamp") or block.get("timestamp")
 
             # Token creation metadata
             if "create_token" in tx_type:
@@ -102,6 +105,12 @@ async def token_stats(token=TOKEN):
                     fill_stats["buy_orbit"] += qty * price
                     buy_cnt += 1
                     traded_tokens.add(tok)
+
+                    if created_at and qty > 0:
+                        history_data[tok].append({
+                            "time": created_at,
+                            "price": round(price, 4)
+                        })
                 else:
                     if order_id in filled_order_ids:
                         continue
@@ -135,6 +144,12 @@ async def token_stats(token=TOKEN):
                     fill_stats["sell_orbit"] += qty * price
                     sell_cnt += 1
                     traded_tokens.add(tok)
+
+                    if created_at and qty > 0:
+                        history_data[tok].append({
+                            "time": created_at,
+                            "price": round(price, 4)
+                        })
                 else:
                     if order_id in filled_order_ids:
                         continue
@@ -224,4 +239,9 @@ async def token_stats(token=TOKEN):
             "buy_cnt": buy_cnt,
             "sell_cnt": sell_cnt
         })
-    return stat_list, open_list, meta_list, tx_counts
+
+    # Sort historical data by time
+    for tok in history_data:
+        history_data[tok] = sorted(history_data[tok], key=lambda x: x["time"])
+
+    return stat_list, open_list, meta_list, tx_counts, dict(history_data)
