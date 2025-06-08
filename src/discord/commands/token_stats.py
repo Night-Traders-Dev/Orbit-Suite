@@ -1,7 +1,6 @@
 from core.ioutil import fetch_chain
 
 BASE_PRICE = 0.1
-
 async def token_stats(address):
     chain = fetch_chain()
     tokens = {}
@@ -43,18 +42,6 @@ async def token_stats(address):
                         stats["buy_tokens"] += qty
                         stats["buy_orbit"] += qty * BASE_PRICE
                         exchange_only[token] = True
-                    elif orbit_amount:
-                        stats["buy_tokens"] += qty
-                        stats["buy_orbit"] += orbit_amount
-                        traded_tokens.add(token)
-
-                # Sold to someone else
-                elif sender == address:
-                    tokens[token] = tokens.get(token, 0) - qty
-                    if orbit_amount:
-                        stats["sell_tokens"] += qty
-                        stats["sell_orbit"] += orbit_amount
-                        traded_tokens.add(token)
 
             elif "buy_token" in tx_type:
                 data = tx_type["buy_token"]
@@ -123,7 +110,7 @@ async def token_stats(address):
         sell_tokens = stats.get("sell_tokens", 0)
         sell_orbit = stats.get("sell_orbit", 0)
 
-        avg_buy_price = (buy_orbit / buy_tokens) if buy_tokens else None
+        avg_buy_price = ((buy_orbit - sell_orbit) / (buy_tokens - sell_tokens)) if buy_tokens else None
         avg_sell_price = (sell_orbit / sell_tokens) if sell_tokens else None
 
         if token in traded_tokens:
@@ -133,9 +120,9 @@ async def token_stats(address):
 
         stat_list.append((
             token,
-            balance,
-            buy_tokens,
-            buy_orbit,
+            (balance - sell_tokens),
+            (buy_tokens - sell_tokens),
+            (buy_orbit - sell_orbit),
             sell_tokens,
             sell_orbit,
             round(avg_buy_price, 4) if avg_buy_price else None,
@@ -144,3 +131,4 @@ async def token_stats(address):
         ))
 
     return stat_list
+
