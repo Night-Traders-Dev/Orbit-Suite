@@ -108,7 +108,7 @@ def get_chain_summary():
     chain = fetch_chain()
     tx_count = sum(len(b.get("transactions", [])) for b in chain)
     account_set = set()
-    total_orbit = 100000000
+    total_orbit = 100_000_000_000
     circulating = (0 - total_orbit)
     for b in chain:
         for tx in b.get("transactions", []):

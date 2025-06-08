@@ -382,7 +382,6 @@ def api_create_2fa():
     secret = create_2fa_secret(address)
     registered = register(address, secret)
     if registered:
-        send_orbit("system", address, 100)
         return jsonify({"status": "success", "message": secret}), 200
     else:
         return jsonify({"status": "fail", "message": "account creation failed"}), 400

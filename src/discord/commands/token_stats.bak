@@ -1,15 +1,11 @@
 from core.ioutil import fetch_chain
 
-BASE_PRICE = 0.1
-
 async def token_stats(address):
     chain = fetch_chain()
     tokens = {}
     token_stats = {}
     stat_list = []
-    seen_order_ids = set()
-    traded_tokens = set()
-    exchange_only = {}
+    seen_order_ids = set()  # To track already processed orders
 
     for block in reversed(chain):
         for tx in block.get("transactions", []):
@@ -26,35 +22,30 @@ async def token_stats(address):
                 qty = data.get("amount")
                 sender = data.get("sender")
                 receiver = data.get("receiver")
-                tx_note = data.get("note")
-
+                is_exchange = data.get("note")
                 if not token or not isinstance(qty, (int, float)):
                     continue
 
                 stats = token_stats.setdefault(token, {
                     "buy_tokens": 0, "buy_orbit": 0.0,
-                    "sell_tokens": 0, "sell_orbit": 0.0
+                    "sell_tokens": 0, "sell_orbit": 0.0,
+                    "exchange_distributed": 0
                 })
 
-                # Bought from exchange
                 if receiver == address:
                     tokens[token] = tokens.get(token, 0) + qty
-                    if tx_note == "Token purchased from exchange":
+                    if is_exchange == "Token purchased from exchange":
                         stats["buy_tokens"] += qty
-                        stats["buy_orbit"] += qty * BASE_PRICE
-                        exchange_only[token] = True
+                        stats["buy_orbit"] += qty * 0.1  # base price fallback
+                        stats["exchange_distributed"] += qty
                     elif orbit_amount:
                         stats["buy_tokens"] += qty
                         stats["buy_orbit"] += orbit_amount
-                        traded_tokens.add(token)
-
-                # Sold to someone else
                 elif sender == address:
                     tokens[token] = tokens.get(token, 0) - qty
                     if orbit_amount:
                         stats["sell_tokens"] += qty
                         stats["sell_orbit"] += orbit_amount
-                        traded_tokens.add(token)
 
             elif "buy_token" in tx_type:
                 data = tx_type["buy_token"]
@@ -69,19 +60,17 @@ async def token_stats(address):
 
                 token = data.get("symbol")
                 qty = data.get("amount")
-                price = data.get("price", 0)
                 if not token or data.get("seller") == address:
                     continue
 
                 tokens[token] = tokens.get(token, 0) + qty
                 stats = token_stats.setdefault(token, {
                     "buy_tokens": 0, "buy_orbit": 0.0,
-                    "sell_tokens": 0, "sell_orbit": 0.0
+                    "sell_tokens": 0, "sell_orbit": 0.0,
+                    "exchange_distributed": 0
                 })
-
                 stats["buy_tokens"] += qty
-                stats["buy_orbit"] += qty * price
-                traded_tokens.add(token)
+                stats["buy_orbit"] += qty * data.get("price", 0)
 
             elif "sell_token" in tx_type:
                 data = tx_type["sell_token"]
@@ -96,19 +85,17 @@ async def token_stats(address):
 
                 token = data.get("symbol")
                 qty = data.get("amount")
-                price = data.get("price", 0)
                 if not token or data.get("seller") != address:
                     continue
 
                 tokens[token] = tokens.get(token, 0) - qty
                 stats = token_stats.setdefault(token, {
                     "buy_tokens": 0, "buy_orbit": 0.0,
-                    "sell_tokens": 0, "sell_orbit": 0.0
+                    "sell_tokens": 0, "sell_orbit": 0.0,
+                    "exchange_distributed": 0
                 })
-
                 stats["sell_tokens"] += qty
-                stats["sell_orbit"] += qty * price
-                traded_tokens.add(token)
+                stats["sell_orbit"] += qty * data.get("price", 0)
 
     if not tokens:
         return False
@@ -122,14 +109,21 @@ async def token_stats(address):
         buy_orbit = stats.get("buy_orbit", 0)
         sell_tokens = stats.get("sell_tokens", 0)
         sell_orbit = stats.get("sell_orbit", 0)
+        distributed = stats.get("exchange_distributed", 0)
 
         avg_buy_price = (buy_orbit / buy_tokens) if buy_tokens else None
         avg_sell_price = (sell_orbit / sell_tokens) if sell_tokens else None
+        last_known_price = (avg_buy_price + avg_sell_price) / 2 if avg_buy_price and avg_sell_price else avg_buy_price or avg_sell_price
 
-        if token in traded_tokens:
-            current_price = (avg_buy_price + avg_sell_price) / 2 if avg_buy_price and avg_sell_price else avg_buy_price or avg_sell_price or BASE_PRICE
-        else:
-            current_price = BASE_PRICE
+        current_price = last_known_price
+        if not current_price:
+            # fallback if no trades: use base price model
+            total_supply = buy_tokens + sell_tokens + distributed
+            if total_supply > 0:
+                market_cap = distributed * 0.1
+                current_price = market_cap / total_supply
+            else:
+                current_price = 0.1  # base fallback
 
         stat_list.append((
             token,
@@ -138,9 +132,9 @@ async def token_stats(address):
             buy_orbit,
             sell_tokens,
             sell_orbit,
-            round(avg_buy_price, 4) if avg_buy_price else None,
-            round(avg_sell_price, 4) if avg_sell_price else None,
-            round(current_price, 4)
+            avg_buy_price,
+            avg_sell_price,
+            current_price
         ))
 
     return stat_list

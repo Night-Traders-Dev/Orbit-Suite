@@ -89,12 +89,22 @@ class TokenView(View):
             embed.description = "You don't own any tokens."
         else:
             for token_data in result:
+                (
+                    symbol, balance,
+                    buy_tokens, buy_orbit,
+                    sell_tokens, sell_orbit,
+                    avg_buy_price, avg_sell_price,
+                    current_price
+                ) = token_data
+
                 embed.add_field(
-                    name=f"{token_data[0]} — {float(token_data[1]):,.2f} tokens",
+                    name=f"{symbol} — {balance:,.2f} tokens",
                     value=(
-                        f"**Bought:** {float(token_data[2]):,.2f} for {float(token_data[3]):,.2f} Orbit\n"
-                        f"**Sold:** {float(token_data[4]):,.2f} for {float(token_data[5]):,.2f} Orbit\n"
-                        f"**Current Price:** {float(token_data[8]):,.4f} Orbit"
+                        f"**Bought:** {buy_tokens:,.2f} for {buy_orbit:,.2f} Orbit\n"
+                        f"**Sold:** {sell_tokens:,.2f} for {sell_orbit:,.2f} Orbit\n"
+                        f"**Avg Buy Price:** {avg_buy_price if avg_buy_price else '–'} Orbit\n"
+                        f"**Avg Sell Price:** {avg_sell_price if avg_sell_price else '–'} Orbit\n"
+                        f"**Current Price:** {current_price:.4f} Orbit"
                     ),
                     inline=False
                 )
