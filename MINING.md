@@ -9,7 +9,7 @@ To ensure long-term sustainability and fairness, Orbit adjusts its mining rate b
 The mining rate `R_current` is dynamically computed as:
 
 ```
-R_current = R_base Ã— UserFactor Ã— SupplyFactor Ã— TimeDecay Ã— NodeBoost
+R_current = R_base × UserFactor × SupplyFactor × TimeDecay × NodeBoost
 ```
 
 Where:

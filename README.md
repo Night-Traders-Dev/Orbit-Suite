@@ -83,10 +83,10 @@ A social-trust consensus model:
 - OrbitDNS (decentralized naming)
 - Smart contracts via sandbox
 - On-chain governance with trust-weighted voting
-- Interchain bridges (Orbit â‡„ Ethereum, etc.)
+- Interchain bridges (Orbit ⇄  Ethereum, etc.)
 
 ---
 
 ## 💫 Get Involved
 
-Whether you're a researcher, builder, or community validatorâ€”Orbit is an open playground for decentralized innovation.
+Whether you're a researcher, builder, or community validator—Orbit is an open playground for decentralized innovation.
