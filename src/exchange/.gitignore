@@ -8,3 +8,5 @@ secret**
 *.pyc
 *.pyo
 *.json
+# Ignore the data folder
+data/
