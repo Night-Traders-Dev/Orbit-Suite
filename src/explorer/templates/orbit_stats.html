@@ -5,27 +5,39 @@
     <div class="grid">
         <div class="stat">
             <h4>Total Blocks</h4>
-            <p>{{ stats.blocks }}</p>
+            <p>{{ stats.blocks | commas }}</p>
         </div>
         <div class="stat">
             <h4>Transactions</h4>
-            <p>{{ stats.transactions }}</p>
+            <p>{{ stats.transactions | commas }}</p>
         </div>
         <div class="stat">
             <h4>Accounts</h4>
             <p>{{ stats.accounts }}</p>
         </div>
         <div class="stat">
-            <h4>Circulating Supply</h4>
-            <p>{{ stats.supply }} ORBIT</p>
+            <h4>Total Volume</h4>
+            <p>{{ stats.volume - stats.supply }} Orbit</p>
         </div>
         <div class="stat">
-            <h4>Total Volume</h4>
-            <p>{{ stats.volume - stats.supply }} ORBIT</p>
+            <h4>Total Supply</h4>
+            <p>1,000,000,000 Orbit</p>
         </div>
         <div class="stat">
             <h4>Average Block Size</h4>
             <p>{{ stats.avg_block_size }}</p>
+        </div>
+        <div class="stat">
+            <h4>Validators</h4>
+            <p>{{ stats.validators }}</p>
+        </div>
+        <div class="stat">
+            <h4>Orbit Per Day</h4>
+            <p>{{ stats.orbit_per_day }} Orbit</p>
+        </div>
+        <div class="stat">
+            <h4>TX Per Day</h4>
+            <p>{{ stats.tx_per_day }}</p>
         </div>
     </div>
 </div>

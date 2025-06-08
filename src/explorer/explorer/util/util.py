@@ -104,21 +104,36 @@ def get_validator_stats():
 
 
 
+
 def get_chain_summary():
+    orbit_db = OrbitDB()
+    wallet_mapping = orbit_db.walletmapping
     chain = fetch_chain()
     tx_count = sum(len(b.get("transactions", [])) for b in chain)
     account_set = set()
+
     total_orbit = 100_000_000_000
-    circulating = (0 - total_orbit)
+    circulating = 0
+
+    excluded_addresses = set()
+    try:
+        with open(wallet_mapping, "r") as f:
+            wallet_map = json.load(f)
+            excluded_addresses = set(wallet_map.values())
+    except Exception as e:
+        print(f"Warning: Failed to load wallet_mapping.json - {e}")
+
     for b in chain:
         for tx in b.get("transactions", []):
             account_set.add(tx["sender"])
             account_set.add(tx["recipient"])
-            circulating += tx["amount"]
+            if tx["recipient"] not in excluded_addresses:
+                circulating += tx["amount"]
+
     return {
         "blocks": len(chain),
         "transactions": tx_count,
         "accounts": len(account_set),
-        "circulating": (circulating),
-        "total_orbit": (total_orbit)
+        "circulating": circulating,
+        "total_orbit": total_orbit
     }
