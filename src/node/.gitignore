@@ -7,7 +7,7 @@
 
 # Ignore the data folder
 data/
-
+node_data/
 #
 *.sh
 *.log
