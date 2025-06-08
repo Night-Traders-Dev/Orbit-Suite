@@ -15,15 +15,15 @@ KEY_SIZE = 2048
 
 WALLET_ALLOCATIONS = {
     "system": 98_900_000_000.0000,
-    "lockup_rewards": 100000000.0000,
-    "mining": 1000000000.0000,
+    "lockup_rewards": 100_000_000.0000,
+    "mining": 1_000_000_000.0000,
     "nodefeecollector": 0.0000,
-    "community": 3000000000.0000,
-    "team": 5000000000.0000,
-    "airdrop": 1000000000.0000,
-    "foundation": 2000000000.0000,
-    "partnerships": 1000000000.0000,
-    "reserve": 5000000000.0000
+    "community": 3_000_000_000.0000,
+    "team": 5_000_000_000.0000,
+    "airdrop": 1_000_000_000.0000,
+    "foundation": 2_000_000_000.0000,
+    "partnerships": 1_000_000_000.0000,
+    "reserve": 5_000_000_000.0000
 }
 
 # ======== AES Setup ========
@@ -46,7 +46,7 @@ def hash_password(password):
 
 def derive_orbit_address(public_key):
     hash_bytes = hashlib.sha256(public_key.encode()).digest()
-    return "ORBIT" + hash_bytes.hex()[:36].upper()
+    return "ORB." + hash_bytes.hex()[:24].upper()
 
 def generate_user(username, balance):
     pubkey, privkey = rsa.newkeys(KEY_SIZE)

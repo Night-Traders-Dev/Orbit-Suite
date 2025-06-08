@@ -119,6 +119,6 @@ def get_chain_summary():
         "blocks": len(chain),
         "transactions": tx_count,
         "accounts": len(account_set),
-        "circulating": circulating,
-        "total_orbit": total_orbit
+        "circulating": (circulating),
+        "total_orbit": (total_orbit)
     }
