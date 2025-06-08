@@ -1,11 +1,11 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, g, Response
-import json, os, datetime, math, time
+import json, os, datetime, math, time, asyncio
 
 from collections import defaultdict
 
 from config.configutil import OrbitDB
 from core.ioutil import load_chain, load_nodes
-from core.orbitutil import token_stats
+from core.orderutil import token_stats, BASE_PRICE
 
 from core.walletutil import load_balance
 from blockchain.stakeutil import get_user_lockups, lock_tokens, claim_lockup_rewards, check_claim
@@ -239,149 +239,72 @@ def load_node(node_id):
 
 @app.route("/token/<symbol>")
 def token_metrics(symbol):
-    symbol = symbol.upper()
-    ledger = load_chain()
-    token_info = None
+    token_sym = symbol.upper()
+    token_meta = {}
+    try:
+        filled, open_orders, metadata = asyncio.run(token_stats(token_sym))
 
-    total_tokens_received = 0.0
-    total_tokens_sent = 0.0
-    total_orbit_spent = 0.0
-    total_orbit_earned = 0.0
-    latest_valid_price = None
+        filled_dict = {stat["token"]: stat for stat in filled if isinstance(stat, dict)}
+        open_dict = {stat["token"]: stat for stat in open_orders if isinstance(stat, dict)}
+        meta_dict = {stat["symbol"]: stat for stat in metadata if isinstance(stat, dict)}
 
-    unique_receivers = set()
-    unique_senders = set()
-    seen_order_ids = set()
+        all_tokens = sorted(set(filled_dict.keys()) | set(open_dict.keys()) | set(meta_dict.keys()))
 
-    # Order book metrics
-    open_buy_orders = []
-    open_sell_orders = []
-    total_orbit_in_buys = 0.0
-    total_tokens_in_sells = 0.0
-    highest_buy_price = None
-    lowest_sell_price = None
+        if not all_tokens:
+            print("No valid tokens found in stats.")
 
-    for block in ledger:
-        for tx in block.get("transactions", []):
-            note = tx.get("note", {})
-            orbit_amount = tx.get("amount")
-
-            if not isinstance(note, dict) or "type" not in note:
+        for token in all_tokens:
+            if token != token_sym:
                 continue
+            f_stat = filled_dict.get(token, {})
+            o_stat = open_dict.get(token, {})
+            m_stat = meta_dict.get(token, {})
 
-            tx_type = note["type"]
+            net_balance = f_stat.get("adjusted_balance", 0)
+            filled_tokens_bought = f_stat.get("buy_tokens", 0)
+            filled_orbit_spent = f_stat.get("buy_orbit", 0)
+            filled_tokens_sold = f_stat.get("sell_tokens", 0)
+            filled_orbit_earned = f_stat.get("sell_orbit", 0)
+            filled_avg_buy_price = f_stat.get("avg_buy_price", 0)
+            filled_avg_sell_price = f_stat.get("avg_sell_price", 0)
+            current_price = f_stat.get("current_price", BASE_PRICE)
 
-            # Token creation
-            if "create_token" in tx_type:
-                data = tx_type["create_token"]
-                if data.get("symbol", "").upper() == symbol:
-                    token_info = {
-                        "token_id": data.get("token_id"),
-                        "name": data.get("name"),
-                        "symbol": data.get("symbol"),
-                        "supply": float(data.get("supply", 0)),
-                        "creator": data.get("creator"),
-                        "created_at": data.get("timestamp")
-                    }
+            open_tokens_bought = o_stat.get("buy_tokens", 0)
+            open_orbit_spent = o_stat.get("buy_orbit", 0)
+            open_tokens_sold = o_stat.get("sell_tokens", 0)
+            open_orbit_earned = o_stat.get("sell_orbit", 0)
+            open_avg_buy_price = o_stat.get("avg_buy_price", 0)
+            open_avg_sell_price = o_stat.get("avg_sell_price", 0)
 
-            # Token transfers
-            elif "token_transfer" in tx_type:
-                data = tx_type["token_transfer"]
-                if data.get("token_symbol", "").upper() != symbol:
-                    continue
+            meta_id = m_stat.get("id")
+            meta_name = m_stat.get("name")
+            meta_symbol = m_stat.get("symbol")
+            meta_supply = m_stat.get("supply")
+            meta_owner = m_stat.get("owner")
+            meta_created = m_stat.get("created")
 
-                amount = float(data.get("amount", 0))
-                sender = data.get("sender")
-                receiver = data.get("receiver")
 
-                if receiver:
-                    total_tokens_received += amount
-                    unique_receivers.add(receiver)
 
-                if sender:
-                    total_tokens_sent += amount
-                    unique_senders.add(sender)
+        token_meta.update({
+            "name": meta_name,
+            "symbol": symbol,
+            "current_price": current_price,
+            "supply": net_balance,
+            "volume_received": filled_tokens_bought,
+            "volume_sent": filled_tokens_sold,
+            "orbit_spent_buying": filled_orbit_spent,
+            "orbit_earned_selling": filled_orbit_earned,
+            "avg_buy_price": filled_avg_buy_price,
+            "avg_sell_price": filled_avg_sell_price,
+            "creator": meta_owner,
+            "created": meta_created
+        })
 
-                if receiver and orbit_amount and amount > 0:
-                    total_orbit_spent += orbit_amount
-                    latest_valid_price = orbit_amount / amount
+        return render_template("token_metrics.html", token=token_meta)
 
-                if sender and orbit_amount:
-                    total_orbit_earned += orbit_amount
-
-            # Buy token
-            elif "buy_token" in tx_type:
-                data = tx_type["buy_token"]
-                order_id = data.get("order_id")
-                if not order_id or order_id in seen_order_ids or data.get("symbol", "").upper() != symbol:
-                    continue
-                seen_order_ids.add(order_id)
-
-                amount = float(data.get("amount", 0))
-                price = float(data.get("price", 0))
-                buyer = data.get("buyer")
-                status = data.get("status")
-
-                if status == "filled":
-                    total_tokens_received += amount
-                    total_orbit_spent += amount * price
-                    latest_valid_price = price
-                    if buyer:
-                        unique_receivers.add(buyer)
-                elif status == "open":
-                    open_buy_orders.append(data)
-                    total_orbit_in_buys += amount * price
-                    if highest_buy_price is None or price > highest_buy_price:
-                        highest_buy_price = price
-
-            # Sell token
-            elif "sell_token" in tx_type:
-                data = tx_type["sell_token"]
-                order_id = data.get("order_id")
-                if not order_id or order_id in seen_order_ids or data.get("symbol", "").upper() != symbol:
-                    continue
-                seen_order_ids.add(order_id)
-
-                amount = float(data.get("amount", 0))
-                price = float(data.get("price", 0))
-                seller = data.get("seller")
-                status = data.get("status")
-
-                if status == "filled":
-                    total_tokens_sent += amount
-                    total_orbit_earned += amount * price
-                    latest_valid_price = price
-                    if seller:
-                        unique_senders.add(seller)
-                elif status == "open":
-                    open_sell_orders.append(data)
-                    total_tokens_in_sells += amount
-                    if lowest_sell_price is None or price < lowest_sell_price:
-                        lowest_sell_price = price
-
-    if not token_info:
+    except Exception as e:
+        print(f"Error: {e}")
         return render_template("token_not_found.html", symbol=symbol), 404
-
-    token_info.update({
-        "volume_received": round((total_tokens_received - token_info['supply']), 6),
-        "volume_sent": round((total_tokens_sent - token_info['supply']), 6),
-        "orbit_spent_buying": round(total_orbit_spent, 6),
-        "orbit_earned_selling": round(total_orbit_earned, 6),
-        "unique_holders": len(unique_receivers | unique_senders),
-        "unique_buyers": len(unique_receivers),
-        "unique_sellers": len(unique_senders),
-        "current_price": round(latest_valid_price, 6) if latest_valid_price else None,
-
-        # New orderbook insights
-        "open_buy_order_count": len(open_buy_orders),
-        "open_sell_order_count": len(open_sell_orders),
-        "total_orbit_in_open_buys": round(total_orbit_in_buys, 6),
-        "total_tokens_in_open_sells": round(total_tokens_in_sells, 6),
-        "highest_buy_price": round(highest_buy_price, 6) if highest_buy_price else None,
-        "lowest_sell_price": round(lowest_sell_price, 6) if lowest_sell_price else None
-    })
-
-    return render_template("token_metrics.html", token=token_info)
 
 
 

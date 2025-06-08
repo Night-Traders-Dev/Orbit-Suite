@@ -3,31 +3,22 @@
 <h2 class="text-2xl font-bold mb-4">Token Metrics: {{ token.name }} ({{ token.symbol }})</h2>
 
 <div class="grid grid-cols-2 gap-4">
-  <div><strong>Token ID:</strong> {{ token.token_id }}</div>
-  <div><strong>Creator:</strong> <a href="/address/{{ token.creator }}">{{ token.creator }}</a></div>
+  <div><strong>Current Price:</strong> {{ token.current_price}} Orbit</div>
   <div><strong>Supply:</strong> {{ token.supply | commas }}</div>
   <div><strong>Volume Received:</strong> {{ token.volume_received | commas }}</div>
-  <div><strong>Volume Sent:</strong> {{ token.volume_sent | commas }}</div>
   <div><strong>Orbit Spent Buying:</strong> {{ token.orbit_spent_buying | commas }}</div>
+  <div><strong>Volume Sent:</strong> {{ token.volume_sent | commas }}</div>
   <div><strong>Orbit Earned Selling:</strong> {{ token.orbit_earned_selling | commas }}</div>
-  <div><strong>Unique Holders:</strong> {{ token.unique_holders | commas }}</div>
-  <div><strong>Unique Buyers:</strong> {{ token.unique_buyers | commas }}</div>
-  <div><strong>Unique Sellers:</strong> {{ token.unique_sellers | commas }}</div>
-  <div><strong>Created At:</strong> {{ token.created_at | ts }}</div>
-  <div><strong>Current Price:</strong>
-    {% if token.current_price %}
-      {{ token.current_price | commas }} ORB
-    {% else %}
-      <span class="text-gray-500 italic">No recent buy</span>
-    {% endif %}
+  <div><strong>Avg Buy Price:</strong> {{ token.avg_buy_price }}</div>
+  <div><strong>Avg Sell Price:</strong> {{ token.avg_sell_price }}</div>
+{% if token.creator %}
+  <div>
+    <strong>Creator:</strong>
+    <a href="/address/{{ token.creator }}">{{ token.creator }}</a>
   </div>
-
-  <!-- 🆕 Additional Orderbook Metrics -->
-  <div><strong>Open Buy Orders:</strong> {{ token.open_buy_orders | default(0) | commas }}</div>
-  <div><strong>Open Sell Orders:</strong> {{ token.open_sell_orders | default(0) | commas }}</div>
-  <div><strong>Filled Buy Orders:</strong> {{ token.filled_buy_orders | default(0) | commas }}</div>
-  <div><strong>Filled Sell Orders:</strong> {{ token.filled_sell_orders | default(0) | commas }}</div>
-  <div><strong>Total Orbit in Open Orders:</strong> {{ token.total_orbit_in_open_orders | default(0.0) | commas }}</div>
-  <div><strong>Total Tokens in Open Orders:</strong> {{ token.total_tokens_in_open_orders | default(0.0) | commas }}</div>
+{% else %}
+  <div><strong>Creator:</strong> Unknown</div>
+{% endif %}
+  <div><strong>Created At:</strong> {{ token.created_at | ts }}</div>
 </div>
 {% endblock %}
