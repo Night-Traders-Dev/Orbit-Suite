@@ -15,6 +15,28 @@
       {{ token.current_price }} Orbit
     </span>
   </div>
+  <div title="Market Cap">
+    <strong>Market Cap:</strong>
+    <span id="marketcap" class="inline-flex items-center gap-1 text-green-600 font-semibold">
+      Loading...
+    </span>
+  </div>
+
+  <script>
+    const token = {
+       price: {{ token.price }},
+      volume_received: {{ token.volume_received }}
+    };
+
+    function updateMarketCap() {
+      const marketcap = token.price * token.volume_received;
+      document.getElementById("marketcap").textContent = marketcap.toFixed(2) + " Orbit";
+    }
+
+    window.onload = () => {
+        updateMarketCap();
+    };
+  </script>
 
   <div title="Total circulating supply">
     <strong>Supply:</strong>
