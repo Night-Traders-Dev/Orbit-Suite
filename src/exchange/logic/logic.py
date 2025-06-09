@@ -5,6 +5,7 @@ from core.exchangeutil import get_token_id, get_user_token_balance
 from core.ioutil import get_address_from_label
 from core.tx_util.tx_types import TXExchange
 from core.tx_util.tx_validator import TXValidator
+from core.orderutil import token_stats
 try:
     from bot.api import get_user_address, send_orbit_api
 except Exception as e:
@@ -123,14 +124,23 @@ EXCHANGE_PRICE = 0.1
 
 async def buy_token_from_exchange(symbol, amount, buyer_address):
     token_id = get_token_id(symbol.upper())
+    filled, open_orders, metadata, tx_cnt, history_data, price_history_dates, price_history_values, open_book = await token_stats(symbol.upper())
     if not token_id:
         return False, f"Token '{symbol.upper()}' not found."
 
+    filled_dict = {stat["token"]: stat for stat in filled if isinstance(stat, dict)}
+    open_dict = {stat["token"]: stat for stat in open_orders if isinstance(stat, dict)}
+    meta_dict = {stat["symbol"]: stat for stat in metadata if isinstance(stat, dict)}
+    cnt_dict = {stat["token"]: stat for stat in tx_cnt if isinstance(stat, dict)}
+
+    all_tokens = sorted(set(filled_dict.keys()) | set(open_dict.keys()) | set(meta_dict.keys()) | set(cnt_dict.keys()))
+    f_stat = filled_dict.get(symbol, {})
+    current_price = f_stat.get("current_price") or EXCHANGE_PRICE
     exchange_balance = get_user_token_balance(EXCHANGE_ADDRESS, symbol.upper())
     if exchange_balance < amount:
         return False, "Exchange does not have enough token supply available."
 
-    total_cost = round(amount * EXCHANGE_PRICE, 6)
+    total_cost = round(amount * current_price, 6)
 
 
     token_tx = TXExchange.create_token_transfer_tx(

@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, g, Response
 import json, os, datetime, math, time, asyncio
+from os import listdir
+from os.path import isfile, join
 
 from collections import defaultdict
 
@@ -241,6 +243,7 @@ def load_node(node_id):
 def token_metrics(symbol):
     token_sym = symbol.upper()
     token_meta = {}
+    icon_files = [f.split('.')[0] for f in listdir('static/token_icons') if isfile(join('static/token_icons', f))]
 
     try:
         filled, open_orders, metadata, tx_cnt, history_data, price_history_dates, price_history_values, open_book = asyncio.run(token_stats(token_sym))
@@ -358,6 +361,7 @@ def token_metrics(symbol):
                 "symbol": token_sym,
                 "current_price": current_price,
                 "supply": meta_supply,
+                "mc": (current_price * filled_tokens_bought),
                 "volume_received": filled_tokens_bought,
                 "volume_sent": filled_tokens_sold,
                 "orbit_spent_buying": filled_orbit_spent,
@@ -384,7 +388,7 @@ def token_metrics(symbol):
 
     except Exception as e:
         print(f"Error: {e}")
-        return render_template("token_not_found.html", symbol=symbol), 404
+        return render_template("token_not_found.html", symbol=symbol, token_icon_symbols=icon_files), 404
 
 
 # ===================== Auth + Identity APIs ==================

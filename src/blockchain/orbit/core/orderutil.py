@@ -81,7 +81,7 @@ async def token_stats(token=TOKEN):
                 tokens[tok] = tokens.get(tok, 0) + qty
                 if tx_note == "Token purchased from exchange":
                     stats["buy_tokens"] += qty
-                    stats["buy_orbit"] += qty * BASE_PRICE
+                    stats["buy_orbit"] += orbit_amount
                     transfer_cnt += 1
                     exchange_only[tok] = True
 
