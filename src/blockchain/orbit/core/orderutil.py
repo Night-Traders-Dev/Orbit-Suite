@@ -1,5 +1,6 @@
 from collections import defaultdict
 from core.ioutil import fetch_chain
+import datetime
 
 BASE_PRICE = 0.1
 TOKEN = "FUEL"
@@ -240,30 +241,39 @@ async def token_stats(token=TOKEN):
             "sell_cnt": sell_cnt
         })
 
-    # Sort historical data by time
-    for tok in history_data:
-        history_data[tok] = sorted(history_data[tok], key=lambda x: x["time"])
+
+    # Extract time and price lists from history_data
+    price_history_values = [None] * 14  # Pre-fill with None
+    price_history_dates = [(datetime.datetime.utcnow() - datetime.timedelta(days=i)).strftime("%Y-%m-%d") for i in range(13, -1, -1)]
+    date_index_map = {date: idx for idx, date in enumerate(price_history_dates)}
+
+    # Ensure we have two items: one for timestamps, one for prices
+    if len(history_data) == 2:
+        time_entry = history_data[0]
+        price_entry = history_data[1]
+
+        try:
+            token_key = list(time_entry.keys())[0]
+            timestamps = time_entry[token_key]
+            prices = price_entry[token_key]
+
+            if len(timestamps) != len(prices):
+                print(f"⚠️ Mismatched timestamp/price lengths for {token_key}")
+
+            for ts, price in zip(timestamps, prices):
+                try:
+                    dt = datetime.datetime.utcfromtimestamp(ts)
+                    date_str = dt.strftime("%Y-%m-%d")
+                    if date_str in date_index_map:
+                        idx = date_index_map[date_str]
+                        price_history_values[idx] = price
+                except Exception as e:
+                    print(f"⚠️ Failed to convert ts={ts} or price={price}: {e}")
+
+        except Exception as e:
+            print(f"⚠️ Error parsing history_data: {e}")
+    else:
+        print(f"⚠️ Unexpected history_data format: {history_data}")
+
     print(dict(history_data))
-
-    price_history_dates = {}
-    price_history_values = {}
-
-
-    for tok, entries in history_data.items():
-        price_history_dates[tok] = [entry["time"] for entry in entries]
-        price_history_values[tok] = [entry["price"] for entry in entries]
-
-
-#    for entry in valid_entries:
-#        try:
-#            ts = float(entry.get("time", 0))
-#            dt = datetime.datetime.utcfromtimestamp(ts)
-#            date_str = dt.strftime("%Y-%m-%d")
-#            price = entry.get("price")
-#            if date_str in date_index_map:
-#                idx = date_index_map[date_str]
-#                price_history_values[idx] = price
-#        except Exception as e:
-#            print(f"⚠️ Failed to parse entry: {entry} — {e}")
-
     return stat_list, open_list, meta_list, tx_counts, dict(history_data), price_history_dates, price_history_values

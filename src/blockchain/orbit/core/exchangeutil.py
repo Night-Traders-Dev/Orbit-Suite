@@ -95,13 +95,12 @@ def get_token_id(symbol):
     Search the blockchain ledger for a token creation transaction with the given symbol
     and return its token_id.
     """
-    try:
-        for block in reversed(fetch_chain()):  # Iterate from latest to oldest
-            for tx in block["transactions"]:
-                note = tx.get("note", [])
-                if "create_token" in note.get("type", {}):
+    for block in reversed(fetch_chain()):
+        for tx in block["transactions"]:
+            try:
+                note = tx.get("note", {})
+                if isinstance(note, dict) and "create_token" in note.get("type", {}):
                     token_data = note["type"]["create_token"]
-                    if token_data.get("symbol") == symbol:
-                        return token_data.get("token_id")
-    except Exception as e:
-        return None
+                    return token_data.get("token_id")
+            except Exception as e:
+                continue

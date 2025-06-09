@@ -308,10 +308,6 @@ def token_metrics(symbol):
             total_volume = filled_tokens_bought + filled_tokens_sold
             buy_ratio = (filled_tokens_bought / total_volume * 100) if total_volume > 0 else 0
 
-            # 📅 14-day Price History (from history_data)
-            price_history_dates = [(datetime.datetime.utcnow() - datetime.timedelta(days=i)).strftime("%Y-%m-%d") for i in range(13, -1, -1)]
-            price_history_values = [None] * 14
-
             # Convert timestamped entries to daily price points
             date_index_map = {date: idx for idx, date in enumerate(price_history_dates)}
             for entry in history_data:
