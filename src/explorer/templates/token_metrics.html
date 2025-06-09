@@ -91,18 +91,125 @@
   {% endif %}
 </div>
 
-<!-- Chart.js Volume Chart -->
+
+<!-- Buy/Sell Pressure Chart -->
+<div class="mt-10">
+  <h3 class="text-xl font-semibold mb-2">Buy/Sell Pressure (Open Orders)</h3>
+  <canvas id="pressureChart" height="100"></canvas>
+</div>
+
+<script>
+const pressureCtx = document.getElementById('pressureChart').getContext('2d');
+const pressureChart = new Chart(pressureCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Buy Orders', 'Sell Orders'],
+        datasets: [{
+            label: 'Open Orders (Tokens)',
+            data: [{{ token.open_buy_tokens }}, {{ token.open_sell_tokens }}],
+            backgroundColor: ['#34d399', '#f87171'], // green, red
+            borderColor: ['#059669', '#b91c1c'],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: { precision: 0 }
+            }
+        },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.parsed.y.toLocaleString() + ' tokens';
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+
+{% set total_open = token.open_buy_tokens + token.open_sell_tokens %}
+{% if total_open > 0 %}
+  {% set buy_pressure = (token.open_buy_tokens / total_open) * 100 %}
+  <div class="flex justify-between text-sm mt-1">
+    <span class="text-green-700">Buy Pressure: {{ buy_pressure | round(1) }}%</span>
+    <span class="text-red-700">Sell Pressure: {{ (100 - buy_pressure) | round(1) }}%</span>
+  </div>
+{% endif %}
+
+<!-- Chart.js Volume Chart
 <div class="mt-10">
   <h3 class="text-xl font-semibold mb-2">Volume Over Time</h3>
   <canvas id="volumeChart" height="100"></canvas>
 </div>
-
+-->
 <!-- Lucide Icons -->
 <svg style="display: none;">
   <symbol id="activity" viewBox="0 0 24 24">
     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
   </symbol>
 </svg>
+
+<div class="mt-10">
+  <h3 class="text-xl font-semibold mb-2">Order Book Depth</h3>
+  <canvas id="orderBookChart" height="100"></canvas>
+</div>
+
+<script>
+const buyDepth = {{ token.buy_depth | tojson }};
+const sellDepth = {{ token.sell_depth | tojson }};
+
+const buyPrices = buyDepth.map(d => d.price);
+const buyQuantities = buyDepth.map(d => d.cum_quantity);
+
+const sellPrices = sellDepth.map(d => d.price);
+const sellQuantities = sellDepth.map(d => d.cum_quantity);
+
+const ctxOrder = document.getElementById('orderBookChart').getContext('2d');
+new Chart(ctxOrder, {
+  type: 'line',
+  data: {
+    labels: buyPrices.concat(sellPrices),
+    datasets: [
+      {
+        label: 'Buy Depth',
+        data: buyDepth.map(d => ({x: d.price, y: d.cum_quantity})),
+        borderColor: 'green',
+        backgroundColor: 'rgba(0, 255, 0, 0.1)',
+        stepped: true
+      },
+      {
+        label: 'Sell Depth',
+        data: sellDepth.map(d => ({x: d.price, y: d.cum_quantity})),
+        borderColor: 'red',
+        backgroundColor: 'rgba(255, 0, 0, 0.1)',
+        stepped: true
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      tooltip: { mode: 'index', intersect: false },
+    },
+    scales: {
+      x: {
+        title: { display: true, text: 'Price (Orbit)' },
+        type: 'linear',
+      },
+      y: {
+        title: { display: true, text: 'Cumulative Quantity' },
+      }
+    }
+  }
+});
+</script>
 
 <!-- Chart.js (add in layout.html or here) -->
 

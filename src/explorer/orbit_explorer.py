@@ -243,7 +243,7 @@ def token_metrics(symbol):
     token_meta = {}
 
     try:
-        filled, open_orders, metadata, tx_cnt, history_data, price_history_dates, price_history_values = asyncio.run(token_stats(token_sym))
+        filled, open_orders, metadata, tx_cnt, history_data, price_history_dates, price_history_values, open_book = asyncio.run(token_stats(token_sym))
 
         filled_dict = {stat["token"]: stat for stat in filled if isinstance(stat, dict)}
         open_dict = {stat["token"]: stat for stat in open_orders if isinstance(stat, dict)}
@@ -308,6 +308,33 @@ def token_metrics(symbol):
             total_volume = filled_tokens_bought + filled_tokens_sold
             buy_ratio = (filled_tokens_bought / total_volume * 100) if total_volume > 0 else 0
 
+            buy_order_book = []
+            sell_order_book = []
+
+            for order in open_book:
+                price = float(order.get("price", 0))
+                type = order.get("type")
+                qty = float(order.get("amount", 0))
+                if type == "buy":
+                    buy_order_book.append({"price": price, "quantity": qty})
+                else:
+                    sell_order_book.append({"price": price, "quantity": qty})
+
+
+            buy_order_book = sorted(buy_order_book, key=lambda x: -x["price"])
+            sell_order_book = sorted(sell_order_book, key=lambda x: x["price"])
+
+            def cumulative_orders(order_book):
+                cum_qty = 0
+                cum_data = []
+                for entry in order_book:
+                    cum_qty += entry["quantity"]
+                    cum_data.append({"price": entry["price"], "cum_quantity": cum_qty})
+                return cum_data
+
+            token_meta["buy_depth"] = cumulative_orders(buy_order_book)
+            token_meta["sell_depth"] = cumulative_orders(sell_order_book)
+
             # Convert timestamped entries to daily price points
             date_index_map = {date: idx for idx, date in enumerate(price_history_dates)}
             for entry in history_data:
@@ -344,8 +371,14 @@ def token_metrics(symbol):
                 "sell_cnt": sell_cnt,
                 "buy_ratio": round(buy_ratio, 2),
                 "price_history_dates": price_history_dates,
-                "price_history_values": price_history_values
+                "price_history_values": price_history_values,
+                "open_buy_tokens": open_tokens_bought,
+                "open_sell_tokens": open_tokens_sold
             })
+
+
+        token_meta["buy_depth"] = cumulative_orders(buy_order_book)
+        token_meta["sell_depth"] = cumulative_orders(sell_order_book)
 
         return render_template("token_metrics.html", token=token_meta)
 

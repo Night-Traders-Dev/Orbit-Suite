@@ -21,6 +21,7 @@ async def token_stats(token=TOKEN):
     open_stats = {}
     stat_list = []
     open_list = []
+    open_orders = []
     open_order_ids = set()
     filled_order_ids = set()
     traded_tokens = set()
@@ -121,6 +122,7 @@ async def token_stats(token=TOKEN):
                     op_stats = await get_stats(open_stats, tok)
                     op_stats["buy_tokens"] += qty
                     op_stats["buy_orbit"] += qty * price
+                    open_orders.append({"token": tok, "type": "buy", "price": price, "amount": qty})
                     buy_cnt += 1
                     traded_tokens.add(tok)
 
@@ -160,6 +162,7 @@ async def token_stats(token=TOKEN):
                     op_stats = await get_stats(open_stats, tok)
                     op_stats["sell_tokens"] += qty
                     op_stats["sell_orbit"] += qty * price
+                    open_orders.append({"token": tok, "type": "sell", "price": price, "amount": qty})
                     sell_cnt += 1
                     traded_tokens.add(tok)
 
@@ -246,6 +249,7 @@ async def token_stats(token=TOKEN):
     price_history_values = [None] * 14  # Pre-fill with None
     price_history_dates = [(datetime.datetime.utcnow() - datetime.timedelta(days=i)).strftime("%Y-%m-%d") for i in range(13, -1, -1)]
     date_index_map = {date: idx for idx, date in enumerate(price_history_dates)}
+    error = []
 
     # Ensure we have two items: one for timestamps, one for prices
     if len(history_data) == 2:
@@ -258,7 +262,7 @@ async def token_stats(token=TOKEN):
             prices = price_entry[token_key]
 
             if len(timestamps) != len(prices):
-                print(f"⚠️ Mismatched timestamp/price lengths for {token_key}")
+                error.append(f"⚠️ Mismatched timestamp/price lengths for {token_key}")
 
             for ts, price in zip(timestamps, prices):
                 try:
@@ -268,12 +272,11 @@ async def token_stats(token=TOKEN):
                         idx = date_index_map[date_str]
                         price_history_values[idx] = price
                 except Exception as e:
-                    print(f"⚠️ Failed to convert ts={ts} or price={price}: {e}")
+                    error.append(f"⚠️ Failed to convert ts={ts} or price={price}: {e}")
 
         except Exception as e:
-            print(f"⚠️ Error parsing history_data: {e}")
+            error.append(f"⚠️ Error parsing history_data: {e}")
     else:
-        print(f"⚠️ Unexpected history_data format: {history_data}")
+        error.append(f"⚠️ Unexpected history_data format: {history_data}")
 
-    print(dict(history_data))
-    return stat_list, open_list, meta_list, tx_counts, dict(history_data), price_history_dates, price_history_values
+    return stat_list, open_list, meta_list, tx_counts, dict(history_data), price_history_dates, price_history_values, open_orders
