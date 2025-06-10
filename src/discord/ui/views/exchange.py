@@ -14,6 +14,15 @@ class ExchangeView(View):
         super().__init__(timeout=None)
         self.user_id = user_id
 
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "⚠️ You are not authorized to use this dashboard.",
+                ephemeral=True
+            )
+            return False
+        return True
+
     @discord.ui.button(label="💱 Trading", style=discord.ButtonStyle.green)
     async def trading_menu(self, interaction: discord.Interaction, button: Button):
         await interaction.response.edit_message(content="**💱 Trading Menu**", view=TradingView(self.user_id))
@@ -32,6 +41,15 @@ class TradingView(View):
     def __init__(self, user_id):
         super().__init__(timeout=None)
         self.user_id = user_id
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "⚠️ You are not authorized to use this dashboard.",
+                ephemeral=True
+            )
+            return False
+        return True
 
     @discord.ui.button(label="Place Order", style=discord.ButtonStyle.green)
     async def place_order(self, interaction: discord.Interaction, button: Button):
@@ -60,6 +78,16 @@ class OrdersView(View):
         super().__init__(timeout=None)
         self.user_id = user_id
 
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "⚠️ You are not authorized to use this dashboard.",
+                ephemeral=True
+            )
+            return False
+        return True
+
     @discord.ui.button(label="View Orders", style=discord.ButtonStyle.gray)
     async def view_orders(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(ViewOrdersModal(self.user_id))
@@ -74,6 +102,15 @@ class TokenView(View):
     def __init__(self, user_id):
         super().__init__(timeout=None)
         self.user_id = user_id
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "⚠️ You are not authorized to use this dashboard.",
+                ephemeral=True
+            )
+            return False
+        return True
 
     @discord.ui.button(label="Create Token", style=discord.ButtonStyle.blurple)
     async def create_token(self, interaction: discord.Interaction, button: Button):

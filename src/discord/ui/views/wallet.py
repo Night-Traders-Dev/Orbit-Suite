@@ -13,6 +13,15 @@ class WalletDashboard(View):
         super().__init__(timeout=None)
         self.user_id = discord_id
 
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "⚠️ You are not authorized to use this dashboard.",
+                ephemeral=True
+            )
+            return False
+        return True
+
     @discord.ui.button(label="Send", style=discord.ButtonStyle.primary)
     async def send_orbit(self, interaction: discord.Interaction, button: Button):
         address = await get_user_address(self.user_id)
