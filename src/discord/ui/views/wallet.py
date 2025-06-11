@@ -81,6 +81,54 @@ class WalletDashboard(View):
 
         await interaction.response.send_message(msg, ephemeral=True)
 
+
+    @discord.ui.button(label="Private Wallet", style=discord.ButtonStyle.danger)
+    async def open_private_channel(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.defer(ephemeral=True)
+        guild = interaction.guild
+        author = interaction.user
+        bot_member = guild.me
+
+        channel_name = f"private-{author.name}".replace(" ", "-").lower()
+        existing = discord.utils.get(guild.text_channels, name=channel_name)
+
+        if existing:
+            await interaction.response.send_message(
+                f"⚠️ You already have a private channel: {existing.mention}",
+                ephemeral=True
+            )
+            return
+
+        await interaction.message.delete()
+
+        # Set permissions
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            author: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
+            bot_member: discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True),
+        }
+
+        category = discord.Object(id=1382136935031771257)
+
+
+        # Create the private channel
+        private_channel = await guild.create_text_channel(
+            name=channel_name,
+            overwrites=overwrites,
+            category=category,
+            reason=f"Private wallet for {author.display_name}"
+        )
+
+        await interaction.followup.send(f"✅ Private channel created: {private_channel.mention}", ephemeral=True)
+
+        # Send a new message with the same view in the private channel
+        await private_channel.send(f"👋 Welcome {author.mention}! Reopening your dashboard...")
+        await private_channel.send(
+            embed=await wallet_info(author.id),
+            view=WalletDashboard(author.id)  # Use a new instance of the view
+        )
+
+
 class TokenSelectDropdown(Select):
     def __init__(self, uid, token_list):
         self.uid = uid

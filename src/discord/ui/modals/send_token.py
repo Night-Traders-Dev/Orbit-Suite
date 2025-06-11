@@ -23,7 +23,7 @@ class SendTokenModal(Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         from api import get_user_address, send_orbit_api, verify_2fa_api
-        from views import WalletDashboard, wallet_info
+        from ui.views.wallet import WalletDashboard, wallet_info
 
         address = await get_user_address(self.uid)
         await interaction.response.defer(ephemeral=True)

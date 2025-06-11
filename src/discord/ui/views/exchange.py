@@ -59,13 +59,13 @@ class TradingView(View):
     async def buy_ico(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(BuyFromExchangeModal(self.user_id))
 
-    @discord.ui.button(label="Buy Tokens", style=discord.ButtonStyle.green)
-    async def buy_tokens(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_modal(BuyTokenModal(self.user_id))
+#    @discord.ui.button(label="Buy Tokens", style=discord.ButtonStyle.green)
+#    async def buy_tokens(self, interaction: discord.Interaction, button: Button):
+#        await interaction.response.send_modal(BuyTokenModal(self.user_id))
 
-    @discord.ui.button(label="Sell Tokens", style=discord.ButtonStyle.red)
-    async def sell_tokens(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_modal(SellTokenModal(self.user_id))
+#    @discord.ui.button(label="Sell Tokens", style=discord.ButtonStyle.red)
+#    async def sell_tokens(self, interaction: discord.Interaction, button: Button):
+#        await interaction.response.send_modal(SellTokenModal(self.user_id))
 
     @discord.ui.button(label="🔙 Back", style=discord.ButtonStyle.gray)
     async def back(self, interaction: discord.Interaction, button: Button):
@@ -141,7 +141,7 @@ class TokenView(View):
                         f"**Sold:** {sell_tokens:,.2f} for {sell_orbit:,.2f} Orbit\n"
                         f"**Avg Buy Price:** {avg_buy_price if avg_buy_price else '–'} Orbit\n"
                         f"**Avg Sell Price:** {avg_sell_price if avg_sell_price else '–'} Orbit\n"
-                        f"**Current Price:** {current_price:.4f} Orbit"
+#                        f"**Current Price:** {current_price:.4f} Orbit"
                     ),
                     inline=False
                 )
