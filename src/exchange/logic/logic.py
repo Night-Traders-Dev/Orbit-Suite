@@ -82,9 +82,6 @@ def quote_symbol(symbol):
     }
 
 async def create_token(name, symbol, supply, creator):
-    if get_token_id(symbol):
-        msg = "Token already exists"
-        return (False, msg)
     tx = TXExchange.create_token(
         token_id=str(uuid.uuid4()),
         name=name,
