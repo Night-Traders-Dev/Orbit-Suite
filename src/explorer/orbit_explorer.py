@@ -239,11 +239,43 @@ def load_node(node_id):
     )
 
 
-
 @app.route("/tokens")
 def all_tokens():
     chain = load_chain()
-    tokens = set()
+    tokens = {}
+
+    # Gather token creations
+    for block in chain:
+        for tx in block.get("transactions", []):
+            note = tx.get("note")
+            if not isinstance(note, dict):
+                continue
+            tx_type = note.get("type", {})
+            if "create_token" in tx_type:
+                d = tx_type["create_token"]
+                name = d.get("name")
+                symbol = d.get("symbol")
+                supply = float(d.get("supply", 0))
+                creator = d.get("creator")
+                timestamp = d.get("timestamp")
+                if name and symbol:
+                    tokens[symbol] = {
+                        "symbol": symbol,
+                        "name": name,
+                        "supply": supply,
+                        "creator": creator,
+                        "created_at": timestamp
+                    }
+
+    # Convert dict to sorted list by symbol or name
+    token_list = sorted(tokens.values(), key=lambda x: x["symbol"].lower())
+    return render_template("tokens.html", tokens=token_list)
+
+
+@app.route("/tokens2")
+def all_tokens2():
+    chain = load_chain()
+    tokens = {}
 
     # Collect tokens from chain
     for block in chain:
@@ -255,10 +287,14 @@ def all_tokens():
             if "create_token" in tx_type:
                 data = tx_type["create_token"]
                 token_name = data.get("name")
-                if token_name:
-                    tokens.add(token_name)
+                token_symbol = data.get("symbol")
+                if token_name and token_symbol:
+                    tokens[token_symbol] = token_name
 
-    return render_template("tokens.html", tokens=sorted(tokens))
+    token_list = [{"name": name, "symbol": symbol} for symbol, name in tokens.items()]
+    token_list.sort(key=lambda t: t["name"].lower())
+
+    return render_template("tokens.html", tokens=token_list)
 
 @app.route("/token/<symbol>")
 def token_metrics(symbol):

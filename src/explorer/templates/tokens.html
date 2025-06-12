@@ -1,20 +1,52 @@
 {% extends "layout.html" %}
-
 {% block title %}All Orbit Tokens{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <h2 class="mb-4">🌐 All User-Created Tokens</h2>
+<div class="container-fluid mt-3 px-3">
+  <h2 class="mb-4 text-center">🌐 All User‑Created Tokens</h2>
+
   {% if tokens %}
-    <div class="list-group">
-      {% for token in tokens %}
-        <a href="{{ url_for('tokens', token_name=token) }}" class="list-group-item list-group-item-action">
-          {{ token }}
-        </a>
-      {% endfor %}
+    <div class="table-responsive" style="overflow-x: auto;">
+      <table class="table table-hover align-middle text-nowrap">
+        <thead class="table-light">
+          <tr>
+            <th scope="col">Logo</th>
+            <th scope="col">Name (Symbol)</th>
+            <th scope="col" class="text-end">Total Supply</th>
+            <th scope="col">Creator</th>
+            <th scope="col">Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tokens %}
+          <tr>
+            <td>
+              <img src="{{ url_for('static', filename='token_icons/' + t.symbol + '.png') }}"
+                   alt="{{ t.symbol }} logo"
+                   class="img-fluid rounded"
+                   style="height: 32px; width: 32px; object-fit: contain;"
+                   onerror="this.style.display='none';">
+            </td>
+            <td>
+              <a href="{{ url_for('token_metrics', symbol=t.symbol) }}" class="fw-semibold text-primary text-decoration-none d-block">
+                {{ t.name }}
+              </a>
+              <span class="text-muted small">({{ t.symbol }})</span>
+            </td>
+            <td class="text-end">{{ t.supply | commas }}</td>
+            <td>
+              <a href="/address/{{ t.creator }}" class="text-decoration-none">
+                {{ t.creator[:10] }}...
+              </a>
+            </td>
+            <td>{{ t.created_at | ts }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   {% else %}
-    <p>No tokens have been created yet.</p>
+    <p class="text-center">No tokens have been created yet.</p>
   {% endif %}
 </div>
 {% endblock %}
