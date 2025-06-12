@@ -152,6 +152,22 @@ form button:hover {
     font-weight: bold;
 }
 
+
+.token-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columns */
+  gap: 1rem; /* space between cards */
+}
+
+
+.token-metrics-card {
+  text-align: center;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border-radius: 0.25rem;
+  padding: 1rem;
+  background-color: #fff;
+}
+
 /* ===== Mobile Responsive ===== */
 @media screen and (max-width: 600px) {
     .main-nav {
@@ -181,3 +197,5 @@ form button:hover {
         flex: 1 1 100%;
     }
 }
+
+
