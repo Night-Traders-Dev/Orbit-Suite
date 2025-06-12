@@ -141,7 +141,6 @@ class TokenView(View):
                         f"**Sold:** {sell_tokens:,.2f} for {sell_orbit:,.2f} Orbit\n"
                         f"**Avg Buy Price:** {avg_buy_price if avg_buy_price else '–'} Orbit\n"
                         f"**Avg Sell Price:** {avg_sell_price if avg_sell_price else '–'} Orbit\n"
-#                        f"**Current Price:** {current_price:.4f} Orbit"
                     ),
                     inline=False
                 )
