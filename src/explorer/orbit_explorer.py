@@ -239,6 +239,27 @@ def load_node(node_id):
     )
 
 
+
+@app.route("/tokens")
+def all_tokens():
+    chain = load_chain()
+    tokens = set()
+
+    # Collect tokens from chain
+    for block in chain:
+        for tx in block.get("transactions", []):
+            note = tx.get("note")
+            if not isinstance(note, dict):
+                continue
+            tx_type = note.get("type", {})
+            if "create_token" in tx_type:
+                data = tx_type["create_token"]
+                token_name = data.get("name")
+                if token_name:
+                    tokens.add(token_name)
+
+    return render_template("tokens.html", tokens=sorted(tokens))
+
 @app.route("/token/<symbol>")
 def token_metrics(symbol):
     token_sym = symbol.upper()

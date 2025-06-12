@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+
+{% block title %}All Orbit Tokens{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">🌐 All User-Created Tokens</h2>
+  {% if tokens %}
+    <div class="list-group">
+      {% for token in tokens %}
+        <a href="{{ url_for('tokens', token_name=token) }}" class="list-group-item list-group-item-action">
+          {{ token }}
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No tokens have been created yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
