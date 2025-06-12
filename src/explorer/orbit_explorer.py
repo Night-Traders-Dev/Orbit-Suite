@@ -241,16 +241,37 @@ def load_node(node_id):
 
 @app.route("/tokens")
 def all_tokens():
+    from datetime import datetime, timedelta, UTC
+    now = datetime.now(UTC)
     chain = load_chain()
     tokens = {}
 
-    # Gather token creations
+    total_transfers = 0
+    transfers_24h = 0
+    new_tokens_24h = 0
+
+    def parse_ts(ts_raw):
+        if isinstance(ts_raw, str):
+            return datetime.fromisoformat(ts_raw).replace(tzinfo=UTC)
+        elif isinstance(ts_raw, (int, float)):
+            return datetime.fromtimestamp(ts_raw, tz=UTC)
+        return None
+
     for block in chain:
         for tx in block.get("transactions", []):
             note = tx.get("note")
             if not isinstance(note, dict):
                 continue
             tx_type = note.get("type", {})
+
+            # Transfers
+            if "buy_token" in tx_type or "sell_token" in tx_type or "token_transfer":
+                total_transfers += 1
+                ts = parse_ts(tx.get("timestamp"))
+                if ts and (now - ts <= timedelta(days=1)):
+                    transfers_24h += 1
+
+            # Token creations
             if "create_token" in tx_type:
                 d = tx_type["create_token"]
                 name = d.get("name")
@@ -266,35 +287,19 @@ def all_tokens():
                         "creator": creator,
                         "created_at": timestamp
                     }
+                    ts = parse_ts(timestamp)
+                    if ts and (now - ts <= timedelta(days=1)):
+                        new_tokens_24h += 1
 
-    # Convert dict to sorted list by symbol or name
     token_list = sorted(tokens.values(), key=lambda x: x["symbol"].lower())
-    return render_template("tokens.html", tokens=token_list)
+    metrics = {
+        "total_transfers": total_transfers,
+        "transfers_24h": transfers_24h,
+        "total_tokens": len(tokens),
+        "new_tokens_24h": new_tokens_24h
+    }
+    return render_template("tokens.html", tokens=token_list, metrics=metrics)
 
-
-@app.route("/tokens2")
-def all_tokens2():
-    chain = load_chain()
-    tokens = {}
-
-    # Collect tokens from chain
-    for block in chain:
-        for tx in block.get("transactions", []):
-            note = tx.get("note")
-            if not isinstance(note, dict):
-                continue
-            tx_type = note.get("type", {})
-            if "create_token" in tx_type:
-                data = tx_type["create_token"]
-                token_name = data.get("name")
-                token_symbol = data.get("symbol")
-                if token_name and token_symbol:
-                    tokens[token_symbol] = token_name
-
-    token_list = [{"name": name, "symbol": symbol} for symbol, name in tokens.items()]
-    token_list.sort(key=lambda t: t["name"].lower())
-
-    return render_template("tokens.html", tokens=token_list)
 
 @app.route("/token/<symbol>")
 def token_metrics(symbol):
