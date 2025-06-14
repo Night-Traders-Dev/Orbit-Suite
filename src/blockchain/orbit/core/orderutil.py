@@ -1,9 +1,112 @@
+import requests
 from collections import defaultdict
 from core.ioutil import fetch_chain
 import datetime
 
 BASE_PRICE = 0.1
 TOKEN = "FUEL"
+
+async def all_tokens():
+    from datetime import datetime, timedelta, UTC
+    from collections import defaultdict
+    now = datetime.now(UTC)
+    chain = fetch_chain()
+    tokens = {}
+    total_transfers = 0
+    transfers_24h = 0
+    new_tokens_24h = 0
+    wallets = {}
+
+    def parse_ts(ts_raw):
+        if isinstance(ts_raw, str):
+            return datetime.fromisoformat(ts_raw).replace(tzinfo=UTC)
+        elif isinstance(ts_raw, (int, float)):
+            return datetime.fromtimestamp(ts_raw, tz=UTC)
+        return None
+
+    for block in chain:
+        for tx in block.get("transactions", []):
+            note = tx.get("note")
+            if not isinstance(note, dict):
+                continue
+            tx_type = note.get("type", {})
+            ts = parse_ts(tx.get("timestamp"))
+
+            # Token creation
+            if "create_token" in tx_type:
+                d = tx_type["create_token"]
+                name = d.get("name")
+                symbol = d.get("symbol")
+                supply = float(d.get("supply", 0))
+                creator = d.get("creator")
+                timestamp = d.get("timestamp")
+
+                if name and symbol:
+                    tokens[symbol] = {
+                        "symbol": symbol,
+                        "name": name,
+                        "supply": supply,
+                        "creator": creator,
+                        "created_at": timestamp,
+                        "age": "",
+                        "transfers": 0,
+                        "holders": set()
+                    }
+                    ts_created = parse_ts(timestamp)
+                    if ts_created and (now - ts_created <= timedelta(days=1)):
+                        new_tokens_24h += 1
+
+            # Transfer types: update holders and transfers
+            for typ in ["buy_token", "sell_token", "token_transfer"]:
+                if typ in tx_type:
+                    d = tx_type[typ]
+                    symbol = d.get("symbol") or d.get("token_symbol")
+                    sender = d.get("sender")
+                    receiver = d.get("receiver")
+                    amount = d.get("amount")
+
+                    if symbol in tokens:
+                        tokens[symbol]["transfers"] += 1
+                        if sender:
+                            tokens[symbol]["holders"].add(sender)
+                        if receiver:
+                            tokens[symbol]["holders"].add(receiver)
+
+                    if sender:
+                        if sender not in wallets:
+                            wallets[sender] = {"amount": 0}
+                        wallets[sender]["amount"] -= amount
+                    if receiver:
+                        if receiver not in wallets:
+                            wallets[receiver] = {"amount": 0}
+                        wallets[receiver]["amount"] += amount
+                    total_transfers += 1
+                    if ts and (now - ts <= timedelta(days=1)):
+                        transfers_24h += 1
+
+    # Final formatting
+    token_list = []
+    for token in tokens.values():
+        created_at = parse_ts(token["created_at"])
+        if created_at:
+            age = now - created_at
+            days = age.days
+            token["age"] = f"{days} day{'s' if days != 1 else ''}"
+        else:
+            token["age"] = "Unknown"
+        token["holders"] = len(token["holders"])
+        token_list.append(token)
+
+    token_list = sorted(token_list, key=lambda x: x["symbol"].lower())
+
+    metrics = {
+        "total_transfers": total_transfers,
+        "transfers_24h": transfers_24h,
+        "total_tokens": len(tokens),
+        "new_tokens_24h": new_tokens_24h
+    }
+    return token_list, wallets
+
 
 async def get_stats(stats_dict, token):
     return stats_dict.setdefault(token, {
