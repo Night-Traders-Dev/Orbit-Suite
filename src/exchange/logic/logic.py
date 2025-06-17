@@ -158,8 +158,9 @@ async def buy_token_from_exchange(symbol, amount, buyer_address):
 
     shre = round(total_cost * 0.01, 6)
     sent = await send_orbit_api(buyer_address, EXCHANGE_ADDRESS, total_cost, order=token_tx)
-    fee = await send_orbit_api(EXCHANGE_ADDRESS, owner, shre, order="")
-    if not sent or not fee:
+    if True in sent:
+        fee = await send_orbit_api(EXCHANGE_ADDRESS, owner, shre, order="")
+    if False in sent or False in fee:
         return False, "Token delivery failed."
 
     return True, {

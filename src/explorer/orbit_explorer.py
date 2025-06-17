@@ -109,6 +109,11 @@ def get_top_wallets():
     return render_template(html, wallets=wallet_data)
 
 
+@app.route("/cache/clear")
+def clear_explorer_cache():
+    clear_cache()
+    return "Explorer cache cleared", 200
+
 @app.route("/mining")
 def mining_stats():
     from blockchain.miningutil import get_dynamic_mining_rate
