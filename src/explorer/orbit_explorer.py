@@ -13,6 +13,8 @@ from core.walletutil import load_balance
 from blockchain.stakeutil import get_user_lockups, lock_tokens, claim_lockup_rewards, check_claim
 from blockchain.tokenutil import send_orbit
 from blockchain.miningutil import start_mining, check_mining
+
+from core.cacheutil import get_cached, set_cached, clear_cache
 from core.hashutil import create_2fa_secret, verify_2fa_token, generate_orbit_address
 from core.authutil import update_login, is_logged_in, cleanup_expired_sessions
 from core.userutil import register, login
@@ -348,7 +350,13 @@ def all_tokens():
 
 @app.route("/token/<symbol>")
 def token_metrics(symbol):
-    tokens, wallets, metrics = asyncio.run(all_tokens_stats(symbol.upper()))
+    symbol_key = symbol.upper()
+    cached = get_cached("token_stats", symbol_key)
+    if cached:
+        tokens, wallets, metrics = cached
+    else:
+        tokens, wallets, metrics = asyncio.run(all_tokens_stats(symbol_key))
+        set_cached("token_stats", (tokens, wallets, metrics), symbol_key)
     token_sym = symbol.upper()
     token_meta = {}
     icon_files = [f.split('.')[0] for f in listdir('static/token_icons') if isfile(join('static/token_icons', f))]
