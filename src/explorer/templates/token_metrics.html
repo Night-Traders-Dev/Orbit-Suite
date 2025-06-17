@@ -200,41 +200,31 @@
     }
   });
   </script>
-
-  <div class="mt-10">
-    <h3 class="text-xl font-semibold mb-2">Price History</h3>
-    <canvas id="priceChart" height="100"></canvas>
+<!--
+  <div class="mt-12">
+    <h3 class="text-2xl font-semibold mb-4">Top 10 Wallets by {{ token.symbol }} Balance</h3>
+    <div class="overflow-x-auto bg-gray-800 rounded-xl p-4 shadow-md">
+      <table class="min-w-full text-left text-sm text-gray-300">
+        <thead class="text-xs uppercase tracking-wider text-gray-400 border-b border-gray-600">
+          <tr>
+            <th class="py-2 px-4">Rank</th>
+            <th class="py-2 px-4">Address</th>
+            <th class="py-2 px-4">Balance</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for wallet in top_wallets %}
+            <tr class="border-b border-gray-700 hover:bg-gray-700/50 transition">
+              <td class="py-2 px-4 font-bold">{{ loop.index }}</td>
+              <td class="py-2 px-4">
+                <a href="/address/{{ wallet.address }}" class="text-blue-400 hover:underline">{{ wallet.address }}</a>
+              </td>
+              <td class="py-2 px-4 text-green-300 font-semibold">{{ wallet.balance | commas }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-  const ctx = document.getElementById('priceChart').getContext('2d');
-  new Chart(ctx, {
-      type: 'line',
-      data: {
-          labels: {{ token.price_history_dates | safe }},
-          datasets: [{
-              label: 'Price (Orbit)',
-              data: {{ token.price_history_values | safe }},
-              borderColor: 'rgba(75, 192, 192, 1)',
-              backgroundColor: 'rgba(75, 192, 192, 0.2)',
-              tension: 0.4,
-              spanGaps: true
-          }]
-      },
-      options: {
-          responsive: true,
-          plugins: {
-              legend: { display: false },
-              tooltip: { mode: 'index', intersect: false }
-          },
-          scales: {
-              x: { ticks: { color: '#ccc' } },
-              y: { beginAtZero: false, ticks: { color: '#ccc' } }
-          }
-      }
-  });
-  </script>
-
-</div>
+-->
 {% endblock %}

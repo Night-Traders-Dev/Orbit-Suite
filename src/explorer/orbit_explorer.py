@@ -348,7 +348,7 @@ def all_tokens():
 
 @app.route("/token/<symbol>")
 def token_metrics(symbol):
-    tokens, wallets = asyncio.run(all_tokens_stats())
+    tokens, wallets, metrics = asyncio.run(all_tokens_stats(symbol.upper()))
     token_sym = symbol.upper()
     token_meta = {}
     icon_files = [f.split('.')[0] for f in listdir('static/token_icons') if isfile(join('static/token_icons', f))]
@@ -493,7 +493,7 @@ def token_metrics(symbol):
         token_meta["buy_depth"] = cumulative_orders(buy_order_book)
         token_meta["sell_depth"] = cumulative_orders(sell_order_book)
 
-        return render_template("token_metrics.html", token=token_meta, wallets=wallets)
+        return render_template("token_metrics.html", token=token_meta) #, top_wallets=wallets)
 
     except Exception as e:
         print(f"Error: {e}")

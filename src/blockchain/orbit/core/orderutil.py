@@ -6,7 +6,7 @@ import datetime
 BASE_PRICE = 0.1
 TOKEN = "FUEL"
 
-async def all_tokens_stats():
+async def all_tokens_stats(symbol_filter=None):
     from datetime import datetime, timedelta, UTC
     from collections import defaultdict
     now = datetime.now(UTC)
@@ -16,6 +16,12 @@ async def all_tokens_stats():
     transfers_24h = 0
     new_tokens_24h = 0
     wallets = {}
+
+    if symbol_filter:
+        if isinstance(symbol_filter, str):
+            symbol_filter = {symbol_filter.upper()}
+        else:
+            symbol_filter = {s.upper() for s in symbol_filter}
 
     def parse_ts(ts_raw):
         if isinstance(ts_raw, str):
@@ -35,8 +41,11 @@ async def all_tokens_stats():
             # Token creation
             if "create_token" in tx_type:
                 d = tx_type["create_token"]
-                name = d.get("name")
                 symbol = d.get("symbol")
+                if symbol_filter and symbol.upper() not in symbol_filter:
+                    continue
+
+                name = d.get("name")
                 supply = float(d.get("supply", 0))
                 creator = d.get("creator")
                 timestamp = d.get("timestamp")
@@ -61,6 +70,9 @@ async def all_tokens_stats():
                 if typ in tx_type:
                     d = tx_type[typ]
                     symbol = d.get("symbol") or d.get("token_symbol")
+                    if symbol_filter and symbol.upper() not in symbol_filter:
+                        continue
+
                     sender = d.get("sender")
                     receiver = d.get("receiver")
                     amount = d.get("amount")
@@ -73,13 +85,12 @@ async def all_tokens_stats():
                             tokens[symbol]["holders"].add(receiver)
 
                     if sender:
-                        if sender not in wallets:
-                            wallets[sender] = {"amount": 0}
+                        wallets.setdefault(sender, {"amount": 0})
                         wallets[sender]["amount"] -= amount
                     if receiver:
-                        if receiver not in wallets:
-                            wallets[receiver] = {"amount": 0}
+                        wallets.setdefault(receiver, {"amount": 0})
                         wallets[receiver]["amount"] += amount
+
                     total_transfers += 1
                     if ts and (now - ts <= timedelta(days=1)):
                         transfers_24h += 1
@@ -105,8 +116,7 @@ async def all_tokens_stats():
         "total_tokens": len(tokens),
         "new_tokens_24h": new_tokens_24h
     }
-    return token_list, wallets
-
+    return token_list, wallets, metrics
 
 async def get_stats(stats_dict, token):
     return stats_dict.setdefault(token, {
@@ -115,6 +125,8 @@ async def get_stats(stats_dict, token):
         "sell_tokens": 0,
         "sell_orbit": 0.0
     })
+
+
 
 async def token_stats(token=TOKEN):
     chain = fetch_chain()
