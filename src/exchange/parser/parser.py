@@ -69,8 +69,20 @@ async def parse_exchange_command(message_content):
                     "supply": supply,
                     "creator": creator
                 }
+            elif cmd_type == "DEPOSIT":
+                symbol = parts[2]
+                amount = float(parts[3])
+                address = parts[4]
+                return {
+                    "action": "deposit",
+                    "symbol": symbol,
+                    "amount": amount,
+                    "address": address
+                }
 
         return None
     except Exception as e:
         print(f"[ParserError] Failed to parse command: {e}")
         return None
+
+

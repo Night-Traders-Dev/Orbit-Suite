@@ -6,7 +6,7 @@ import datetime
 BASE_PRICE = 0.1
 TOKEN = "FUEL"
 
-async def all_tokens():
+async def all_tokens_stats():
     from datetime import datetime, timedelta, UTC
     from collections import defaultdict
     now = datetime.now(UTC)

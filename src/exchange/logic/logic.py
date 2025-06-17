@@ -116,8 +116,14 @@ async def create_token(name, symbol, supply, creator):
     return (True, tx) if valid else (False, msg)
 
 
+async def deposit(symbol, amount, receiver, sender):
+    result = await send_orbit_api(sender, receiver, amount, order={"Deposit": {"sender": sender, "receiver": receiver, "amount": amount}})
+    return(True, {"Orbit Deposit": {"sender": sender, "receiver": receiver, "amount": amount}})
+
 
 EXCHANGE_PRICE = 0.1
+
+
 
 async def buy_token_from_exchange(symbol, amount, buyer_address):
     token_id = get_token_id(symbol.upper())
@@ -132,7 +138,9 @@ async def buy_token_from_exchange(symbol, amount, buyer_address):
 
     all_tokens = sorted(set(filled_dict.keys()) | set(open_dict.keys()) | set(meta_dict.keys()) | set(cnt_dict.keys()))
     f_stat = filled_dict.get(symbol, {})
+    m_stat = meta_dict.get(symbol, {})
     current_price = f_stat.get("current_price") or EXCHANGE_PRICE
+    owner = m_stat.get("owner", "")
     exchange_balance = get_user_token_balance(EXCHANGE_ADDRESS, symbol.upper())
     if exchange_balance < amount:
         return False, "Exchange does not have enough token supply available."
@@ -148,8 +156,10 @@ async def buy_token_from_exchange(symbol, amount, buyer_address):
         note="Token purchased from exchange"
     )
 
+    shre = round(total_cost * 0.01, 6)
     sent = await send_orbit_api(buyer_address, EXCHANGE_ADDRESS, total_cost, order=token_tx)
-    if not sent:
+    fee = await send_orbit_api(EXCHANGE_ADDRESS, owner, shre, order="")
+    if not sent or not fee:
         return False, "Token delivery failed."
 
     return True, {

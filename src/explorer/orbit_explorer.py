@@ -7,7 +7,7 @@ from collections import defaultdict
 
 from config.configutil import OrbitDB
 from core.ioutil import load_chain, load_nodes
-from core.orderutil import token_stats, BASE_PRICE
+from core.orderutil import token_stats, BASE_PRICE, all_tokens_stats
 
 from core.walletutil import load_balance
 from blockchain.stakeutil import get_user_lockups, lock_tokens, claim_lockup_rewards, check_claim
@@ -256,6 +256,7 @@ def all_tokens():
     from datetime import datetime, timedelta, UTC
     from collections import defaultdict
     now = datetime.now(UTC)
+
     chain = load_chain()
     tokens = {}
     total_transfers = 0
@@ -347,6 +348,7 @@ def all_tokens():
 
 @app.route("/token/<symbol>")
 def token_metrics(symbol):
+    tokens, wallets = asyncio.run(all_tokens_stats())
     token_sym = symbol.upper()
     token_meta = {}
     icon_files = [f.split('.')[0] for f in listdir('static/token_icons') if isfile(join('static/token_icons', f))]
@@ -491,7 +493,7 @@ def token_metrics(symbol):
         token_meta["buy_depth"] = cumulative_orders(buy_order_book)
         token_meta["sell_depth"] = cumulative_orders(sell_order_book)
 
-        return render_template("token_metrics.html", token=token_meta)
+        return render_template("token_metrics.html", token=token_meta, wallets=wallets)
 
     except Exception as e:
         print(f"Error: {e}")
