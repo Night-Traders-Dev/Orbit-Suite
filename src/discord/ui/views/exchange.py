@@ -4,7 +4,7 @@ import asyncio
 from api import create_2fa_api, get_user_address, mine_orbit_api, get_user_tokens
 from commands.token_stats import token_stats
 from core.ioutil import fetch_chain
-from ui.modals.buy_sell import BuyTokenModal, SellTokenModal, BuyFromExchangeModal, PlaceOrderModal
+from ui.modals.buy_sell import BuyTokenModal, SellTokenModal, BuyFromExchangeModal, PlaceOrderModal# , TopWalletModal
 from ui.modals.create_token import CreateTokenModal
 from ui.modals.orders import ViewOrdersModal
 
@@ -58,6 +58,14 @@ class TradingView(View):
     @discord.ui.button(label="ICO", style=discord.ButtonStyle.green)
     async def buy_ico(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(BuyFromExchangeModal(self.user_id))
+
+#    @discord.ui.button(label="Top Wallets", style=discord.ButtonStyle.primary)
+#    async def top_wallet(self, interaction: discord.Interaction, button: Button):
+#        address = await get_user_address(self.user_id)
+#        tokens = get_user_tokens(address)
+#        await interaction.response.send_message(
+#            "Select a token to view:", view=TopWalletView(self.user_id, tokens), ephemeral=True
+#        )
 
 #    @discord.ui.button(label="Buy Tokens", style=discord.ButtonStyle.green)
 #    async def buy_tokens(self, interaction: discord.Interaction, button: Button):
@@ -149,3 +157,19 @@ class TokenView(View):
     @discord.ui.button(label="🔙 Back", style=discord.ButtonStyle.gray)
     async def back(self, interaction: discord.Interaction, button: Button):
         await interaction.response.edit_message(content="**📊 Exchange Menu**", view=ExchangeView(self.user_id))
+
+
+class TokenSelectDropdown(Select):
+    def __init__(self, uid, token_list):
+        self.uid = uid
+        options = [discord.SelectOption(label=token) for token in token_list]
+        super().__init__(placeholder="Select token to view", options=options, min_values=1, max_values=1)
+
+    async def callback(self, interaction: discord.Interaction):
+        token = self.values[0]
+        await interaction.response.send_modal(TopWalletModal(self.uid, token))
+
+class TopWalletView(View):
+    def __init__(self, uid, token_list):
+        super().__init__(timeout=60)
+        self.add_item(TokenSelectDropdown(uid, token_list))

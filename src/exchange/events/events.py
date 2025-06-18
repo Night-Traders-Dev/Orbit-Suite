@@ -11,7 +11,7 @@ from logic.logic import (
 from bot.api import get_user_address
 
 EXCHANGE_UID = 1379645991782846608
-BOT_OPS_CHANNEL_ID = [1379630873174872197, 1384226419571294281]  # Add more channel IDs as needed
+BOT_OPS_CHANNEL_ID = [1379630873174872197]  # Add more channel IDs as needed
 
 def register_events(bot):
     @bot.event

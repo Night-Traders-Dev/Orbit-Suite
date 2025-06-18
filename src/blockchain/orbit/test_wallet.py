@@ -7,7 +7,7 @@ cached = get_cached("all_tokens_stats")
 if cached:
     tokens, metrics = cached
 else:
-    tokens, wallets, metrics = asyncio.run(all_tokens_stats("FUEL"))
+    tokens, wallets, metrics = asyncio.run(all_tokens_stats("CORAL"))
 for address in wallets:
     if wallets[address]["amount"] >= 0:
         print(f"{address}: {wallets[address]['amount']:,}")
