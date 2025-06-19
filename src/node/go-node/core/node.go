@@ -2,6 +2,8 @@
 package core
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -11,6 +13,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+        "net/http"
+        "bytes"
 )
 
 type Block map[string]interface{}
@@ -108,4 +112,50 @@ func (n *OrbitNode) SaveChain() {
 	defer n.ChainMu.Unlock()
 	data, _ := json.MarshalIndent(n.Chain, "", "  ")
 	ioutil.WriteFile(n.ChainFile, data, 0644)
+}
+
+func (n *OrbitNode) GetLast10BlockHash() string {
+	n.ChainMu.RLock()
+	defer n.ChainMu.RUnlock()
+	
+	length := len(n.Chain)
+	if length == 0 {
+		return ""
+	}
+
+	start := length - 10
+	if start < 0 {
+		start = 0
+	}
+
+	hashInput := ""
+	for i := start; i < length; i++ {
+		if h, ok := n.Chain[i]["hash"].(string); ok {
+			hashInput += h
+		}
+	}
+	hash := sha256.Sum256([]byte(hashInput))
+	return hex.EncodeToString(hash[:])
+}
+
+func (n *OrbitNode) SendProofLoop() {
+	for n.Running {
+		if len(n.Chain) == 0 {
+			time.Sleep(20 * time.Second)
+			continue
+		}
+		last := n.Chain[len(n.Chain)-1]
+		latestHash, _ := last["hash"].(string)
+		proofHash := n.GetLast10BlockHash()
+
+		payload := map[string]string{
+			"node_id":     n.NodeID,
+			"latest_hash": latestHash,
+			"proof_hash":  proofHash,
+		}
+		body, _ := json.Marshal(payload)
+		http.Post("https://oliver-butler-oasis-builder.trycloudflare.com/node_proof", "application/json", bytes.NewReader(body))
+
+		time.Sleep(30 * time.Second)
+	}
 }

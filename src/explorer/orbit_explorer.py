@@ -37,6 +37,7 @@ app = Flask(__name__)
 CHAIN_PATH = orbit_db.blockchaindb
 PORT = 7000
 NodeRegistry = orbit_db.NodeRegistry
+node_validation_proofs = {}
 
 @app.before_request
 def load_chain_once():
@@ -772,6 +773,33 @@ def active_nodes():
         if data.get("last_seen", 0) > cutoff
     }
     return jsonify(fresh_nodes), 200
+
+
+from flask import request, jsonify
+import time
+
+# You should have some persistent storage for proofs (e.g., file, DB)
+node_proofs = {}
+
+@app.route("/node_proof", methods=["POST"])
+def node_proof():
+    data = request.get_json()
+    print(node_validation_proofs)
+
+    node_id = data.get("node_id")
+    latest_hash = data.get("latest_hash")
+    proof_hash = data.get("proof_hash")
+
+    if not node_id or not latest_hash or not proof_hash:
+        return jsonify({"status": "error", "message": "Missing fields"}), 400
+
+    node_validation_proofs[node_id] = {
+        "timestamp": time.time(),
+        "latest_hash": latest_hash,
+        "proof_hash": proof_hash
+    }
+
+    return jsonify({"status": "success", "message": f"Proof received from {node_id}"}), 200
 
 
 @app.route("/receive_block", methods=["POST"])

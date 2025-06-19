@@ -38,6 +38,7 @@ func main() {
 	go network.DisplayStats(node)
 	go network.RebroadcastIfNeeded(node)
 	go network.PollForNewBlocks(node)
+	go node.SendProofLoop()
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
