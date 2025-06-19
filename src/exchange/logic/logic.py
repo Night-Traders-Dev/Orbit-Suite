@@ -146,7 +146,7 @@ async def withdrawal(amount, receiver, sender):
     )
     orbit_amount = 5
     txt = f"{symbol} Withdrawal"
-    result = await send_orbit_api(sender, receiver, amount, order=token_tx)
+    result = await send_orbit_api(receiver, sender, orbit_amount, order=token_tx)
     return(True, {txt: {"sender": sender, "receiver": receiver, "amount": transfer_amount}})
 
 EXCHANGE_PRICE = 0.1
