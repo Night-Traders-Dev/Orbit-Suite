@@ -1,35 +1,15 @@
-//core/sync.go:
+// core/sync.go
 package core
 
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"time"
 )
 
-const ExplorerURL = "https://oliver-butler-oasis-builder.trycloudflare.com"
-
-func SyncWithExplorer(n *OrbitNode) {
-	resp, err := http.Get(ExplorerURL + "/api/chain")
-	if err != nil {
-		log.Println("[SYNC] Explorer unavailable")
-		return
-	}
-	defer resp.Body.Close()
-	var remote []Block
-	body, _ := io.ReadAll(resp.Body)
-	err = json.Unmarshal(body, &remote)
-	if err == nil && len(remote) > len(n.Chain) {
-		n.Chain = remote
-		SaveChain(n)
-		log.Println("[SYNC] Chain updated from explorer")
-	}
-}
-
-func RegisterNode(n *OrbitNode) {
+func (n *OrbitNode) RegisterNode() {
 	host := n.TunnelURL
 	if host == "" {
 		host = "127.0.0.1"
@@ -44,8 +24,44 @@ func RegisterNode(n *OrbitNode) {
 		"last_seen": time.Now().Unix(),
 		"users":     []string{n.Address},
 	}
-	SaveNodes(n)
+	n.SaveNodes()
 
-	payload, _ := json.Marshal(n.Nodes[n.NodeID])
-	http.Post(ExplorerURL+"/node_ping", "application/json", bytes.NewReader(payload))
+	payload, err := json.Marshal(n.Nodes[n.NodeID])
+	if err == nil {
+		http.Post("https://oliver-butler-oasis-builder.trycloudflare.com/node_ping", "application/json", bytes.NewReader(payload))
+	}
+}
+
+func (n *OrbitNode) SyncWithExplorer() {
+	resp, err := http.Get("https://oliver-butler-oasis-builder.trycloudflare.com/api/chain")
+	if err != nil {
+		log.Println("[ERROR] Could not fetch chain:", err)
+		return
+	}
+	defer resp.Body.Close()
+	var remote []Block
+	err = json.NewDecoder(resp.Body).Decode(&remote)
+	if err != nil {
+		log.Println("[ERROR] Invalid chain JSON:", err)
+		return
+	}
+	if len(remote) > len(n.Chain) {
+		n.Chain = remote
+		n.SaveChain()
+		log.Println("[SYNC] Chain updated from explorer.")
+	}
+}
+
+func (n *OrbitNode) ValidateBlock(block map[string]interface{}) bool {
+	if len(n.Chain) == 0 {
+		return false
+	}
+	last := n.Chain[len(n.Chain)-1]
+	if last["index"].(float64) == 0 {
+		return true
+	}
+	if block["previous_hash"] != last["hash"] {
+		return false
+	}
+	return true
 }

@@ -1,17 +1,19 @@
-//main.go:
+// main.go
 package main
 
 import (
-	"orbit_node/core"
-	"orbit_node/network"
+	"fmt"
 	"os"
 	"os/signal"
 	"strconv"
+
+	"orbit_node/core"
+	"orbit_node/network"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		println("Usage: orbit_node <address> [port] [tunnel_url]")
+		fmt.Println("Usage: orbit_node <address> [port] [tunnel_url]")
 		return
 	}
 
@@ -29,15 +31,16 @@ func main() {
 	}
 
 	node := core.NewOrbitNode(address, port, tunnel)
-	core.SyncWithExplorer(node)
-	core.RegisterNode(node)
+	node.SyncWithExplorer()
+	node.RegisterNode()
 
-	go core.DisplayStats(node)
-	go network.StartServer(node)
+	go network.StartHTTPServer(node)
+	go network.DisplayStats(node)
 	go network.RebroadcastIfNeeded(node)
+	go network.PollForNewBlocks(node)
 
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, os.Interrupt)
-	<-ch
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt)
+	<-sig
 	node.Running = false
 }

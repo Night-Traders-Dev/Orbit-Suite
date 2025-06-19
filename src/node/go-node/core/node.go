@@ -1,16 +1,14 @@
-//core/node.go:
+// core/node.go
 package core
 
 import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-//	"log"
 	"math/rand"
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 )
@@ -33,7 +31,7 @@ type OrbitNode struct {
 
 const NodeDataDir = "node_data"
 
-func NewOrbitNode(address string, port int, tunnel string) *OrbitNode {
+func NewOrbitNode(address string, port int, tunnelURL string) *OrbitNode {
 	rand.Seed(time.Now().UnixNano())
 	if port == 0 {
 		port = getAvailablePort(5000, 5999)
@@ -44,20 +42,21 @@ func NewOrbitNode(address string, port int, tunnel string) *OrbitNode {
 	nodesFile := filepath.Join(NodeDataDir, "nodes.json")
 	chainFile := filepath.Join(NodeDataDir, fmt.Sprintf("orbit_chain.%s.json", nodeID))
 
-	node := &OrbitNode{
+	n := &OrbitNode{
 		Address:   address,
 		Port:      port,
 		NodeID:    nodeID,
-		TunnelURL: tunnel,
-		ChainFile: chainFile,
+		TunnelURL: tunnelURL,
 		NodesFile: nodesFile,
-		Chain:     []Block{},
+		ChainFile: chainFile,
 		Nodes:     map[string]map[string]interface{}{},
+		Chain:     []Block{},
 		Running:   true,
 	}
-	loadChain(node)
-	loadNodes(node)
-	return node
+
+	n.LoadChain()
+	n.LoadNodes()
+	return n
 }
 
 func getAvailablePort(start, end int) int {
@@ -78,47 +77,34 @@ func isPortInUse(port int) bool {
 	return false
 }
 
-func loadNodes(n *OrbitNode) {
+func (n *OrbitNode) LoadNodes() {
 	data, err := ioutil.ReadFile(n.NodesFile)
-	if err == nil {
-		json.Unmarshal(data, &n.Nodes)
+	if err != nil {
+		n.Nodes = make(map[string]map[string]interface{})
+		return
 	}
+	json.Unmarshal(data, &n.Nodes)
 }
 
-func SaveNodes(n *OrbitNode) {
+func (n *OrbitNode) SaveNodes() {
 	n.NodesMu.Lock()
 	defer n.NodesMu.Unlock()
 	data, _ := json.MarshalIndent(n.Nodes, "", "  ")
 	ioutil.WriteFile(n.NodesFile, data, 0644)
 }
 
-func loadChain(n *OrbitNode) {
+func (n *OrbitNode) LoadChain() {
 	data, err := ioutil.ReadFile(n.ChainFile)
-	if err == nil {
-		json.Unmarshal(data, &n.Chain)
+	if err != nil {
+		n.Chain = []Block{}
+		return
 	}
+	json.Unmarshal(data, &n.Chain)
 }
 
-func SaveChain(n *OrbitNode) {
+func (n *OrbitNode) SaveChain() {
 	n.ChainMu.Lock()
 	defer n.ChainMu.Unlock()
 	data, _ := json.MarshalIndent(n.Chain, "", "  ")
 	ioutil.WriteFile(n.ChainFile, data, 0644)
-}
-
-func DisplayStats(n *OrbitNode) {
-	for n.Running {
-		uptime := n.Nodes[n.NodeID]["uptime"].(float64)
-		trust := n.Nodes[n.NodeID]["trust"].(float64)
-		fmt.Print("\033[H\033[2J")
-		fmt.Println("\U0001F517 Orbit Node Dashboard")
-		fmt.Println(strings.Repeat("=", 40))
-		fmt.Printf("Node ID   : %s\n", n.NodeID)
-		fmt.Printf("Address   : %s\n", n.Address)
-		fmt.Printf("Port      : %d\n", n.Port)
-		fmt.Printf("Trust     : %.4f\n", trust)
-		fmt.Printf("Uptime    : %.4f\n", uptime)
-		fmt.Printf("Chain Len : %d blocks\n", len(n.Chain))
-		time.Sleep(10 * time.Second)
-	}
 }
