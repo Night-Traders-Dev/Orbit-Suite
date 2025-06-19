@@ -6,10 +6,13 @@ from core.ioutil import get_address_from_label
 from core.tx_util.tx_types import TXExchange
 from core.tx_util.tx_validator import TXValidator
 from core.orderutil import token_stats
+from core.walletutil import get_wallet_stats
+from core.tx_util.tx_types import TXExchange
+
 try:
-    from bot.api import get_user_address, send_orbit_api
+    from bot.api import get_user_address, send_orbit_api, get_user_tokens
 except Exception as e:
-    from api import get_user_address, send_orbit_api
+    from api import get_user_address, send_orbit_api, get_user_tokens
 try:
     from configure import EXCHANGE_ADDRESS
 except Exception as e:
@@ -120,6 +123,31 @@ async def deposit(symbol, amount, receiver, sender):
     result = await send_orbit_api(sender, receiver, amount, order={"Deposit": {"sender": sender, "receiver": receiver, "amount": amount}})
     return(True, {"Orbit Deposit": {"sender": sender, "receiver": receiver, "amount": amount}})
 
+async def withdrawal(amount, receiver, sender):
+    import re
+    symbol = "CORAL"
+    response = await get_wallet_stats(symbol)
+    for wallet in response:
+        if sender in wallet:
+            match = re.search(r': ([\d,\.]+)\(([\d,\.]+) Orbit\)', wallet)
+            if match:
+                quantity_str = match.group(1).replace(",", "")
+                orbit_value_str = match.group(2).replace(",", "")
+                quantity = float(quantity_str)
+                orbit_value = float(orbit_value_str)
+                current_price = (orbit_value / quantity)
+                transfer_amount = (current_price * amount)
+    token_tx = TXExchange.create_token_transfer_tx(
+    sender=sender,
+    receiver=receiver,
+    amount=transfer_amount,
+    token_symbol=symbol,
+    note={"Withdrawal": {"sender": sender, "receiver": receiver, "symbol": symbol, "amount": transfer_amount}}
+    )
+    orbit_amount = 5
+    txt = f"{symbol} Withdrawal"
+    result = await send_orbit_api(sender, receiver, amount, order=token_tx)
+    return(True, {txt: {"sender": sender, "receiver": receiver, "amount": transfer_amount}})
 
 EXCHANGE_PRICE = 0.1
 

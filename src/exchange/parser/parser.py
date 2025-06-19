@@ -80,6 +80,15 @@ async def parse_exchange_command(message_content):
                     "address": address
                 }
 
+            elif cmd_type == "WITHDRAWAL":
+                amount = float(parts[2])
+                address = parts[3]
+                return {
+                    "action": "withdrawal",
+                    "amount": amount,
+                    "address": address
+                }
+
         return None
     except Exception as e:
         print(f"[ParserError] Failed to parse command: {e}")

@@ -6,6 +6,7 @@ from logic.logic import (
     quote_symbol,
     create_token,
     deposit,
+    withdrawal,
     buy_token_from_exchange
 )
 from bot.api import get_user_address
@@ -54,6 +55,9 @@ def register_events(bot):
         elif action == "deposit":
             receiver = "ORB.3358818231E648618486921F"
             success, result = await deposit(command["symbol"], command["amount"], receiver, command["address"])
+        elif action == "withdrawal":
+            sender = "ORB.3358818231E648618486921F"
+            success, result = await withdrawal(command["amount"], command["address"], sender)
         elif action == "create":
             success, result = await create_token(
                 name=command["name"],
