@@ -19,13 +19,12 @@ from utils.match_orders import match_orders
 
 FETCH_INTERVAL = 30
 
-orbit_db = OrbitDB()
-EXPLORER = orbit_db.explorer
-
+EXPLORER = os.getenv("ORBIT_EXPLORER", "https://oliver-butler-oasis-builder.trycloudflare.com")
 
 class OrbitNode:
-    def __init__(self, address, port=None):
+    def __init__(self, address, port=None, tunnel_url=None):
         self.address = address
+        self.tunnel_url = tunnel_url or os.getenv("TUNNEL_URL", "").strip()
         self.ip = '127.0.0.1'
         self.port = port or self.get_available_port()
         self.node_id = f"Node{random.randint(0, 9999)}"
@@ -61,7 +60,7 @@ class OrbitNode:
         self.nodes[self.node_id] = {
             "id": self.node_id,
             "address": self.address,
-            "host": self.ip,
+            "host": self.tunnel_url if self.tunnel_url else self.ip,
             "port": self.port,
             "uptime": 1.0,
             "trust": 1.0,
@@ -146,9 +145,14 @@ class OrbitNode:
         for node_id, node_data in self.nodes.items():
             if node_id == self.node_id:
                 continue
-            url = f"127.0.0.1:{node_data.get('port')}"
+            host = node_data.get("host")
+            port = node_data.get("port")
+            if host.startswith("http"):
+                url = f"{host}/receive_block"
+            else:
+                url = f"http://{host}:{port}/receive_block"
             try:
-                res = requests.post(f"{url}/receive_block", json=block, timeout=3)
+                res = requests.post(url, json=block, timeout=3)
                 if res.status_code == 200:
                     log_node_activity(self.node_id, f"[SYNC]", f"Block sent to {node_id}")
             except Exception:
@@ -188,7 +192,6 @@ class OrbitNode:
 
                 new_node["uptime"] = round(new_uptime, 4)
 
-                # 🔄 Async call to match_orders
                 await match_orders(self.node_id)
 
                 response = requests.post(
@@ -261,7 +264,7 @@ class OrbitNode:
             validated_count = self.get_validated_block_count()
             uptime = self.nodes.get(self.node_id, {}).get("uptime", 0.0)
             trust = self.nodes.get(self.node_id, {}).get("trust", 0.0)
-            print(f"🔗 Orbit Node Dashboard")
+            print(f"\U0001F517 Orbit Node Dashboard")
             print(f"{'=' * 40}")
             print(f"Node ID       : {self.node_id}")
             print(f"Address       : {self.address}")
@@ -283,17 +286,15 @@ def main():
     parser = argparse.ArgumentParser(description="Start an Orbit Node")
     parser.add_argument("address", help="Wallet address to assign to this node")
     parser.add_argument("--port", type=int, help="Port to run node on (optional)")
+    parser.add_argument("--tunnel", type=str, help="Public tunnel URL (optional)")
     args = parser.parse_args()
 
-    node = OrbitNode(address=args.address, port=args.port)
+    node = OrbitNode(address=args.address, port=args.port, tunnel_url=args.tunnel)
     new_node_info = node.register_node()
     node.start_receiver_server()
     node.start_peer_discovery_thread()
     node.start_heartbeat_task(new_node_info, node.node_id)
-
-    # Start the dashboard in a separate thread
-    node.stats_ui_thread = threading.Thread(target=node.display_stats_loop, daemon=True)
-    node.stats_ui_thread.start()
+    node.start_stats_ui()
 
     try:
         asyncio.get_event_loop().run_forever()
