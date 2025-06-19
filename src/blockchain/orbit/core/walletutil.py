@@ -2,6 +2,28 @@ import time, datetime
 from core.ioutil import fetch_chain
 from config.configutil import TXConfig
 
+async def get_wallet_stats(symbol):
+    from core.tokenmeta import get_token_meta
+    from core.orderutil import all_tokens_stats
+    from core.cacheutil import get_cached, set_cached, clear_cache
+    current_price = 0.0
+    wallet_stats = []
+
+    response = await get_token_meta(symbol.upper())
+    for i in response:
+        if "current_price" in i:
+            current_price = response.get("current_price")
+    cached = get_cached("all_tokens_stats")
+    if cached:
+        tokens, metrics = cached
+    else:
+        tokens, wallets, metrics = await all_tokens_stats(symbol.upper())
+    for address in wallets:
+        if wallets[address]["amount"] >= 0:
+            token_value = wallets[address]["amount"] * current_price
+            wallet_stats.append(f"{address}: {wallets[address]['amount']:,}({token_value:,} Orbit)")
+    return wallet_stats
+
 def load_balance(username):
     blockchain = fetch_chain() #load_chain(username)
     balance = 0

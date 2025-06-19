@@ -4,6 +4,7 @@ import asyncio
 from api import create_2fa_api, get_user_address, mine_orbit_api, get_user_tokens
 from commands.token_stats import token_stats
 from core.ioutil import fetch_chain
+from core.walletutil import get_wallet_stats
 from ui.modals.buy_sell import BuyTokenModal, SellTokenModal, BuyFromExchangeModal, PlaceOrderModal# , TopWalletModal
 from ui.modals.create_token import CreateTokenModal
 from ui.modals.orders import ViewOrdersModal
@@ -59,13 +60,17 @@ class TradingView(View):
     async def buy_ico(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(BuyFromExchangeModal(self.user_id))
 
-#    @discord.ui.button(label="Top Wallets", style=discord.ButtonStyle.primary)
-#    async def top_wallet(self, interaction: discord.Interaction, button: Button):
-#        address = await get_user_address(self.user_id)
-#        tokens = get_user_tokens(address)
-#        await interaction.response.send_message(
-#            "Select a token to view:", view=TopWalletView(self.user_id, tokens), ephemeral=True
-#        )
+    @discord.ui.button(label="Token Stats", style=discord.ButtonStyle.primary)
+    async def top_wallet(self, interaction: discord.Interaction, button: Button):
+        address = await get_user_address(self.user_id)
+        tokens = get_user_tokens(address)
+        token_list = []
+        for token in tokens:
+            if token.upper() != "ORBIT":
+                token_list.append(token)
+        await interaction.response.send_message(
+            "Select a token to view:", view=SelectTokenView(self.user_id, token_list), ephemeral=True
+        )
 
 #    @discord.ui.button(label="Buy Tokens", style=discord.ButtonStyle.green)
 #    async def buy_tokens(self, interaction: discord.Interaction, button: Button):
@@ -96,9 +101,9 @@ class OrdersView(View):
             return False
         return True
 
-    @discord.ui.button(label="View Orders", style=discord.ButtonStyle.gray)
-    async def view_orders(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_modal(ViewOrdersModal(self.user_id))
+#    @discord.ui.button(label="View Orders", style=discord.ButtonStyle.gray)
+#    async def view_orders(self, interaction: discord.Interaction, button: Button):
+#        await interaction.response.send_modal(ViewOrdersModal(self.user_id))
 
     @discord.ui.button(label="🔙 Back", style=discord.ButtonStyle.gray)
     async def back(self, interaction: discord.Interaction, button: Button):
@@ -124,35 +129,6 @@ class TokenView(View):
     async def create_token(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_modal(CreateTokenModal(self.user_id))
 
-    @discord.ui.button(label="My Tokens", style=discord.ButtonStyle.gray)
-    async def my_tokens(self, interaction: discord.Interaction, button: Button):
-        address = await get_user_address(self.user_id)
-        result = await token_stats(address)
-        embed = discord.Embed(title="📊 Your Token Holdings", color=discord.Color.blue())
-
-        if not result:
-            embed.description = "You don't own any tokens."
-        else:
-            for token_data in result:
-                (
-                    symbol, balance,
-                    buy_tokens, buy_orbit,
-                    sell_tokens, sell_orbit,
-                    avg_buy_price, avg_sell_price,
-                    current_price
-                ) = token_data
-
-                embed.add_field(
-                    name=f"{symbol} — {balance:,.2f} tokens",
-                    value=(
-                        f"**Bought:** {buy_tokens:,.2f} for {buy_orbit:,.2f} Orbit\n"
-                        f"**Sold:** {sell_tokens:,.2f} for {sell_orbit:,.2f} Orbit\n"
-                        f"**Avg Buy Price:** {avg_buy_price if avg_buy_price else '–'} Orbit\n"
-                        f"**Avg Sell Price:** {avg_sell_price if avg_sell_price else '–'} Orbit\n"
-                    ),
-                    inline=False
-                )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="🔙 Back", style=discord.ButtonStyle.gray)
     async def back(self, interaction: discord.Interaction, button: Button):
@@ -167,9 +143,17 @@ class TokenSelectDropdown(Select):
 
     async def callback(self, interaction: discord.Interaction):
         token = self.values[0]
-        await interaction.response.send_modal(TopWalletModal(self.uid, token))
+        wallet_stats = await get_wallet_stats(token.upper())
+        embed = discord.Embed(title=f"{token} Top Wallets", color=discord.Color.blue())
+        for wallet in wallet_stats:
+            embed.add_field(
+                name=f"---------------------",
+                value=(wallet),
+                 inline=False
+            )
+        await interaction.response.send_message(embed=embed)
 
-class TopWalletView(View):
+class SelectTokenView(View):
     def __init__(self, uid, token_list):
         super().__init__(timeout=60)
         self.add_item(TokenSelectDropdown(uid, token_list))

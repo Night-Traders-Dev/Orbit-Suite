@@ -25,8 +25,12 @@ class PlaceOrderModal(Modal):
         self.add_item(self.price)
 
     async def on_submit(self, interaction: discord.Interaction):
+        if self.symbol.value.upper() == "ORBIT":
+            await interaction.response.send_message("❌ Can only list DeFi tokens", ephemeral=True)
+            return
         if self.order.value.upper() not in ["BUY", "SELL"]:
-            await interaction.response.send_message("❌ Order type incorrect, buy/sell", ephemeral=True) 
+            await interaction.response.send_message("❌ Order type incorrect, buy/sell", ephemeral=True)
+            return
         self.address = await get_user_address(self.uid)
         message = f"[ExchangeRequest] {self.order.value.upper()} {self.symbol.value.upper()} {self.price.value} {self.amount.value} {self.address}"
         bot_ops_channel = interaction.client.get_channel(BOT_OPS_CHANNEL_ID)

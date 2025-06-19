@@ -1,3 +1,4 @@
+from core.orderutil import token_stats
 async def get_token_meta(symbol):
     token_sym = symbol.upper()
     token_meta = {}
@@ -110,7 +111,8 @@ async def get_token_meta(symbol):
                     except Exception as e:
                          print(f"⚠️ Failed to parse entry: {entry} — {e}")
                 else:
-                    print(f"⚠️ Skipping malformed history entry: {entry}")
+                    pass
+#                    print(f"⚠️ Skipping malformed history entry: {entry}")
 
 
             token_meta.update({
@@ -143,5 +145,7 @@ async def get_token_meta(symbol):
         token_meta["sell_depth"] = cumulative_orders(sell_order_book)
         return token_meta
 
+    except Exception as e:
+        return {"error": e}
 #    finally:
 #        return token_meta
