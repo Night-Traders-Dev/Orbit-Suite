@@ -63,5 +63,6 @@ func (n *OrbitNode) ValidateBlock(block map[string]interface{}) bool {
 	if block["previous_hash"] != last["hash"] {
 		return false
 	}
+        n.Valid += 1
 	return true
 }

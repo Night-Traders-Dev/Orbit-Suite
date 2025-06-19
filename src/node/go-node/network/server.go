@@ -48,6 +48,7 @@ func DisplayStats(n *core.OrbitNode) {
 		fmt.Printf("Port      : %d\n", n.Port)
 		fmt.Printf("Trust     : %.4f\n", trust)
 		fmt.Printf("Uptime    : %.4f\n", uptime)
+                fmt.Printf("Valid    : %d\n", n.Valid)
 		fmt.Printf("Chain Len : %d blocks\n", len(n.Chain))
 		time.Sleep(10 * time.Second)
 	}

@@ -22,6 +22,7 @@ type OrbitNode struct {
 	TunnelURL string
 	ChainFile string
 	NodesFile string
+        Valid     int
 	Chain     []Block
 	Nodes     map[string]map[string]interface{}
 	ChainMu   sync.RWMutex
