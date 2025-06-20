@@ -1,6 +1,6 @@
 import time
 from core.walletutil import load_balance
-from core.ioutil import load_users, save_users, get_address_from_label
+from core.ioutil import get_address_from_label
 from blockchain.blockutil import add_block
 from config.configutil import OrbitDB, TXConfig, get_node_for_user
 from core.tx_util.tx_types import TXTypes
@@ -10,16 +10,12 @@ FEE_RATE = 0.02
 NODE_FEE_ADDRESS = get_address_from_label("nodefeecollector")
 
 def send_orbit(sender, recipient, amount, order=None):
-    users = load_users()
 
-    if sender not in users:
-        print(f"{sender} not found.")
+    if len(sender) != 28 or len(recipient) != 28:
         return
+
     if recipient == sender:
         print("You cannot send Orbit to yourself.")
-        return
-    if recipient not in users:
-        print(f"{recipient} not found.")
         return
 
     try:
