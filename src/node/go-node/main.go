@@ -1,57 +1,60 @@
-// main.go
 package main
 
 import (
-	"fmt"
-	"os"
-	"os/signal"
-	"strconv"
+  "fmt"
+  "os"
+  "os/signal"
+  "strconv"
 
-	"orbit_node/core"
-	"orbit_node/network"
+  "orbit_node/core"
+  "orbit_node/network"
+  "orbit_node/utils"
 )
 
+const explorerURL = "https://oliver-butler-oasis-builder.trycloudflare.com"
+
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: orbit_node <address> [port] [tunnel_url]")
-		return
-	}
+  if len(os.Args) < 2 {
+    fmt.Println("Usage: orbit_node <your-address> [port] [tunnel_url]")
+    os.Exit(1)
+  }
 
-	address := os.Args[1]
-	port := 0
-	if len(os.Args) > 2 {
-		p, err := strconv.Atoi(os.Args[2])
-		if err == nil {
-			port = p
-		}
-	}
-	tunnel := ""
-	if len(os.Args) > 3 {
-		tunnel = os.Args[3]
-	}
+  userAddr := os.Args[1]
+  port := 0
+  if len(os.Args) > 2 {
+    if p, err := strconv.Atoi(os.Args[2]); err == nil {
+      port = p
+    }
+  }
+  tunnel := ""
+  if len(os.Args) > 3 {
+    tunnel = os.Args[3]
+  }
 
-	node := core.NewOrbitNode(address, port, tunnel)
-	node.UID = node.GenerateUID()
+  node := core.NewOrbitNode(userAddr, port, tunnel)
 
-	orbitAddr, err := node.FetchOrbitAddress()
-	if err != nil {
-  		fmt.Fprintf(os.Stderr, "❌ could not fetch orbit address: %v\n", err)
-  		os.Exit(1)
-	}
-	node.OrbitAddress = orbitAddr
-	fmt.Printf("✅ Assigned Orbit Address: %s\n", orbitAddr)
+  node.UID = utils.GenerateUID(node.NodeID, node.User, node.Port, node.TunnelURL)
 
-	node.SyncWithExplorer()
-	node.RegisterNode()
+  orbitAddr, err := utils.FetchOrbitAddress(explorerURL, node.UID)
+  if err != nil {
+    fmt.Fprintf(os.Stderr, "🚨 could not fetch orbit address: %v\n", err)
+    os.Exit(1)
+  }
+  node.Address = orbitAddr
+  fmt.Printf("✅ Orbit Address: %s\n", node.Address)
 
-	go network.StartHTTPServer(node)
-	go network.DisplayStats(node)
-	go network.RebroadcastIfNeeded(node)
-	go network.PollForNewBlocks(node)
-	go node.SendProofLoop()
+  node.SyncWithExplorer()
+  node.RegisterNode()
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, os.Interrupt)
-	<-sig
-	node.Running = false
+  go network.StartHTTPServer(node)
+  go network.DisplayStats(node)
+  go network.RebroadcastIfNeeded(node)
+  go network.PollForNewBlocks(node)
+  go node.SendProofLoop()
+
+  // graceful shutdown on Ctrl+C
+  sig := make(chan os.Signal, 1)
+  signal.Notify(sig, os.Interrupt)
+  <-sig
+  node.Running = false
 }
