@@ -31,6 +31,16 @@ func main() {
 	}
 
 	node := core.NewOrbitNode(address, port, tunnel)
+	node.UID = node.GenerateUID()
+
+	orbitAddr, err := node.FetchOrbitAddress()
+	if err != nil {
+  		fmt.Fprintf(os.Stderr, "❌ could not fetch orbit address: %v\n", err)
+  		os.Exit(1)
+	}
+	node.OrbitAddress = orbitAddr
+	fmt.Printf("✅ Assigned Orbit Address: %s\n", orbitAddr)
+
 	node.SyncWithExplorer()
 	node.RegisterNode()
 
