@@ -51,7 +51,7 @@ func NewOrbitNode(address string, port int, tunnelURL string) *OrbitNode {
 	chainFile := filepath.Join(NodeDataDir, fmt.Sprintf("orbit_chain.%s.json", nodeID))
 
 	n := &OrbitNode{
-		Address:   n.OrbitAddress,
+		Address:   "",
 		User:      address,
 		Port:      port,
 		NodeID:    nodeID,
