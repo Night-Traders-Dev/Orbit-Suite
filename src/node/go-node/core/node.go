@@ -21,6 +21,7 @@ type Block map[string]interface{}
 
 type OrbitNode struct {
 	Address   string
+	User      string
 	Port      int
 	NodeID    string
 	TunnelURL string
@@ -50,7 +51,8 @@ func NewOrbitNode(address string, port int, tunnelURL string) *OrbitNode {
 	chainFile := filepath.Join(NodeDataDir, fmt.Sprintf("orbit_chain.%s.json", nodeID))
 
 	n := &OrbitNode{
-		Address:   address,
+		Address:   n.address,
+		User:      address,
 		Port:      port,
 		NodeID:    nodeID,
 		TunnelURL: tunnelURL,
