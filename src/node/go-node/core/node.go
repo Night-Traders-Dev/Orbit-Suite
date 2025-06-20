@@ -15,7 +15,7 @@ import (
 	"time"
         "net/http"
         "bytes"
-	"orbit_node/core/address.go"
+	"orbit_node/core/address"
 )
 
 type Block map[string]interface{}
