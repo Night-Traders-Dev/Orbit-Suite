@@ -199,6 +199,11 @@ async def token_stats(token=TOKEN):
                     stats["buy_orbit"] += orbit_amount
                     transfer_cnt += 1
                     exchange_only[tok] = True
+                elif tx_note == "Token sold to exchange":
+                    stats["sell_tokens"] += qty
+                    stats["sell_orbit"] += orbit_amount
+                    transfer_cnt += 1
+                    exchange_only[tok] = True
 
             # Buy order
             elif "buy_token" in tx_type:
