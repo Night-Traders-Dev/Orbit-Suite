@@ -27,9 +27,9 @@ class ExchangeView(View):
     async def trading_menu(self, interaction: discord.Interaction, button: Button):
         await interaction.response.edit_message(content="**💱 Trading Menu**", view=TradingView(self.user_id))
 
-    @discord.ui.button(label="📃 Orders", style=discord.ButtonStyle.gray)
-    async def orders_menu(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.edit_message(content="**📃 Orders Menu**", view=OrdersView(self.user_id))
+#    @discord.ui.button(label="📃 Orders", style=discord.ButtonStyle.gray)
+#    async def orders_menu(self, interaction: discord.Interaction, button: Button):
+#        await interaction.response.edit_message(content="**📃 Orders Menu**", view=OrdersView(self.user_id))
 
     @discord.ui.button(label="🧬 Token Management", style=discord.ButtonStyle.blurple)
     async def token_menu(self, interaction: discord.Interaction, button: Button):
