@@ -43,7 +43,7 @@ def register_events(bot):
 
         if action == "buy_token_from_exchange":
             success, result = await buy_token_from_exchange(command["symbol"], command["amount"], command["buyer"])
-        elif action == "trade_exchange":
+        elif action == "BUY" or action == "SELL":
             success, result = await trade_token_on_exchange(
                 symbol=command["symbol"],
                 amount=command["amount"],
