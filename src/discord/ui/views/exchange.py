@@ -52,13 +52,13 @@ class TradingView(View):
             return False
         return True
 
-    @discord.ui.button(label="Place Order", style=discord.ButtonStyle.green)
-    async def place_order(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_modal(PlaceOrderModal(self.user_id))
+#    @discord.ui.button(label="Place Order", style=discord.ButtonStyle.green)
+#    async def place_order(self, interaction: discord.Interaction, button: Button):
+#        await interaction.response.send_modal(PlaceOrderModal(self.user_id))
 
-    @discord.ui.button(label="ICO", style=discord.ButtonStyle.green)
-    async def buy_ico(self, interaction: discord.Interaction, button: Button):
-        await interaction.response.send_modal(BuyFromExchangeModal(self.user_id))
+#    @discord.ui.button(label="ICO", style=discord.ButtonStyle.green)
+#    async def buy_ico(self, interaction: discord.Interaction, button: Button):
+#        await interaction.response.send_modal(BuyFromExchangeModal(self.user_id))
 
     @discord.ui.button(label="Token Stats", style=discord.ButtonStyle.primary)
     async def top_wallet(self, interaction: discord.Interaction, button: Button):
@@ -72,13 +72,13 @@ class TradingView(View):
             "Select a token to view:", view=SelectTokenView(self.user_id, token_list), ephemeral=True
         )
 
-#    @discord.ui.button(label="Buy Tokens", style=discord.ButtonStyle.green)
-#    async def buy_tokens(self, interaction: discord.Interaction, button: Button):
-#        await interaction.response.send_modal(BuyTokenModal(self.user_id))
+    @discord.ui.button(label="Buy Tokens", style=discord.ButtonStyle.green)
+    async def buy_tokens(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_modal(BuyTokenModal(self.user_id))
 
-#    @discord.ui.button(label="Sell Tokens", style=discord.ButtonStyle.red)
-#    async def sell_tokens(self, interaction: discord.Interaction, button: Button):
-#        await interaction.response.send_modal(SellTokenModal(self.user_id))
+    @discord.ui.button(label="Sell Tokens", style=discord.ButtonStyle.red)
+    async def sell_tokens(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.send_modal(SellTokenModal(self.user_id))
 
     @discord.ui.button(label="🔙 Back", style=discord.ButtonStyle.gray)
     async def back(self, interaction: discord.Interaction, button: Button):

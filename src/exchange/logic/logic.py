@@ -196,3 +196,97 @@ async def buy_token_from_exchange(symbol, amount, buyer_address):
         "tokens_received": amount,
         "symbol": symbol.upper()
     }
+
+
+async def trade_token_on_exchange(
+    symbol: str,
+    amount: float,
+    user_address: str,
+    action: str = "buy",
+):
+    """
+    Buy or sell a token on the exchange.
+
+    action: "buy" to purchase from exchange,
+            "sell" to sell back into exchange
+    """
+    symbol = symbol.upper()
+    token_id = get_token_id(symbol)
+    if not token_id:
+        return False, f"Token '{symbol}' not found."
+
+    # fetch stats
+    filled, open_orders, metadata, tx_cnt, _, _, _, _ = await token_stats(symbol)
+    f_stat = {s["token"]: s for s in filled if isinstance(s, dict)}.get(symbol, {})
+    m_stat = {s["symbol"]: s for s in metadata if isinstance(s, dict)}.get(symbol, {})
+    current_price = f_stat.get("current_price") or EXCHANGE_PRICE
+    owner_address = m_stat.get("owner", "")
+
+    # determine price & check balances
+    if action == "buy":
+        unit_price = current_price
+        # ensure exchange has tokens
+        if get_user_token_balance(EXCHANGE_ADDRESS, symbol) < amount:
+            return False, "Exchange does not have enough token supply."
+        total = round(amount * unit_price, 6)
+        # create token transfer: exchange → buyer
+        token_tx = TXExchange.create_token_transfer_tx(
+            sender=EXCHANGE_ADDRESS,
+            receiver=user_address,
+            amount=amount,
+            token_symbol=symbol,
+            note="Token purchased from exchange"
+        )
+        # buyer pays exchange
+        orbit_sent = await send_orbit_api(user_address, EXCHANGE_ADDRESS, total, order=token_tx)
+
+        # pay owner 1% fee from the incoming orbit
+        fee = round(total * 0.01, 6)
+        owner_paid = await send_orbit_api(EXCHANGE_ADDRESS, owner_address, fee, order="")
+        if False in orbit_sent or False in owner_paid:
+            return False, "Buy transaction failed."
+
+        return True, {
+            "action": "buy",
+            "symbol": symbol,
+            "tokens_received": amount,
+            "orbit_spent": total,
+            "owner_fee": fee
+        }
+
+    elif action == "sell":
+        # seller pays 2.5% discount
+        unit_price = round(current_price * 0.975, 6)
+        # ensure seller has tokens
+        if get_user_token_balance(user_address, symbol) < amount:
+            return False, "User does not have enough tokens to sell."
+        total = round(amount * unit_price, 6)
+
+        # create token transfer: seller → exchange
+        token_tx = TXExchange.create_token_transfer_tx(
+            sender=user_address,
+            receiver=EXCHANGE_ADDRESS,
+            amount=amount,
+            token_symbol=symbol,
+            note="Token sold to exchange"
+        )
+        token_sent = await send_orbit_api(user_address, EXCHANGE_ADDRESS, 0, order=token_tx)
+        # exchange pays seller in orbit
+        orbit_sent = await send_orbit_api(EXCHANGE_ADDRESS, user_address, total, order="")
+
+        # pay owner 1% fee from the proceeds
+        fee = round(total * 0.01, 6)
+        owner_paid = await send_orbit_api(EXCHANGE_ADDRESS, owner_address, fee, order="")
+        if False in token_sent or False in orbit_sent or False in owner_paid:
+            return False, "Sell transaction failed."
+
+        return True, {
+            "action": "sell",
+            "symbol": symbol,
+            "tokens_sold": amount,
+            "orbit_received": total - fee,
+            "owner_fee": fee
+        }
+
+    else:
+        return False, f"Invalid action '{action}'. Use 'buy' or 'sell'."

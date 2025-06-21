@@ -30,6 +30,30 @@ async def parse_exchange_command(message_content):
                     "buyer": buyer
                 }
 
+            elif cmd_type == "TRADEEX":
+                symbol = parts[2]
+                amount = float(parts[3])
+                owner = parts[4]
+                tx_type = parts[5].upper()
+                if tx_type == "BUY":
+                    return {
+                        "symbol": symbol,
+                        "amount": amount,
+                        "owner": owner,
+                        "action": tx_type
+                    }
+                elif tx_type == "SELL":
+                    return {
+                        "symbol": symbol,
+                        "amount": amount,
+                        "owner": owner,
+                        "action": tx_type
+                    }
+                else:
+                    print(f"[ParserError] Unknown transaction type: {tx_type}")
+                    return None
+
+
             elif cmd_type == "SELL":
                 symbol = parts[2]
                 price = float(parts[3])

@@ -1,13 +1,12 @@
 import json
 from parser.parser import parse_exchange_command
 from logic.logic import (
-    create_order,
     cancel_order,
-    quote_symbol,
     create_token,
     deposit,
     withdrawal,
-    buy_token_from_exchange
+    buy_token_from_exchange,
+    trade_token_from_exchange
 )
 from bot.api import get_user_address
 
@@ -42,16 +41,17 @@ def register_events(bot):
 
         action = command["action"]
 
-        if action == "buy":
-            success, result = await create_order(action, command["symbol"], command["price"], command["amount"], command["buyer"])
-        elif action == "buy_token_from_exchange":
+        if action == "buy_token_from_exchange":
             success, result = await buy_token_from_exchange(command["symbol"], command["amount"], command["buyer"])
-        elif action == "sell":
-            success, result = await create_order(action, command["symbol"], command["price"], command["amount"], command["seller"])
+        elif action == "trade_exchange":
+            success, result = await trade_token_from_exchange(
+                symbol=command["symbol"],
+                amount=command["amount"],
+                owner=command["owner"],
+                action=command["action"]
+            )
         elif action == "cancel":
             success, result = await cancel_order(command["order_id"])
-        elif action == "quote":
-            success, result = await quote_symbol(command["symbol"])
         elif action == "deposit":
             receiver = "ORB.3358818231E648618486921F"
             success, result = await deposit(command["symbol"], command["amount"], receiver, command["address"])

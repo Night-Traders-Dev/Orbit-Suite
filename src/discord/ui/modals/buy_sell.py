@@ -57,19 +57,14 @@ class BuyTokenModal(Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         self.address = await get_user_address(self.uid)
-        best_price = find_best_price(self.symbol.value, "SELL", self.address)
 
-        if best_price is None:
-            await interaction.response.send_message(f"❌ No matching sell orders found for `{self.symbol.value.upper()}`.", ephemeral=True)
-            return
-
-        message = f"[ExchangeRequest] BUY {self.symbol.value.upper()} {best_price} {self.amount.value} {self.address}"
+        message = f"[ExchangeRequest] BUY {self.symbol.value.upper()} {self.amount.value} {self.address} 'BUY'"
         bot_ops_channel = interaction.client.get_channel(BOT_OPS_CHANNEL_ID)
 
         if bot_ops_channel:
             await bot_ops_channel.send(message)
             await interaction.response.send_message(
-                f"🟢 Sent buy request for `{self.amount.value}` {self.symbol.value.upper()} at best available price `{best_price} ORBIT`",
+                f"🟢 Sent buy request for `{self.amount.value}` {self.symbol.value.upper()}",
                 ephemeral=True
             )
         else:
@@ -90,19 +85,14 @@ class SellTokenModal(Modal):
 
     async def on_submit(self, interaction: discord.Interaction):
         self.address = await get_user_address(self.uid)
-        best_price = find_best_price(self.symbol.value, "BUY", self.address)
 
-        if best_price is None:
-            await interaction.response.send_message(f"❌ No matching buy orders found for `{self.symbol.value.upper()}`.", ephemeral=True)
-            return
-
-        message = f"[ExchangeRequest] SELL {self.symbol.value.upper()} {best_price} {self.amount.value} {self.address}"
+        message = f"[ExchangeRequest] TRADEEX {self.symbol.value.upper()} {self.amount.value} {self.address} 'SELL'"
         bot_ops_channel = interaction.client.get_channel(BOT_OPS_CHANNEL_ID)
 
         if bot_ops_channel:
             await bot_ops_channel.send(message)
             await interaction.response.send_message(
-                f"🔴 Sent sell request for `{self.amount.value}` {self.symbol.value.upper()} at best available price `{best_price} ORBIT`",
+                f"🔴 Sent sell request for `{self.amount.value}` {self.symbol.value.upper()}",
                 ephemeral=True
             )
         else:
