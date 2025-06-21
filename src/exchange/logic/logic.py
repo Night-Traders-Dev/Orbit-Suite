@@ -202,7 +202,7 @@ async def trade_token_on_exchange(
     symbol: str,
     amount: float,
     user_address: str,
-    action: str = "buy",
+    action: str = "BUY",
 ):
     """
     Buy or sell a token on the exchange.
@@ -223,7 +223,7 @@ async def trade_token_on_exchange(
     owner_address = m_stat.get("owner", "")
 
     # determine price & check balances
-    if action == "buy":
+    if action == "BUY":
         unit_price = current_price
         # ensure exchange has tokens
         if get_user_token_balance(EXCHANGE_ADDRESS, symbol) < amount:
@@ -247,14 +247,14 @@ async def trade_token_on_exchange(
             return False, "Buy transaction failed."
 
         return True, {
-            "action": "buy",
+            "action": "BUY",
             "symbol": symbol,
             "tokens_received": amount,
             "orbit_spent": total,
             "owner_fee": fee
         }
 
-    elif action == "sell":
+    elif action == "SELL":
         # seller pays 2.5% discount
         unit_price = round(current_price * 0.975, 6)
         # ensure seller has tokens
@@ -281,7 +281,7 @@ async def trade_token_on_exchange(
             return False, "Sell transaction failed."
 
         return True, {
-            "action": "sell",
+            "action": "SELL",
             "symbol": symbol,
             "tokens_sold": amount,
             "orbit_received": total - fee,
@@ -289,4 +289,4 @@ async def trade_token_on_exchange(
         }
 
     else:
-        return False, f"Invalid action '{action}'. Use 'buy' or 'sell'."
+        return False, f"Invalid action '{action}'. Use 'BUY' or 'SELL'."
