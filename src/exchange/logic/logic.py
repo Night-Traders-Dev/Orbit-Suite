@@ -224,7 +224,7 @@ async def trade_token_on_exchange(
 
     # determine price & check balances
     if action == "BUY":
-        unit_price = current_price
+        unit_price = (current_price  * 1.025)  # buyer pays 2.5% premium
         # ensure exchange has tokens
         if get_user_token_balance(EXCHANGE_ADDRESS, symbol) < amount:
             return False, "Exchange does not have enough token supply."
