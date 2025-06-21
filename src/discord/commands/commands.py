@@ -39,18 +39,18 @@ def setup(bot, GUILD):
 
     @bot.tree.command(
         name="exchange",
-        description="Access the Orbit token exchange",
+        description="Access the Station Zero Decentralized Exchange",
         guild=GUILD
     )
     async def exchange(interaction: discord.Interaction):
         uid = interaction.user.id
         embed = discord.Embed(
-            title="Orbit Exchange",
+            title="Station Zero",
             color=0x00ffcc
         )
         embed.add_field(
-            name="Exchange Info",
-            value="• Use buttons below to buy, sell, or list tokens.\n• Only community-created tokens are listed.",
+            name="Dex Info",
+            value="• Community-created tokens are listed.\n • Orbit Blockchain is not responsible for the tokens listed.\n • Use at your own risk.",
             inline=False
         )
 

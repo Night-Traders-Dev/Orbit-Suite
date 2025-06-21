@@ -1,13 +1,12 @@
 from discord.ui import View, Button, Select
 import discord
 import asyncio
-from api import create_2fa_api, get_user_address, mine_orbit_api, get_user_tokens
+from api import get_user_address, get_user_tokens
 from commands.token_stats import token_stats
 from core.ioutil import fetch_chain
 from core.walletutil import get_wallet_stats
-from ui.modals.buy_sell import BuyTokenModal, SellTokenModal, BuyFromExchangeModal, PlaceOrderModal# , TopWalletModal
+from ui.modals.buy_sell import BuyTokenModal, SellTokenModal
 from ui.modals.create_token import CreateTokenModal
-from ui.modals.orders import ViewOrdersModal
 
 
 class ExchangeView(View):
