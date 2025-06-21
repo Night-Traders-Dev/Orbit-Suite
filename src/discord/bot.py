@@ -84,7 +84,7 @@ async def on_message(message):
         print(f"[ERROR] Parsing failed: {e}")
 
 
-@tasks.loop(minutes=5)
+@tasks.loop(minutes=1)
 async def token_price_report():
     channel = bot.get_channel(PRICE_UPDATE_CHANNEL_ID)
     if not channel:
