@@ -8,8 +8,7 @@ from collections import defaultdict
 from datetime import datetime
 from copy import deepcopy
 
-hourly_tracker = deepcopy(volume_tracker)
-daily_tracker = deepcopy(volume_tracker)
+
 
 intents = discord.Intents.all()
 intents.message_content = True
@@ -25,7 +24,8 @@ volume_tracker = defaultdict(lambda: {
     "buy": {"count": 0, "orbit": 0.0, "tokens": 0.0},
     "sell": {"count": 0, "orbit": 0.0, "tokens": 0.0}
 })
-
+hourly_tracker = deepcopy(volume_tracker)
+daily_tracker = deepcopy(volume_tracker)
 
 def calc_change(old, new):
     if old == 0:
