@@ -66,7 +66,7 @@ def register_events(bot):
                 creator=command["creator"]
             )
         else:
-            success, result = False, "Unknown action."
+            success, result = False, f"Unknown action::{action}"
 
         # Respond based on success/failure
         if success:

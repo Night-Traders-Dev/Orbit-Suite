@@ -58,7 +58,7 @@ class BuyTokenModal(Modal):
     async def on_submit(self, interaction: discord.Interaction):
         self.address = await get_user_address(self.uid)
 
-        message = f"[ExchangeRequest] BUY {self.symbol.value.upper()} {self.amount.value} {self.address} BUY"
+        message = f"[ExchangeRequest] TRADEEX {self.symbol.value.upper()} {self.amount.value} {self.address} BUY"
         bot_ops_channel = interaction.client.get_channel(BOT_OPS_CHANNEL_ID)
 
         if bot_ops_channel:
