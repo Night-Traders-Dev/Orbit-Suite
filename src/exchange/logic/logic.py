@@ -270,14 +270,14 @@ async def trade_token_on_exchange(
             token_symbol=symbol,
             note="Token sold to exchange"
         )
-        token_sent = await send_orbit_api(user_address, EXCHANGE_ADDRESS, 0, order=token_tx)
+        #token_sent = await send_orbit_api(user_address, EXCHANGE_ADDRESS, 0.5, order=token_tx)
         # exchange pays seller in orbit
-        orbit_sent = await send_orbit_api(EXCHANGE_ADDRESS, user_address, total, order="")
+        orbit_sent = await send_orbit_api(EXCHANGE_ADDRESS, user_address, total, order=token_tx)
 
         # pay owner 1% fee from the proceeds
         fee = round(total * 0.01, 6)
         owner_paid = await send_orbit_api(EXCHANGE_ADDRESS, owner_address, fee, order="")
-        if False in token_sent or False in orbit_sent or False in owner_paid:
+        if False in orbit_sent or False in owner_paid:
             return False, "Sell transaction failed."
 
         return True, {
