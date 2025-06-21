@@ -56,9 +56,6 @@ class TradingView(View):
 #    async def place_order(self, interaction: discord.Interaction, button: Button):
 #        await interaction.response.send_modal(PlaceOrderModal(self.user_id))
 
-#    @discord.ui.button(label="ICO", style=discord.ButtonStyle.green)
-#    async def buy_ico(self, interaction: discord.Interaction, button: Button):
-#        await interaction.response.send_modal(BuyFromExchangeModal(self.user_id))
 
     @discord.ui.button(label="Token Stats", style=discord.ButtonStyle.primary)
     async def top_wallet(self, interaction: discord.Interaction, button: Button):
@@ -69,7 +66,7 @@ class TradingView(View):
             if token.upper() != "ORBIT":
                 token_list.append(token)
         await interaction.response.send_message(
-            "Select a token to view:", view=SelectTokenView(self.user_id, token_list), ephemeral=True
+            "Select a token to view:", view=SelectTokenView(token_list), ephemeral=True
         )
 
     @discord.ui.button(label="Buy Tokens", style=discord.ButtonStyle.green)
@@ -101,9 +98,6 @@ class OrdersView(View):
             return False
         return True
 
-#    @discord.ui.button(label="View Orders", style=discord.ButtonStyle.gray)
-#    async def view_orders(self, interaction: discord.Interaction, button: Button):
-#        await interaction.response.send_modal(ViewOrdersModal(self.user_id))
 
     @discord.ui.button(label="🔙 Back", style=discord.ButtonStyle.gray)
     async def back(self, interaction: discord.Interaction, button: Button):
@@ -136,8 +130,7 @@ class TokenView(View):
 
 
 class TokenSelectDropdown(Select):
-    def __init__(self, uid, token_list):
-        self.uid = uid
+    def __init__(self, token_list):
         options = [discord.SelectOption(label=token) for token in token_list]
         super().__init__(placeholder="Select token to view", options=options, min_values=1, max_values=1)
 
@@ -154,6 +147,6 @@ class TokenSelectDropdown(Select):
         await interaction.response.send_message(embed=embed)
 
 class SelectTokenView(View):
-    def __init__(self, uid, token_list):
+    def __init__(self, token_list):
         super().__init__(timeout=60)
-        self.add_item(TokenSelectDropdown(uid, token_list))
+        self.add_item(TokenSelectDropdown(token_list))
