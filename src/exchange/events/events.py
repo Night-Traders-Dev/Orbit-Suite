@@ -47,7 +47,7 @@ def register_events(bot):
             success, result = await trade_token_on_exchange(
                 symbol=command["symbol"],
                 amount=command["amount"],
-                owner=command["owner"],
+                user_address=command["owner"],
                 action=command["action"]
             )
         elif action == "cancel":
