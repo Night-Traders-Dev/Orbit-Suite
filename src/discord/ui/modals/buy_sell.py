@@ -49,7 +49,7 @@ class BuyTokenModal(Modal):
         self.address = ""
         self.uid = uid
 
-        self.symbol = TextInput(label="Token Symbol", placeholder="e.g., ORBIT")
+        self.symbol = TextInput(label="Token Symbol", placeholder="e.g., FUEL")
         self.amount = TextInput(label="Amount", placeholder="e.g., 50")
 
         self.add_item(self.symbol)
@@ -77,7 +77,7 @@ class SellTokenModal(Modal):
         self.address = ""
         self.uid = uid
 
-        self.symbol = TextInput(label="Token Symbol", placeholder="e.g., ORBIT")
+        self.symbol = TextInput(label="Token Symbol", placeholder="e.g., FUEL")
         self.amount = TextInput(label="Amount", placeholder="e.g., 50")
 
         self.add_item(self.symbol)

@@ -10,7 +10,7 @@ from configure import BOT_OPS_CHANNEL_ID, TOKEN_CREATION_FEE
 
 class CreateTokenModal(Modal):
     def __init__(self, uid):
-        super().__init__(title="Orbit Exchange - Create Token")
+        super().__init__(title="Station Zero - Create Token\nCost: 250 ORBIT")
         self.uid = uid
         self.address = ""
         self.name = TextInput(label="Token Name", placeholder="ExampleToken", max_length=32)
