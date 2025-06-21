@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Orbit Wallet Info",
+  "version": "1.0",
+  "description": "Enter an address to fetch wallet info from the Orbit API.",
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://oliver-butler-oasis-builder.trycloudflare.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png"
+    }
+  }
+}
