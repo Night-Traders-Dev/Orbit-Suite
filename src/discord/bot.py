@@ -230,9 +230,9 @@ async def report_interval(channel, label, snap, buy_map, sell_map):
             f"🟢 Buy: {b:.6f} ({cb:+.2f}%)\n"
             f"🔴 Sell: {sll:.6f} ({cs:+.2f}%)\n"
             f"Vol: {total_vol:,.2f} tokens\n"
-            f"🔼 Buy: {buy_tok:,.2f} tokens, Orbit Spent: {buy_orb:,.2f} ORBIT\n"
-            f"🔽 Sell: {sell_tok:,.2f} tokens, Orbit Received: {sell_orb:,.2f} ORBIT\n"
-            f"💹 Avg Buy Price: {avg_buy:.6f} ORBIT | Avg Sell Price: {avg_sell:.6f} ORBIT"
+            f"🔼 Buy: {buy_tok:,.2f} tokens\n🔼 Orbit Spent: {buy_orb:,.2f} ORBIT\n"
+            f"🔽 Sell: {sell_tok:,.2f} tokens\n🔽 Orbit Received: {sell_orb:,.2f} ORBIT\n"
+            f"💹 Avg Buy Price: {avg_buy:.6f} ORBIT\n💹 Avg Sell Price: {avg_sell:.6f} ORBIT"
         )
         snap[s] = {"buy": b, "sell": sll}
         buy_map[s] = {"tokens": 0.0, "orbit": 0.0}
@@ -252,6 +252,7 @@ async def generate_daily_chart(channel):
         sorbit = sell_vol_24h[sym]["orbit"]
         avg_buy = borbit / btoks if btoks else 0.0
         avg_sell = sorbit / stoks if stoks else 0.0
+        print(f"Token {sym}: avg_buy = {avg_buy}, avg_sell = {avg_sell}")
         if avg_buy == 0 and avg_sell == 0:
             continue
         fig, ax = plt.subplots(figsize=(8, 4))
