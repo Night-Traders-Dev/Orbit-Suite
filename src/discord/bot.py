@@ -189,12 +189,10 @@ async def periodic_report():
     await ch.send("\n".join(lines))
 
     # --- hourly at :05 ---
-    if now.minute == 5:
-        await post_summary(ch, volume_1h, "🕐 Hourly Market Summary", now)
+    await post_summary(ch, volume_1h, "🕐 Hourly Market Summary", now)
 
     # --- daily at 00:05 UTC ---
-    if now.hour == 0 and now.minute == 5:
-        await post_summary(ch, volume_24h, "📅 Daily Market Summary", now, date_fmt="%Y-%m-%d")
+    await post_summary(ch, volume_24h, "📅 Daily Market Summary", now, date_fmt="%Y-%m-%d")
 
 async def post_summary(channel, tracker, title, now, date_fmt="%H:%M UTC"):
     ts = now.strftime(date_fmt)
