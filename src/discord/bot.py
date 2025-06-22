@@ -10,6 +10,7 @@ from commands.commands import setup as wallet_setup
 # — CONFIG —
 EXCHANGE_CHANNEL_ID     = 1379630873174872197
 PRICE_UPDATE_CHANNEL_ID = 1386066535193509948
+GUILD = discord.Object(id=1376608254741713008)
 CHAIN_API_URL           = "https://oliver-butler-oasis-builder.trycloudflare.com/api/chain"
 
 # — IN-MEMORY STATE —
@@ -31,7 +32,10 @@ bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 @bot.event
 async def on_ready():
     # register slash commands, etc.
-    wallet_setup(bot)
+    wallet_setup(bot, GUILD)
+    synced = await bot.tree.sync(guild=GUILD)
+    print(f"Synced {len(synced)} commands")
+
     print(f"✅ Bot ready as {bot.user}")
 
     # bootstrap everything from the full chain
