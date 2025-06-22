@@ -131,7 +131,7 @@ async def on_message(msg):
         print("[ERR] on_message parse:", e)
         return
 
-    act = data["action"]
+    act = data["action"].lower()
     sym = data["symbol"].upper()
     toks = data["tokens_received"] if act == "buy" else data["tokens_sold"]
     amt = data["orbit_spent"] if act == "buy" else data["orbit_received"]
@@ -139,14 +139,14 @@ async def on_message(msg):
     price_data[sym][act] = round(amt / toks, 6)
 
     # Update live accumulators across intervals.
-    if act == "BUY":
+    if act == "buy":
         buy_vol_5m[sym]["tokens"] += toks
         buy_vol_5m[sym]["orbit"] += amt
         buy_vol_1h[sym]["tokens"] += toks
         buy_vol_1h[sym]["orbit"] += amt
         buy_vol_24h[sym]["tokens"] += toks
         buy_vol_24h[sym]["orbit"] += amt
-    elif act == "SELL":
+    elif act == "sell":
         sell_vol_5m[sym]["tokens"] += toks
         sell_vol_5m[sym]["orbit"] += amt
         sell_vol_1h[sym]["tokens"] += toks
@@ -198,9 +198,9 @@ async def periodic_report():
             f"\n**{s}**\n"
             f"🟢 Buy: {b:.6f} ({cb:+.2f}%)\n"
             f"🔴 Sell: {sll:.6f} ({cs:+.2f}%)\n"
-            f"🔼 Buy: {buy_tok:,.2f} tokens\n🔼Orbit Spent: {buy_orb:,.2f} ORBIT\n"
-            f"🔽 Sell: {sell_tok:,.2f} tokens\n🔽Orbit Received: {sell_orb:,.2f} ORBIT\n"
-            f"💹 Avg Buy Price: {avg_buy:.6f} ORBIT\n💹Avg Sell Price: {avg_sell:.6f} ORBIT"
+            f"🔼 Buy: {buy_tok:,.2f} tokens\nOrbit Spent: {buy_orb:,.2f} ORBIT\n"
+            f"🔽 Sell: {sell_tok:,.2f} tokens\nOrbit Received: {sell_orb:,.2f} ORBIT\n"
+            f"💹 Avg Buy Price: {avg_buy:.6f} ORBIT\nAvg Sell Price: {avg_sell:.6f} ORBIT"
         )
         snapshot_5m[s] = {"buy": b, "sell": sll}
         buy_vol_5m[s] = {"tokens": 0.0, "orbit": 0.0}
