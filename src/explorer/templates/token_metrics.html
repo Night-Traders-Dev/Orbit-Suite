@@ -48,7 +48,7 @@
     <div>
       <strong>Circulating:</strong>
       <span class="text-blue-400">
-        {{ "{:,}".format(token.circulating|default(0)) }}
+        {{ "{:,.6f}".format(token.circulating|default(0)) }}
       </span>
     </div>
     <div>
