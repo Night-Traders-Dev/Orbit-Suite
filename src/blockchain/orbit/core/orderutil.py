@@ -314,6 +314,9 @@ async def token_stats(token=TOKEN):
         net_orbit = fbo - fso
         avg_buy_price = (net_orbit / net_tokens) if net_tokens else 0.0001
         avg_sell_price = (fso / fs) if fs else 0.0001
+        avg_buy_price  = max(avg_buy_price,  0.0001)
+        avg_sell_price = max(avg_sell_price, 0.0001)
+
 
         raw_price = (
             (avg_buy_price + avg_sell_price) / 2
@@ -338,6 +341,8 @@ async def token_stats(token=TOKEN):
         open_net_orbit = obo - oso
         open_avg_buy_price = (open_net_orbit / open_net_tokens) if open_net_tokens else 0.0001
         open_avg_sell_price = (oso / os) if os else 0.0001
+        open_avg_buy_price  = max(open_avg_buy_price,  0.0001)
+        open_avg_sell_price = max(open_avg_sell_price, 0.0001)
 
         raw_open_price = (
             (open_avg_buy_price + open_avg_sell_price) / 2
