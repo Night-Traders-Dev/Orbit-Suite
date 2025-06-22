@@ -196,12 +196,12 @@ async def token_stats(token=TOKEN):
                 tokens[tok] = tokens.get(tok, 0) + qty
                 if tx_note == "Token purchased from exchange":
                     stats["buy_tokens"] += qty
-                    stats["buy_orbit"] += orbit_amount
+                    stats["buy_orbit"] += max(orbit_amount, 0.0001)
                     transfer_cnt += 1
                     exchange_only[tok] = True
                 elif tx_note == "Token sold to exchange":
                     stats["sell_tokens"] += qty
-                    stats["sell_orbit"] += orbit_amount
+                    stats["sell_orbit"] += max(orbit_amount, 0.0001)
                     transfer_cnt += 1
                     exchange_only[tok] = True
 
@@ -224,7 +224,7 @@ async def token_stats(token=TOKEN):
                     tokens[tok] = tokens.get(tok, 0) + qty
                     fill_stats = await get_stats(filled_stats, tok)
                     fill_stats["buy_tokens"] += qty
-                    fill_stats["buy_orbit"] += qty * price
+                    fill_stats["buy_orbit"] += qty * max(price, 0.0001)
                     buy_cnt += 1
                     traded_tokens.add(tok)
 
@@ -241,7 +241,7 @@ async def token_stats(token=TOKEN):
                     tokens[tok] = tokens.get(tok, 0) + qty
                     op_stats = await get_stats(open_stats, tok)
                     op_stats["buy_tokens"] += qty
-                    op_stats["buy_orbit"] += qty * price
+                    op_stats["buy_orbit"] += qty * max(price, 0.0001)
                     open_orders.append({"token": tok, "type": "buy", "price": price, "amount": qty})
                     buy_cnt += 1
                     traded_tokens.add(tok)
@@ -264,7 +264,7 @@ async def token_stats(token=TOKEN):
 
                     fill_stats = await get_stats(filled_stats, tok)
                     fill_stats["sell_tokens"] += qty
-                    fill_stats["sell_orbit"] += qty * price
+                    fill_stats["sell_orbit"] += qty * max(price, 0.0001)
                     sell_cnt += 1
                     traded_tokens.add(tok)
 
@@ -281,7 +281,7 @@ async def token_stats(token=TOKEN):
                     tokens[tok] = tokens.get(tok, 0) - qty
                     op_stats = await get_stats(open_stats, tok)
                     op_stats["sell_tokens"] += qty
-                    op_stats["sell_orbit"] += qty * price
+                    op_stats["sell_orbit"] += qty * max(price, 0.0001)
                     open_orders.append({"token": tok, "type": "sell", "price": price, "amount": qty})
                     sell_cnt += 1
                     traded_tokens.add(tok)
