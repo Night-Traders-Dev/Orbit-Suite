@@ -207,7 +207,8 @@ async def periodic_report():
         sell_vol_5m[s] = {"tokens": 0.0, "orbit": 0.0}
 
     await ch.send("\n".join(lines))
-
+    await bootstrap_chain()
+    # Hourly and daily reports.
     await report_interval(ch, "Hourly", snapshot_1h, buy_vol_1h, sell_vol_1h)
     await report_interval(ch, "Daily", snapshot_24h, buy_vol_24h, sell_vol_24h)
 
