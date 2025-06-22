@@ -204,10 +204,15 @@ async def hourly_summary(channel, now):
     ts = now.strftime("%H:%M UTC")
     lines = [f"🕐 **Hourly Market Summary** (`{ts}`)"]
     for sym, curr in price_data.items():
-        old = price_snap_1h.get(sym, {"buy":0,"sell":0})
-        cb  = calc_change(old["buy"],  curr["buy"])
-        cs  = calc_change(old["sell"], curr["sell"])
+        # grab snapshot or default to current price
+        old = price_snap_1h.get(sym, {})
+        old_buy  = old.get("buy",  curr["buy"])
+        old_sell = old.get("sell", curr["sell"])
+
+        cb  = calc_change(old_buy,  curr["buy"])
+        cs  = calc_change(old_sell, curr["sell"])
         vol = volume_1h[sym]
+
         lines.append(
             f"\n**{sym}**"
             f"\n🟢 Buy: `{curr['buy']:.6f}` ({cb:+.2f}%)"
@@ -215,9 +220,10 @@ async def hourly_summary(channel, now):
             f"\n🔼 {vol['buy']:.2f} tokens"
             f"\n🔽 {vol['sell']:.2f} tokens"
         )
-        # reset counters & snapshot
-        volume_1h[sym]   = {"buy":0.0,"sell":0.0}
-        price_snap_1h[sym] = dict(curr)
+
+        # reset counters & advance snapshot
+        volume_1h[sym]    = {"buy":0.0, "sell":0.0}
+        price_snap_1h[sym] = {"buy": curr["buy"], "sell": curr["sell"]}
 
     await channel.send("\n".join(lines))
 
@@ -226,10 +232,14 @@ async def daily_summary(channel, now):
     ts = now.strftime("%Y-%m-%d")
     lines = [f"📅 **Daily Market Summary** (`{ts}`)"]
     for sym, curr in price_data.items():
-        old = price_snap_24h.get(sym, {"buy": 0.0, "sell": 0.0})
-        cb  = calc_change(old["buy"],  curr["buy"])
-        cs  = calc_change(old["sell"], curr["sell"])
+        old = price_snap_24h.get(sym, {})
+        old_buy  = old.get("buy",  curr["buy"])
+        old_sell = old.get("sell", curr["sell"])
+
+        cb  = calc_change(old_buy,  curr["buy"])
+        cs  = calc_change(old_sell, curr["sell"])
         vol = volume_24h[sym]
+
         lines.append(
             f"\n**{sym}**"
             f"\n🟢 Buy: `{curr['buy']:.6f}` ({cb:+.2f}%)"
@@ -237,9 +247,10 @@ async def daily_summary(channel, now):
             f"\n🔼 {vol['buy']:.2f} tokens"
             f"\n🔽 {vol['sell']:.2f} tokens"
         )
-        # reset counters & snapshot
-        volume_24h[sym]    = {"buy": 0.0, "sell": 0.0}
-        price_snap_24h[sym] = dict(curr)
+
+        # reset counters & advance snapshot
+        volume_24h[sym]     = {"buy":0.0, "sell":0.0}
+        price_snap_24h[sym] = {"buy": curr["buy"], "sell": curr["sell"]}
 
     await channel.send("\n".join(lines))
 
