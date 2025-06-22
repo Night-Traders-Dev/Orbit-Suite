@@ -6,14 +6,16 @@ import datetime
 BASE_PRICE = 0.1
 TOKEN = "FUEL"
 
-
 async def all_tokens_stats(symbol_filter=None):
-    """
-    Safe, side-effect-free stats over the entire chain.
-    Returns: (token_list, wallets, metrics)
-    """
-    now   = datetime.datetime.now(datetime.timezone.utc)
-    t24   = now - datetime.timedelta(days=1)
+    from datetime import datetime, timedelta, UTC
+    from collections import defaultdict
+    now = datetime.now(UTC)
+    chain = fetch_chain()
+    tokens = {}
+    total_transfers = 0
+    transfers_24h = 0
+    new_tokens_24h = 0
+    wallets = {}
 
     if symbol_filter:
         if isinstance(symbol_filter, str):
@@ -21,130 +23,108 @@ async def all_tokens_stats(symbol_filter=None):
         else:
             symbol_filter = {s.upper() for s in symbol_filter}
 
-    tokens          = {}   # symbol -> metadata & counters
-    wallets         = {}   # address -> {"amount": net_float}
-    total_transfers = 0
-    transfers_24h   = 0
-    new_tokens_24h  = 0
-
-    def parse_ts(ts):
-        try:
-            if isinstance(ts, str):
-                return datetime.datetime.fromisoformat(ts).astimezone(datetime.timezone.utc)
-            if isinstance(ts, (int, float)):
-                return datetime.datetime.fromtimestamp(ts, datetime.timezone.utc)
-        except:
-            pass
+    def parse_ts(ts_raw):
+        if isinstance(ts_raw, str):
+            return datetime.fromisoformat(ts_raw).replace(tzinfo=UTC)
+        elif isinstance(ts_raw, (int, float)):
+            return datetime.fromtimestamp(ts_raw, tz=UTC)
         return None
-
-    try:
-        chain = fetch_chain()  # assume returns list of blocks
-    except Exception:
-        print("[WARN] fetch_chain() failed, returning empty stats")
-        return [], {}, {
-            "total_transfers":  0,
-            "transfers_24h":    0,
-            "total_tokens":     0,
-            "new_tokens_24h":   0
-        }
 
     for block in chain:
         for tx in block.get("transactions", []):
             note = tx.get("note")
             if not isinstance(note, dict):
                 continue
-
-            tx_type = note.get("type")
-            if not isinstance(tx_type, dict):
-                continue
+            tx_type = note.get("type", {})
+            ts = parse_ts(tx.get("timestamp"))
 
             # Token creation
             if "create_token" in tx_type:
                 d = tx_type["create_token"]
-                if not isinstance(d, dict):
-                    continue
-                sym   = d.get("symbol")
-                if not sym or (symbol_filter and sym.upper() not in symbol_filter):
+                symbol = d.get("symbol")
+                if symbol_filter and symbol.upper() not in symbol_filter:
                     continue
 
-                name    = d.get("name", "").strip()
-                supply  = float(d.get("supply") or 0.0)
+                name = d.get("name")
+                supply = float(d.get("supply", 0))
                 creator = d.get("creator")
-                created = parse_ts(d.get("timestamp"))
+                timestamp = d.get("timestamp")
 
-                if name and sym:
-                    tokens[sym] = {
-                        "symbol":     sym,
-                        "name":       name,
-                        "supply":     supply,
-                        "creator":    creator,
-                        "created_at": created,
-                        "age":        "",
-                        "transfers":  0,
-                        "holders":    set()
+                if name and symbol:
+                    tokens[symbol] = {
+                        "symbol": symbol,
+                        "name": name,
+                        "supply": supply,
+                        "creator": creator,
+                        "created_at": timestamp,
+                        "age": "",
+                        "transfers": 0,
+                        "holders": set()
                     }
-                    if created and (now - created <= datetime.timedelta(days=1)):
+                    ts_created = parse_ts(timestamp)
+                    if ts_created and (now - ts_created <= timedelta(days=1)):
                         new_tokens_24h += 1
 
-            for key in ("token_transfer", "buy_token", "sell_token"):
-                if key not in tx_type:
-                    continue
-                d = tx_type[key]
-                if not isinstance(d, dict):
-                    continue
+            # Transfer types: update holders and transfers
+            for typ in ["buy_token", "sell_token", "token_transfer"]:
+                if typ in tx_type:
+                    d = tx_type[typ]
+                    symbol = d.get("symbol") or d.get("token_symbol")
+                    if symbol_filter and symbol.upper() not in symbol_filter:
+                        continue
 
-                sym = d.get("token_symbol") or d.get("symbol")
-                if not sym or (symbol_filter and sym.upper() not in symbol_filter):
-                    continue
+                    sender = d.get("sender")
+                    receiver = d.get("receiver")
+                    amount = d.get("amount")
 
-                sender   = d.get("sender")
-                receiver = d.get("receiver")
-                amt_raw  = d.get("amount", 0)
-                try:
-                    amount = float(amt_raw)
-                except Exception:
-                    continue
+                    if symbol in tokens:
+                        tokens[symbol]["transfers"] += 1
+                        if sender:
+                            tokens[symbol]["holders"].add(sender)
+                        if receiver:
+                            tokens[symbol]["holders"].add(receiver)
 
-                # update token‐level counters
-                if sym in tokens:
-                    tokens[sym]["transfers"] += 1
-                    if sender:   tokens[sym]["holders"].add(sender)
-                    if receiver: tokens[sym]["holders"].add(receiver)
+                    if sender:
+                        wallets.setdefault(sender, {"amount": 0})
+                        wallets[sender]["amount"] -= amount
+                    if receiver:
+                        wallets.setdefault(receiver, {"amount": 0})
+                        wallets[receiver]["amount"] += amount
 
-                # update wallet balances
-                if sender:
-                    wallets.setdefault(sender, {"amount": 0.0})
-                    wallets[sender]["amount"] = max(wallets[sender]["amount"] - amount, 0.000001)
-                if receiver:
-                    wallets.setdefault(receiver, {"amount": 0.0})
-                    wallets[receiver]["amount"] += amount
+                    total_transfers += 1
+                    if ts and (now - ts <= timedelta(days=1)):
+                        transfers_24h += 1
 
-                ts = parse_ts(tx.get("timestamp"))
-                total_transfers += 1
-                if ts and (now - ts <= datetime.timedelta(days=1)):
-                    transfers_24h += 1
-
+    # Final formatting
     token_list = []
-    for sym, info in tokens.items():
-        created = info["created_at"]
-        if created:
-            age_days = (now - created).days
-            info["age"] = f"{age_days} day{'s' if age_days != 1 else ''}"
+    for token in tokens.values():
+        created_at = parse_ts(token["created_at"])
+        if created_at:
+            age = now - created_at
+            days = age.days
+            token["age"] = f"{days} day{'s' if days != 1 else ''}"
         else:
-            info["age"] = "Unknown"
-        info["holders"] = len(info["holders"])
-        token_list.append(info)
+            token["age"] = "Unknown"
+        token["holders"] = len(token["holders"])
+        token_list.append(token)
 
-    token_list.sort(key=lambda x: x["symbol"].lower())
+    token_list = sorted(token_list, key=lambda x: x["symbol"].lower())
 
     metrics = {
         "total_transfers": total_transfers,
-        "transfers_24h":   transfers_24h,
-        "total_tokens":    len(token_list),
-        "new_tokens_24h":  new_tokens_24h
+        "transfers_24h": transfers_24h,
+        "total_tokens": len(tokens),
+        "new_tokens_24h": new_tokens_24h
     }
-
     return token_list, wallets, metrics
+
+async def get_stats(stats_dict, token):
+    return stats_dict.setdefault(token, {
+        "buy_tokens": 0,
+        "buy_orbit": 0.0,
+        "sell_tokens": 0,
+        "sell_orbit": 0.0
+    })
 
 
 
@@ -216,12 +196,12 @@ async def token_stats(token=TOKEN):
                 tokens[tok] = tokens.get(tok, 0) + qty
                 if tx_note == "Token purchased from exchange":
                     stats["buy_tokens"] += qty
-                    stats["buy_orbit"] += max(orbit_amount, 0.000001)
+                    stats["buy_orbit"] += max(orbit_amount, 0.0001)
                     transfer_cnt += 1
                     exchange_only[tok] = True
                 elif tx_note == "Token sold to exchange":
                     stats["sell_tokens"] += qty
-                    stats["sell_orbit"] += max(orbit_amount, 0.000001)
+                    stats["sell_orbit"] += max(orbit_amount, 0.0001)
                     transfer_cnt += 1
                     exchange_only[tok] = True
 
@@ -244,7 +224,7 @@ async def token_stats(token=TOKEN):
                     tokens[tok] = tokens.get(tok, 0) + qty
                     fill_stats = await get_stats(filled_stats, tok)
                     fill_stats["buy_tokens"] += qty
-                    fill_stats["buy_orbit"] += qty * max(price, 0.000001)
+                    fill_stats["buy_orbit"] += qty * max(price, 0.0001)
                     buy_cnt += 1
                     traded_tokens.add(tok)
 
@@ -261,7 +241,7 @@ async def token_stats(token=TOKEN):
                     tokens[tok] = tokens.get(tok, 0) + qty
                     op_stats = await get_stats(open_stats, tok)
                     op_stats["buy_tokens"] += qty
-                    op_stats["buy_orbit"] += qty * max(price, 0.000001)
+                    op_stats["buy_orbit"] += qty * max(price, 0.0001)
                     open_orders.append({"token": tok, "type": "buy", "price": price, "amount": qty})
                     buy_cnt += 1
                     traded_tokens.add(tok)
@@ -284,7 +264,7 @@ async def token_stats(token=TOKEN):
 
                     fill_stats = await get_stats(filled_stats, tok)
                     fill_stats["sell_tokens"] += qty
-                    fill_stats["sell_orbit"] += qty * max(price, 0.000001)
+                    fill_stats["sell_orbit"] += qty * max(price, 0.0001)
                     sell_cnt += 1
                     traded_tokens.add(tok)
 
@@ -301,7 +281,7 @@ async def token_stats(token=TOKEN):
                     tokens[tok] = tokens.get(tok, 0) - qty
                     op_stats = await get_stats(open_stats, tok)
                     op_stats["sell_tokens"] += qty
-                    op_stats["sell_orbit"] += qty * max(price, 0.000001)
+                    op_stats["sell_orbit"] += qty * max(price, 0.0001)
                     open_orders.append({"token": tok, "type": "sell", "price": price, "amount": qty})
                     sell_cnt += 1
                     traded_tokens.add(tok)
@@ -332,10 +312,10 @@ async def token_stats(token=TOKEN):
         # Price calculations
         net_tokens = fb - fs
         net_orbit = fbo - fso
-        avg_buy_price = (net_orbit / net_tokens) if net_tokens else 0.000001
-        avg_sell_price = (fso / fs) if fs else 0.000001
-        avg_buy_price  = max(avg_buy_price,  0.000001)
-        avg_sell_price = max(avg_sell_price, 0.000001)
+        avg_buy_price = (net_orbit / net_tokens) if net_tokens else 0.0001
+        avg_sell_price = (fso / fs) if fs else 0.0001
+        avg_buy_price  = max(avg_buy_price,  0.0001)
+        avg_sell_price = max(avg_sell_price, 0.0001)
 
 
         raw_price = (
@@ -343,7 +323,7 @@ async def token_stats(token=TOKEN):
             if avg_buy_price and avg_sell_price
             else avg_buy_price or avg_sell_price or BASE_PRICE
         )
-        current_price = max(raw_price, 0.000001)
+        current_price = max(raw_price, 0.0001)
         stat_list.append({
             "token": tok,
             "adjusted_balance": round(adjusted_balance, 8),
@@ -359,17 +339,17 @@ async def token_stats(token=TOKEN):
         # Open order price stats
         open_net_tokens = ob - os
         open_net_orbit = obo - oso
-        open_avg_buy_price = (open_net_orbit / open_net_tokens) if open_net_tokens else 0.000001
-        open_avg_sell_price = (oso / os) if os else 0.000001
-        open_avg_buy_price  = max(open_avg_buy_price,  0.000001)
-        open_avg_sell_price = max(open_avg_sell_price, 0.000001)
+        open_avg_buy_price = (open_net_orbit / open_net_tokens) if open_net_tokens else 0.0001
+        open_avg_sell_price = (oso / os) if os else 0.0001
+        open_avg_buy_price  = max(open_avg_buy_price,  0.0001)
+        open_avg_sell_price = max(open_avg_sell_price, 0.0001)
 
         raw_open_price = (
             (open_avg_buy_price + open_avg_sell_price) / 2
             if open_avg_buy_price and open_avg_sell_price
             else open_avg_buy_price or open_avg_sell_price or BASE_PRICE
         )
-        open_price = max(raw_open_price, 0.000001)
+        open_price = max(raw_open_price, 0.0001)
 
         open_list.append({
             "token": tok,
