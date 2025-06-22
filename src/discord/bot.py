@@ -81,7 +81,7 @@ async def bootstrap_from_chain():
 
             sym    = xfer.get("token_symbol")
             tokens = xfer.get("amount", 0.0)
-            note   = xfer.get("note", "").lower()
+            note   = xfer.get("note", "")
 
             # classify buy vs sell
             action = None
