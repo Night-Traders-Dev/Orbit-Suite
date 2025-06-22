@@ -253,7 +253,7 @@ async def daily_summary(channel, now):
         volume_24h[sym]     = {"buy":0.0, "sell":0.0}
         price_snap_24h[sym] = {"buy": curr["buy"], "sell": curr["sell"]}
 
-    await channel.send("\n".join(lines))
+    await channel.send("\n".join(lines) + "\n\n*End of day summary.*")
 
 
 # Start the bot
