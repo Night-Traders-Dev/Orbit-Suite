@@ -320,7 +320,7 @@ async def token_stats(token=TOKEN):
             if avg_buy_price and avg_sell_price
             else avg_buy_price or avg_sell_price or BASE_PRICE
         )
-        current_price =max(raw_price, 0.00001)
+        current_price =max(raw_price, 0.0001)
         stat_list.append({
             "token": tok,
             "adjusted_balance": round(adjusted_balance, 8),
@@ -344,7 +344,7 @@ async def token_stats(token=TOKEN):
             if open_avg_buy_price and open_avg_sell_price
             else open_avg_buy_price or open_avg_sell_price or BASE_PRICE
         )
-        open_price = max(raw_open_price, 0.00001)
+        open_price = max(raw_open_price, 0.0001)
 
         open_list.append({
             "token": tok,
