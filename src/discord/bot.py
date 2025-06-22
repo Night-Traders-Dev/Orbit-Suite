@@ -194,6 +194,7 @@ async def periodic_report():
         volume_5m[sym] = {"buy":0.0,"sell":0.0}
 
     await ch.send("\n".join(lines))
+    await bootstrap_from_chain()
 
     await hourly_summary(ch, now)
 
