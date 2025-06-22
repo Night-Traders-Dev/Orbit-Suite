@@ -245,8 +245,8 @@ async def report_interval(channel, label, snap, buy_map, sell_map):
         buy_map[s] = {"tokens": 0.0, "orbit": 0.0}
         sell_map[s] = {"tokens": 0.0, "orbit": 0.0}
 
-    if label == "Daily":
-        await generate_daily_chart(daily_history)
+#    if label == "Daily":
+#        await generate_daily_chart(daily_history)
     await channel.send("\n".join(lines))
 
 async def generate_daily_chart(daily_history):
