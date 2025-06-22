@@ -244,42 +244,40 @@ async def generate_daily_chart():
     channel = bot.get_channel(PRICE_UPDATE_CHANNEL_ID)
 
     """
-    For each token, generates and sends a line chart that displays the daily average buy and sell prices
-    based on the 24h accumulators. Each chart has two data points (indices 0 and 1) representing the average
-    buy and sell prices, drawn as a line with markers.
+    For each token, generates and sends a line chart that displays the hourly average buy and sell prices 
+    collected during the day. The x-axis represents the hourly intervals (as recorded in daily_history), 
+    with the buy prices plotted in green and sell prices in red.
     """
-    for sym in price_data:
-        btoks = buy_vol_24h[sym]["tokens"]
-        borbit = buy_vol_24h[sym]["orbit"]
-        stoks = sell_vol_24h[sym]["tokens"]
-        sorbit = sell_vol_24h[sym]["orbit"]
-        avg_buy = borbit / btoks if btoks else 0.0
-        avg_sell = sorbit / stoks if stoks else 0.0
-        print(f"Token {sym}: avg_buy = {avg_buy}, avg_sell = {avg_sell}")
-        if avg_buy == 0 and avg_sell == 0:
+    channel = bot.get_channel(PRICE_UPDATE_CHANNEL_ID)
+    for sym, history in daily_history.items():
+        # If no hourly data was recorded for this token, skip.
+        if not history["hour"]:
             continue
-        fig, ax = plt.subplots(figsize=(8, 4))
-        x = [0, 1]
-        y = [avg_buy, avg_sell]
-        ax.plot(x, y, color='black', linewidth=2)
-        ax.scatter([0], [avg_buy], color='green', s=100, label='Avg Buy Price')
-        ax.scatter([1], [avg_sell], color='red', s=100, label='Avg Sell Price')
-        ax.set_xticks(x)
-        ax.set_xticklabels(["Buy", "Sell"])
+        hours = history["hour"]
+        buy_prices = history["buy"]
+        sell_prices = history["sell"]
+        
+        fig, ax = plt.subplots(figsize=(10, 5))
+        ax.plot(hours, buy_prices, marker='o', color='green', label='Avg Buy Price')
+        ax.plot(hours, sell_prices, marker='o', color='red', label='Avg Sell Price')
+        ax.set_xlabel("Time (Hour)")
         ax.set_ylabel("Price (ORBIT)")
-        ax.set_title(f"{sym} - Daily Average Prices")
+        ax.set_title(f"{sym} - Hourly Daily Average Prices")
         ax.legend()
+        plt.xticks(rotation=45)
         plt.tight_layout()
         chart_path = f"daily_chart_{sym}.png"
         plt.savefig(chart_path)
         plt.close(fig)
         await channel.send(f"Daily Average Price Chart for {sym}:", file=discord.File(chart_path))
         os.remove(chart_path)
+        # Clear history for the token after sending the chart.
+        daily_history[sym] = {"hour": [], "buy": [], "sell": []}
     print("✅ Daily charts generated and sent.")
-    # Reset accumulators for the next day
-    for sym in price_data:
-        buy_vol_24h[sym] = {"tokens": 0.0, "orbit": 0.0}
-        sell_vol_24h[sym] = {"tokens": 0.0, "orbit": 0.0}
+    # Reset 24h accumulators for next day.
+    for s in price_data:
+        buy_vol_24h[s] = {"tokens": 0.0, "orbit": 0.0}
+        sell_vol_24h[s] = {"tokens": 0.0, "orbit": 0.0}
         
 
 bot.run(DISCORD_TOKEN)
