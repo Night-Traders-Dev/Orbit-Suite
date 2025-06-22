@@ -5,7 +5,7 @@ from blockchain.blockutil import add_block
 from config.configutil import OrbitDB, TXConfig, get_node_for_user
 from core.tx_util.tx_types import TXTypes
 
-MIN_TRANSFER_AMOUNT = 0.0001
+MIN_TRANSFER_AMOUNT = 0.000001
 FEE_RATE = 0.02
 NODE_FEE_ADDRESS = get_address_from_label("nodefeecollector")
 
@@ -47,7 +47,7 @@ def send_orbit(sender, recipient, amount, order=None):
         tx2 = TXConfig.Transaction(
             sender=sender,
             recipient=NODE_FEE_ADDRESS,
-            amount=fee,
+            amount=round(fee, 6),
             note=tx_fee.gas_tx(),
             timestamp=current_time
 
