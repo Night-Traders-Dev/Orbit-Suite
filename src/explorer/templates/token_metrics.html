@@ -1,230 +1,210 @@
 {% extends "layout.html" %}
 {% block content %}
 {% set icon_path = 'token_icons/' + token.symbol + '.png' %}
-{% set icon_url = url_for('static', filename=icon_path) %}
+{% set icon_url  = url_for('static', filename=icon_path) %}
+
 <div class="bg-gray-900 text-white p-6 rounded-xl shadow-md">
 
   <h2 class="text-3xl font-bold mb-6 flex items-center gap-3">
-    <img src="{{ url_for('static', filename='token_icons/' + token.symbol + '.png2') }}"
+    <img src="{{ icon_url }}"
          alt="{{ token.name }} Logo"
          class="h-8 w-8 object-contain rounded"
          onerror="this.style.display='none';">
     {{ token.name }} ({{ token.symbol }})
   </h2>
+
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-800 p-6 rounded-xl shadow-inner">
 
+    <!-- Current Price -->
     <div title="Current exchange price in Orbit">
       <strong>Current Price:</strong>
       <span class="inline-flex items-center gap-1 text-green-400 font-semibold">
-        {{ token.current_price }} Orbit
+        {{ "{:,.6f}".format(token.current_price) }} Orbit
       </span>
     </div>
+
+    <!-- Market Cap -->
     <div title="Market Cap">
       <strong>Market Cap:</strong>
       <span id="marketcap" class="inline-flex items-center gap-1 text-green-400 font-semibold">
-        {{ token.mc | commas }} Orbit
+        {{ "{:,.2f}".format(token.mc) }} Orbit
       </span>
     </div>
 
     <script>
-      const token = {
-        price: {{ token.price }},
-        volume_received: {{ token.volume_received }}
+      const tokenData = {
+        price: {{ token.current_price|tojson }},
+        volume_received: {{ token.volume_received|tojson }}
       };
       function updateMarketCap() {
-        const marketcap = token.price * token.volume_received;
-        document.getElementById("marketcap").textContent = marketcap.toFixed(2) + " Orbit";
+        const mcap = tokenData.price * tokenData.volume_received;
+        document.getElementById("marketcap").textContent =
+          mcap.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          + " Orbit";
       }
-      window.onload = () => {
-        updateMarketCap();
-      };
+      window.onload = updateMarketCap;
     </script>
 
+    <!-- Circulating & Supply -->
     <div title="Total circulating supply">
       <strong>Circulating:</strong>
-      <span class="text-blue-400 font-medium">{{ token.circulating | commas }}</span>
+      <span class="text-blue-400 font-medium">
+        {{ "{:,}".format(token.circulating) }}
+      </span>
     </div>
-
     <div title="Total supply">
       <strong>Supply:</strong>
-      <span class="text-blue-400 font-medium">{{ token.supply | commas }}</span>
+      <span class="text-blue-400 font-medium">
+        {{ "{:,}".format(token.supply) }}
+      </span>
     </div>
 
+    <!-- Tx Counts -->
     <div title="Total buy orders">
       <strong>Buy TXs:</strong>
       <span class="badge bg-green-200 text-green-900 px-2 py-1 rounded-full text-sm">
-        {{ token.buy_cnt }}
+        {{ "{:,}".format(token.buy_cnt) }}
       </span>
     </div>
-
     <div title="Total sell orders">
       <strong>Sell TXs:</strong>
       <span class="badge bg-red-200 text-red-900 px-2 py-1 rounded-full text-sm">
-        {{ token.sell_cnt }}
+        {{ "{:,}".format(token.sell_cnt) }}
       </span>
     </div>
 
-    <div><strong>Avg Buy Price:</strong> <span class="text-green-400">{{ token.avg_buy_price }}</span></div>
-    <div><strong>Avg Sell Price:</strong> <span class="text-red-400">{{ token.avg_sell_price }}</span></div>
+    <!-- Average Prices -->
+    <div>
+      <strong>Avg Buy Price:</strong>
+      <span class="text-green-400">
+        {{ "{:,.6f}".format(token.avg_buy_price) }} Orbit
+      </span>
+    </div>
+    <div>
+      <strong>Avg Sell Price:</strong>
+      <span class="text-red-400">
+        {{ "{:,.6f}".format(token.avg_sell_price) }} Orbit
+      </span>
+    </div>
 
-    <div><strong>Orbit Spent Buying:</strong> {{ token.orbit_spent_buying | commas }}</div>
-    <div><strong>Orbit Earned Selling:</strong> {{ token.orbit_earned_selling | commas }}</div>
+    <!-- Orbit Spent/Earned -->
+    <div>
+      <strong>Orbit Spent Buying:</strong>
+      {{ "{:,.6f}".format(token.orbit_spent_buying) }}
+    </div>
+    <div>
+      <strong>Orbit Earned Selling:</strong>
+      {{ "{:,.6f}".format(token.orbit_earned_selling) }}
+    </div>
 
+    <!-- Creator & Created At -->
     {% if token.creator %}
       <div>
         <strong>Creator:</strong>
-        <a href="/address/{{ token.creator }}" class="text-blue-400 hover:underline">{{ token.creator }}</a>
+        <a href="/address/{{ token.creator }}" class="text-blue-400 hover:underline">
+          {{ token.creator }}
+        </a>
       </div>
     {% else %}
       <div><strong>Creator:</strong> Unknown</div>
     {% endif %}
+    <div>
+      <strong>Created At:</strong> {{ token.created_at | ts }}
+    </div>
 
-    <div><strong>Created At:</strong> {{ token.created_at | ts }}</div>
   </div>
 
+  <!-- Buy vs Sell Volume -->
   <div class="mt-8">
     <h3 class="text-xl font-semibold mb-2">Buy vs Sell Volume</h3>
-    {% set total_volume = token.volume_received + token.volume_sent %}
-    {% if total_volume > 0 %}
-      {% set buy_ratio = (token.volume_received / total_volume) * 100 %}
+    {% set total_vol = token.volume_received + token.volume_sent %}
+    {% if total_vol > 0 %}
+      {% set buy_pct = (token.volume_received / total_vol) * 100 %}
       <div class="w-full bg-gray-700 rounded-lg h-5 overflow-hidden flex shadow-inner">
-        <div class="bg-green-500 h-full" style="width: {{ buy_ratio|round(2) }}%" title="Buy Volume"></div>
-        <div class="bg-red-500 h-full" style="width: {{ 100 - buy_ratio|round(2) }}%" title="Sell Volume"></div>
+        <div class="bg-green-500 h-full" style="width: {{ buy_pct|round(2) }}%"></div>
+        <div class="bg-red-500   h-full" style="width: {{ (100 - buy_pct)|round(2) }}%"></div>
       </div>
       <div class="flex justify-between text-sm mt-1">
-        <span class="text-green-300">Buy: {{ buy_ratio|round(1) }}%</span>
-        <span class="text-red-300">Sell: {{ (100 - buy_ratio)|round(1) }}%</span>
+        <span class="text-green-300">Buy: {{ buy_pct|round(2) }}%</span>
+        <span class="text-red-300">Sell: {{ (100 - buy_pct)|round(2) }}%</span>
       </div>
     {% else %}
       <p class="text-sm text-gray-400">No volume recorded yet.</p>
     {% endif %}
   </div>
 
+  <!-- Open Orders Pressure -->
   <div class="mt-10">
     <h3 class="text-xl font-semibold mb-2">Buy/Sell Pressure (Open Orders)</h3>
     <canvas id="pressureChart" height="100"></canvas>
   </div>
-
   <script>
-  const pressureCtx = document.getElementById('pressureChart').getContext('2d');
-  new Chart(pressureCtx, {
+    const pCtx = document.getElementById('pressureChart').getContext('2d');
+    new Chart(pCtx, {
       type: 'bar',
       data: {
-          labels: ['Buy Orders', 'Sell Orders'],
-          datasets: [{
-              label: 'Open Orders (Tokens)',
-              data: [{{ token.open_buy_tokens }}, {{ token.open_sell_tokens }}],
-              backgroundColor: ['#34d399', '#f87171'],
-              borderColor: ['#059669', '#b91c1c'],
-              borderWidth: 1
-          }]
+        labels: ['Buy Orders','Sell Orders'],
+        datasets: [{
+          label: 'Open Orders (Tokens)',
+          data: [
+            {{ token.open_buy_tokens|tojson }},
+            {{ token.open_sell_tokens|tojson }}
+          ],
+          backgroundColor: ['#34d399','#f87171'],
+          borderColor:     ['#059669','#b91c1c'],
+          borderWidth: 1
+        }]
       },
       options: {
-          responsive: true,
-          scales: {
-              y: {
-                  beginAtZero: true,
-                  ticks: { precision: 0, color: '#ccc' }
-              },
-              x: { ticks: { color: '#ccc' } }
-          },
-          plugins: {
-              legend: { display: false },
-              tooltip: {
-                  callbacks: {
-                      label: function(context) {
-                          return context.parsed.y.toLocaleString() + ' tokens';
-                      }
-                  }
-              }
+        responsive: true,
+        scales: {
+          y: { beginAtZero:true, ticks:{precision:0,color:'#ccc'} },
+          x: { ticks:{color:'#ccc'} }
+        },
+        plugins: {
+          legend:{display:false},
+          tooltip:{
+            callbacks:{
+              label: ctx => ctx.parsed.y.toLocaleString() + ' tokens'
+            }
           }
+        }
       }
-  });
+    });
   </script>
 
-  {% set total_open = token.open_buy_tokens + token.open_sell_tokens %}
-  {% if total_open > 0 %}
-    {% set buy_pressure = (token.open_buy_tokens / total_open) * 100 %}
-    <div class="flex justify-between text-sm mt-1">
-      <span class="text-green-300">Buy Pressure: {{ buy_pressure | round(1) }}%</span>
-      <span class="text-red-300">Sell Pressure: {{ (100 - buy_pressure) | round(1) }}%</span>
-    </div>
-  {% endif %}
-
+  <!-- Order Book Depth -->
   <div class="mt-10">
     <h3 class="text-xl font-semibold mb-2">Order Book Depth</h3>
     <canvas id="orderBookChart" height="100"></canvas>
   </div>
-
   <script>
-  const buyDepth = {{ token.buy_depth | tojson }};
-  const sellDepth = {{ token.sell_depth | tojson }};
-
-  const ctxOrder = document.getElementById('orderBookChart').getContext('2d');
-  new Chart(ctxOrder, {
-    type: 'line',
-    data: {
-      datasets: [
-        {
-          label: 'Buy Depth',
-          data: buyDepth.map(d => ({x: d.price, y: d.cum_quantity})),
-          borderColor: 'green',
-          backgroundColor: 'rgba(0, 255, 0, 0.1)',
-          stepped: true
-        },
-        {
-          label: 'Sell Depth',
-          data: sellDepth.map(d => ({x: d.price, y: d.cum_quantity})),
-          borderColor: 'red',
-          backgroundColor: 'rgba(255, 0, 0, 0.1)',
-          stepped: true
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        tooltip: { mode: 'index', intersect: false }
+    const buyDepth  = {{ token.buy_depth | tojson }};
+    const sellDepth = {{ token.sell_depth| tojson }};
+    const oCtx = document.getElementById('orderBookChart').getContext('2d');
+    new Chart(oCtx, {
+      type:'line',
+      data:{
+        datasets:[
+          {label:'Buy Depth',
+           data: buyDepth .map(d=>({x:d.price,y:d.cum_quantity})),
+           borderColor:'green', backgroundColor:'rgba(0,255,0,0.1)', stepped:true},
+          {label:'Sell Depth',
+           data:sellDepth.map(d=>({x:d.price,y:d.cum_quantity})),
+           borderColor:'red',   backgroundColor:'rgba(255,0,0,0.1)', stepped:true}
+        ]
       },
-      scales: {
-        x: {
-          title: { display: true, text: 'Price (Orbit)' },
-          type: 'linear',
-          ticks: { color: '#ccc' }
-        },
-        y: {
-          title: { display: true, text: 'Cumulative Quantity' },
-          ticks: { color: '#ccc' }
+      options:{
+        responsive:true,
+        plugins:{tooltip:{mode:'index', intersect:false}},
+        scales:{
+          x:{title:{display:true,text:'Price (Orbit)'}, type:'linear', ticks:{color:'#ccc'}},
+          y:{title:{display:true,text:'Cumulative Quantity'}, ticks:{color:'#ccc'}}
         }
       }
-    }
-  });
+    });
   </script>
-<!--
-  <div class="mt-12">
-    <h3 class="text-2xl font-semibold mb-4">Top 10 Wallets by {{ token.symbol }} Balance</h3>
-    <div class="overflow-x-auto bg-gray-800 rounded-xl p-4 shadow-md">
-      <table class="min-w-full text-left text-sm text-gray-300">
-        <thead class="text-xs uppercase tracking-wider text-gray-400 border-b border-gray-600">
-          <tr>
-            <th class="py-2 px-4">Rank</th>
-            <th class="py-2 px-4">Address</th>
-            <th class="py-2 px-4">Balance</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for wallet in top_wallets %}
-            <tr class="border-b border-gray-700 hover:bg-gray-700/50 transition">
-              <td class="py-2 px-4 font-bold">{{ loop.index }}</td>
-              <td class="py-2 px-4">
-                <a href="/address/{{ wallet.address }}" class="text-blue-400 hover:underline">{{ wallet.address }}</a>
-              </td>
-              <td class="py-2 px-4 text-green-300 font-semibold">{{ wallet.balance | commas }}</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
--->
+
+  <!-- Top Wallets (if any) commented out -->
+</div>
 {% endblock %}
