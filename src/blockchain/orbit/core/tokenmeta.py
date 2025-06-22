@@ -18,6 +18,7 @@ async def get_token_meta(symbol):
 
     # ALWAYS include symbol so SimpleNamespace.symbol exists
     token_meta = {"symbol": token_sym}
+    print(token_meta)
 
     try:
         # 1) fetch raw stats
