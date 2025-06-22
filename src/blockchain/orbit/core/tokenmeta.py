@@ -137,4 +137,4 @@ async def get_token_meta(symbol):
     except Exception as exc:
         # on any error still return symbol + error
         token_meta["error"] = str(exc)
-        return SimpleNamespace(**token_meta)
+        return token_meta#SimpleNamespace(**token_meta)
