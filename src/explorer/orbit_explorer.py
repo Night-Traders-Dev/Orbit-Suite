@@ -17,6 +17,7 @@ from core.walletutil import load_balance
 from core.cacheutil import get_cached, set_cached, clear_cache
 from core.hashutil import create_2fa_secret, verify_2fa_token, generate_orbit_address
 from core.authutil import update_login, is_logged_in, cleanup_expired_sessions
+from core.tokenmeta import get_token_meta
 from core.userutil import register, login
 
 from explorer.api.latest import latest_block, latest_txs
@@ -366,7 +367,7 @@ def token_metrics(symbol):
     token_sym = symbol.upper()
     icon_files = [f.split('.')[0] for f in listdir('static/token_icons') if isfile(join('static/token_icons', f))]
     try:
-        token_meta = asyncio.run(token_stats(token_sym))
+        token_meta = asyncio.run(get_token_meta(token_sym))
 
 
         return render_template("token_metrics.html", token=token_meta) #, top_wallets=wallets)
