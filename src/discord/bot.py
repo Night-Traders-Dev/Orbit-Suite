@@ -6,6 +6,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from configure import DISCORD_TOKEN
 from commands.commands import setup as wallet_setup
+import matplotlib.pyplot as plt
+import os
 
 # — CONFIG —
 EXCHANGE_CHANNEL_ID     = 1379630873174872197
@@ -14,15 +16,15 @@ GUILD                   = discord.Object(id=1376608254741713008)
 CHAIN_API_URL           = "https://oliver-butler-oasis-builder.trycloudflare.com/api/chain"
 
 # — STATE —
-# Current per-token prices from chain (per side)
+# Current per-token prices (ORBIT per token) for each side.
 price_data = defaultdict(lambda: {"buy": 0.0, "sell": 0.0})
 
-# Snapshots (last reported price) for each interval for % change calculation.
+# Snapshots (previous interval prices) for % change calculations.
 snapshot_5m  = defaultdict(lambda: {"buy": 0.0, "sell": 0.0})
 snapshot_1h  = defaultdict(lambda: {"buy": 0.0, "sell": 0.0})
 snapshot_24h = defaultdict(lambda: {"buy": 0.0, "sell": 0.0})
 
-# Accumulators for token volumes and ORBIT amounts on each side and per interval.
+# Accumulators for tokens and ORBIT amounts over each interval.
 # For buys:
 buy_vol_5m   = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
 buy_vol_1h   = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
@@ -47,17 +49,16 @@ async def on_ready():
 
 async def bootstrap_chain():
     """
-    Loads the full chain and processes each token_transfer to:
-      • Set a per-token price (ORBIT per token) for buy and sell actions.
-      • Accumulate tokens and ORBIT amounts in separate maps on the intervals:
-          - Last 5 minutes, 1 hour, and 24 hours.
-      • Set snapshot prices to allow calculation of % changes.
+    Load the full chain, process each token_transfer to:
+      • Compute per-transaction price (ORBIT per token)
+      • Allocate token volumes and ORBIT amounts to intervals:
+           - 5 minutes, 1 hour, and 24 hours (separately for buy and sell)
+      • Set snapshot prices for each interval.
     """
     now  = datetime.utcnow()
     t5   = now - timedelta(minutes=5)
     t1   = now - timedelta(hours=1)
     t24  = now - timedelta(hours=24)
-
     print("🔄 Loading chain…")
     async with aiohttp.ClientSession() as sess:
         r = await sess.get(CHAIN_API_URL)
@@ -69,12 +70,11 @@ async def bootstrap_chain():
             amt = tx.get("amount", 0.0)
             ts  = datetime.utcfromtimestamp(tx.get("timestamp", 0))
             note = tx.get("note") or {}
-            if not isinstance(note, dict): 
+            if not isinstance(note, dict):
                 continue
             xfer = note.get("type", {}).get("token_transfer")
             if not isinstance(xfer, dict):
                 continue
-
             sym = xfer.get("token_symbol")
             toks = xfer.get("amount", 0.0)
             txt = xfer.get("note", "")
@@ -82,10 +82,8 @@ async def bootstrap_chain():
             if not sym or not act or toks <= 0:
                 continue
 
-            # Calculate the transaction's price.
             price_data[sym][act] = round(amt / toks, 6)
 
-            # Allocate token volumes and ORBIT amounts into the appropriate interval accumulators:
             if ts >= t24:
                 if act == "buy":
                     buy_vol_24h[sym]["tokens"] += toks
@@ -108,7 +106,6 @@ async def bootstrap_chain():
                     sell_vol_5m[sym]["tokens"] += toks
                     sell_vol_5m[sym]["orbit"] += amt
 
-            # Set snapshot prices (last price prior to the threshold)
             if ts <= t5:
                 snapshot_5m[sym][act] = price_data[sym][act]
             if ts <= t1:
@@ -123,7 +120,6 @@ async def on_message(msg):
         return
     if not msg.content.startswith("[ExchangeBot] Success"):
         return
-
     try:
         payload = msg.content.split("```json")[1].split("```")[0].strip()
         data = json.loads(payload)
@@ -138,7 +134,6 @@ async def on_message(msg):
 
     price_data[sym][act] = round(amt / toks, 6)
 
-    # Update live accumulators across intervals.
     if act == "buy":
         buy_vol_5m[sym]["tokens"] += toks
         buy_vol_5m[sym]["orbit"] += amt
@@ -154,7 +149,6 @@ async def on_message(msg):
         sell_vol_24h[sym]["tokens"] += toks
         sell_vol_24h[sym]["orbit"] += amt
 
-    # Set snapshots if not already set.
     if snapshot_5m[sym][act] == 0:
         snapshot_5m[sym][act] = price_data[sym][act]
     if snapshot_1h[sym][act] == 0:
@@ -176,7 +170,6 @@ async def periodic_report():
     tm = now.strftime("%H:%M UTC")
     lines = [f"📊 **5-Min Update** (`{tm}`)"]
 
-    # 5-minute update: compute average prices from the accumulators.
     for s, stats in price_data.items():
         b = stats["buy"]
         sll = stats["sell"]
@@ -190,7 +183,6 @@ async def periodic_report():
         sell_tok = sell_vol_5m[s]["tokens"]
         sell_orb = sell_vol_5m[s]["orbit"]
 
-        # Average prices for 5-min interval.
         avg_buy = buy_orb / buy_tok if buy_tok else 0.0
         avg_sell = sell_orb / sell_tok if sell_tok else 0.0
 
@@ -198,24 +190,25 @@ async def periodic_report():
             f"\n**{s}**\n"
             f"🟢 Buy: {b:.6f} ({cb:+.2f}%)\n"
             f"🔴 Sell: {sll:.6f} ({cs:+.2f}%)\n"
-            f"🔼 Buy: {buy_tok:,.2f} tokens\n🔼 Orbit Spent: {buy_orb:,.2f} ORBIT\n"
-            f"🔽 Sell: {sell_tok:,.2f} tokens\n🔽 Orbit Received: {sell_orb:,.2f} ORBIT\n"
-            f"💹 Avg Buy Price: {avg_buy:.6f} ORBIT\n💹 Avg Sell Price: {avg_sell:.6f} ORBIT"
+            f"🔼 Buy: {buy_tok:,.2f} tokens, Orbit Spent: {buy_orb:,.2f} ORBIT\n"
+            f"🔽 Sell: {sell_tok:,.2f} tokens, Orbit Received: {sell_orb:,.2f} ORBIT\n"
+            f"💹 Avg Buy Price: {avg_buy:.6f} ORBIT\n"
+            f"💹 Avg Sell Price: {avg_sell:.6f} ORBIT"
         )
         snapshot_5m[s] = {"buy": b, "sell": sll}
         buy_vol_5m[s] = {"tokens": 0.0, "orbit": 0.0}
         sell_vol_5m[s] = {"tokens": 0.0, "orbit": 0.0}
 
     await ch.send("\n".join(lines))
+
     await bootstrap_chain()
-    # Hourly and daily reports.
     await report_interval(ch, "Hourly", snapshot_1h, buy_vol_1h, sell_vol_1h)
     await report_interval(ch, "Daily", snapshot_24h, buy_vol_24h, sell_vol_24h)
+    await generate_daily_chart(ch)
 
 async def report_interval(channel, label, snap, buy_map, sell_map):
     tm = datetime.utcnow().strftime("%H:%M UTC" if label=="Hourly" else "%Y-%m-%d")
     lines = [f"🕐 **{label} Summary** (`{tm}`)"]
-
     for s, stats in price_data.items():
         b = stats["buy"]
         sll = stats["sell"]
@@ -236,13 +229,52 @@ async def report_interval(channel, label, snap, buy_map, sell_map):
             f"\n**{s}**\n"
             f"🟢 Buy: {b:.6f} ({cb:+.2f}%)\n"
             f"🔴 Sell: {sll:.6f} ({cs:+.2f}%)\n"
-            f"🔼 Buy: {buy_tok:,.2f} tokens\n🔼 Orbit Spent: {buy_orb:,.2f} ORBIT\n"
-            f"🔽 Sell: {sell_tok:,.2f} tokens\n🔽 Orbit Received: {sell_orb:,.2f} ORBIT\n"
-            f"💹 Avg Buy Price: {avg_buy:.6f} ORBIT\n💹 Avg Sell Price: {avg_sell:.6f} ORBIT"
+            f"Vol: {total_vol:,.2f} tokens\n"
+            f"🔼 Buy: {buy_tok:,.2f} tokens, Orbit Spent: {buy_orb:,.2f} ORBIT\n"
+            f"🔽 Sell: {sell_tok:,.2f} tokens, Orbit Received: {sell_orb:,.2f} ORBIT\n"
+            f"💹 Avg Buy Price: {avg_buy:.6f} ORBIT | Avg Sell Price: {avg_sell:.6f} ORBIT"
         )
         snap[s] = {"buy": b, "sell": sll}
         buy_map[s] = {"tokens": 0.0, "orbit": 0.0}
         sell_map[s] = {"tokens": 0.0, "orbit": 0.0}
     await channel.send("\n".join(lines))
+
+async def generate_daily_chart(channel):
+    """
+    Generates and sends a chart that displays the daily average buy and sell prices
+    for each token based on the 24h accumulators.
+    """
+    tokens = []
+    avg_buy_prices = []
+    avg_sell_prices = []
+    for sym in price_data:
+        btoks = buy_vol_24h[sym]["tokens"]
+        borbit = buy_vol_24h[sym]["orbit"]
+        stoks = sell_vol_24h[sym]["tokens"]
+        sorbit = sell_vol_24h[sym]["orbit"]
+        avg_buy = borbit / btoks if btoks else 0.0
+        avg_sell = sorbit / stoks if stoks else 0.0
+        tokens.append(sym)
+        avg_buy_prices.append(avg_buy)
+        avg_sell_prices.append(avg_sell)
+    if not tokens:
+        await channel.send("No daily data available for chart generation.")
+        return
+    fig, ax = plt.subplots(figsize=(8, 4))
+    width = 0.35
+    x = range(len(tokens))
+    ax.bar(x, avg_buy_prices, width, label='Avg Buy Price', color='green')
+    ax.bar([xi + width for xi in x], avg_sell_prices, width, label='Avg Sell Price', color='red')
+    ax.set_ylabel('Price (ORBIT)')
+    ax.set_title('Daily Average Buy/Sell Prices')
+    ax.set_xticks([xi + width/2 for xi in x])
+    ax.set_xticklabels(tokens)
+    ax.legend()
+    plt.tight_layout()
+    chart_path = "daily_chart.png"
+    plt.savefig(chart_path)
+    plt.close(fig)
+    await channel.send("Daily Average Price Chart:", file=discord.File(chart_path))
+    os.remove(chart_path)
 
 bot.run(DISCORD_TOKEN)
