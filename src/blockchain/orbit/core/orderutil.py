@@ -196,13 +196,11 @@ async def token_stats(token=TOKEN):
                 tokens[tok] = tokens.get(tok, 0) + qty
                 if tx_note == "Token purchased from exchange":
                     stats["buy_tokens"] += qty
-                    print(stats["buy_tokens"])
                     stats["buy_orbit"] += max(orbit_amount, 0.000001)
                     transfer_cnt += 1
                     exchange_only[tok] = True
                 elif tx_note == "Token sold to exchange":
                     stats["sell_tokens"] += qty
-                    print(stats["sell_tokens"])
                     stats["sell_orbit"] += max(orbit_amount, 0.000001)
                     transfer_cnt += 1
                     exchange_only[tok] = True
