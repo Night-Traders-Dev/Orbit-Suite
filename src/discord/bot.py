@@ -1,196 +1,205 @@
+import aiohttp
 from discord.ext import commands, tasks
-from discord import app_commands
 import discord
-from configure import DISCORD_TOKEN
-from commands.commands import setup as wallet_setup
 import json
 from collections import defaultdict
-from datetime import datetime
-from copy import deepcopy
+from datetime import datetime, timedelta
+from configure import DISCORD_TOKEN
+from commands.commands import setup as wallet_setup
 
-
-
-intents = discord.Intents.all()
-intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
-GUILD = discord.Object(id=1376608254741713008)
-
-EXCHANGE_CHANNEL_ID = 1379630873174872197
+# — CONFIG —
+EXCHANGE_CHANNEL_ID     = 1379630873174872197
 PRICE_UPDATE_CHANNEL_ID = 1386066535193509948
+CHAIN_API_URL           = "https://oliver-butler-oasis-builder.trycloudflare.com/api/chain"
 
-price_data = {}  # token => {"buy": x, "sell": y}
-previous_snapshot = {}  # token => {"buy": x, "sell": y}
-volume_tracker = defaultdict(lambda: {
-    "buy": {"count": 0, "orbit": 0.0, "tokens": 0.0},
-    "sell": {"count": 0, "orbit": 0.0, "tokens": 0.0}
-})
-hourly_tracker = deepcopy(volume_tracker)
-daily_tracker = deepcopy(volume_tracker)
+# — IN-MEMORY STATE —
+price_data        = {}  # token -> { "buy": float, "sell": float }
+previous_snapshot = {}
+# volume counters per token
+volume_5m  = defaultdict(lambda: {"buy": 0.0, "sell": 0.0})
+volume_1h  = defaultdict(lambda: {"buy": 0.0, "sell": 0.0})
+volume_24h = defaultdict(lambda: {"buy": 0.0, "sell": 0.0})
+
 
 def calc_change(old, new):
-    if old == 0:
-        return 0.0
-    return round(((new - old) / old) * 100, 2)
+    if old == 0: return 0.0
+    return round(((new - old)/old)*100, 2)
 
+
+bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
 @bot.event
 async def on_ready():
-    try:
-        wallet_setup(bot, GUILD)
-        synced = await bot.tree.sync(guild=GUILD)
-        print(f"Synced {len(synced)} commands")
-    except Exception as e:
-        print(e)
-    print(f'✅ Bot Ready as {bot.user}')
-    token_price_report.start()
-    hourly_report.start()
-    daily_report.start()
+    # register slash commands, etc.
+    wallet_setup(bot)
+    print(f"✅ Bot ready as {bot.user}")
 
+    # bootstrap everything from the full chain
+    await bootstrap_from_chain()
+
+    # start reporting loop
+    periodic_report.start()
+
+
+async def bootstrap_from_chain():
+    """
+    Fetch the entire chain once, parse every token_transfer:
+     • last seen prices => price_data + previous_snapshot
+     • volume in last 5m, 1h, 24h
+    """
+    print("🔄 Bootstrapping from chain…")
+    now = datetime.utcnow()
+    t5  = now - timedelta(minutes=5)
+    t1  = now - timedelta(hours=1)
+    t24 = now - timedelta(hours=24)
+
+    async with aiohttp.ClientSession() as sess:
+        async with sess.get(CHAIN_API_URL) as resp:
+            if resp.status != 200:
+                print(f"[WARN] Chain fetch failed: {resp.status}")
+                return
+            chain = await resp.json()
+
+    # iterate every block, every tx
+    for block in chain:
+        for tx in block.get("transactions", []):
+            # top-level ORBIT amount
+            orbit_amt = tx.get("amount", 0.0)
+            ts = datetime.utcfromtimestamp(tx.get("timestamp", 0))
+            note_type = tx.get("note", {}).get("type", {})
+            xfer = note_type.get("token_transfer")
+            if not xfer:
+                continue
+
+            sym    = xfer.get("token_symbol")
+            tokens = xfer.get("amount", 0.0)
+            note   = xfer.get("note", "").lower()
+
+            # classify buy vs sell
+            action = None
+            if "purchased from exchange" in note:
+                action = "buy"
+            elif "sold to exchange" in note:
+                action = "sell"
+            if not (sym and action):
+                continue
+
+            # 1) last‐seen price
+            price = round(orbit_amt / tokens, 6) if tokens else 0.0
+            price_data.setdefault(sym, {})[action] = price
+
+            # 2) volume windows
+            if ts >= t24:
+                volume_24h[sym][action] += tokens
+            if ts >= t1:
+                volume_1h[sym][action] += tokens
+            if ts >= t5:
+                volume_5m[sym][action] += tokens
+
+    # snapshot = current price_data
+    previous_snapshot.update({t: dict(price_data[t]) for t in price_data})
+    print("✅ Bootstrap complete. Tokens:", list(price_data.keys()))
 
 
 @bot.event
 async def on_message(message):
+    # existing live‐update listener (no change)
     if message.channel.id != EXCHANGE_CHANNEL_ID:
         return
     if not message.content.startswith("[ExchangeBot] Success"):
         return
 
     try:
-        data = json.loads(message.content.split("```json")[1].split("```")[0].strip())
-        action = data.get("action")
-        symbol = data.get("symbol", "").upper()
-        if not symbol or not action:
+        payload = message.content.split("```json")[1].split("```")[0].strip()
+        data = json.loads(payload)
+        action = data["action"].lower()
+        sym    = data["symbol"].upper()
+        if action not in ("buy","sell"):
             return
 
-        if symbol not in price_data:
-            price_data[symbol] = {"buy": 0.0, "sell": 0.0}
+        # update price_data
+        if sym not in price_data:
+            price_data[sym] = {"buy":0.0,"sell":0.0}
+            previous_snapshot[sym] = {"buy":0.0,"sell":0.0}
 
-        log_lines = [f"💱 **{symbol} {action}**"]
-
-        if action == "BUY":
+        if action=="buy":
             tokens = data["tokens_received"]
-            orbit = data["orbit_spent"]
-            price = round(orbit / tokens, 6)
-            price_data[symbol]["buy"] = price
-
-            volume_tracker[symbol]["buy"]["count"] += 1
-            volume_tracker[symbol]["buy"]["tokens"] += tokens
-            volume_tracker[symbol]["buy"]["orbit"] += orbit
-            hourly_tracker[symbol][action.lower()]["count"] += 1
-            hourly_tracker[symbol][action.lower()]["tokens"] += tokens
-            hourly_tracker[symbol][action.lower()]["orbit"] += orbit
-            daily_tracker[symbol][action.lower()]["count"] += 1
-            daily_tracker[symbol][action.lower()]["tokens"] += tokens
-            daily_tracker[symbol][action.lower()]["orbit"] += orbit
-
-            log_lines.append(f"🟢 Price: `{price}` ORBIT per {symbol}")
-            log_lines.append(f"📥 Tokens: `{tokens}` | 💸 ORBIT: `{orbit}`")
-
-        elif action == "SELL":
+            orbit  = data["orbit_spent"]
+        else:
             tokens = data["tokens_sold"]
-            orbit = data["orbit_received"]
-            price = round(orbit / tokens, 6)
-            price_data[symbol]["sell"] = price
+            orbit  = data["orbit_received"]
 
-            volume_tracker[symbol]["sell"]["count"] += 1
-            volume_tracker[symbol]["sell"]["tokens"] += tokens
-            volume_tracker[symbol]["sell"]["orbit"] += orbit
-            hourly_tracker[symbol][action.lower()]["count"] += 1
-            hourly_tracker[symbol][action.lower()]["tokens"] += tokens
-            hourly_tracker[symbol][action.lower()]["orbit"] += orbit
-            daily_tracker[symbol][action.lower()]["count"] += 1
-            daily_tracker[symbol][action.lower()]["tokens"] += tokens
-            daily_tracker[symbol][action.lower()]["orbit"] += orbit
+        price = round(orbit / tokens, 6) if tokens else 0.0
+        price_data[sym][action] = price
 
-            log_lines.append(f"🔴 Price: `{price}` ORBIT per {symbol}")
-            log_lines.append(f"📤 Tokens: `{tokens}` | 💰 ORBIT: `{orbit}`")
+        # increment 5m & 1h & 24h counters
+        volume_5m[sym][action]  += tokens
+        volume_1h[sym][action]  += tokens
+        volume_24h[sym][action] += tokens
 
-        # Send live update to price channel
-        await bot.get_channel(PRICE_UPDATE_CHANNEL_ID).send("\n".join(log_lines))
+        # live post
+        prefix = "🟢 BUY" if action=="buy" else "🔴 SELL"
+        msg = f"💱 **{sym} {action.upper()}**\n" \
+              f"{prefix}: `{price}` ORBIT per {sym}\n" \
+              f"Tokens: `{tokens}` | ORBIT: `{orbit}`"
+        await bot.get_channel(PRICE_UPDATE_CHANNEL_ID).send(msg)
 
     except Exception as e:
-        print(f"[ERROR] Failed to parse message: {e}")
+        print("[ERR] parsing on_message:", e)
 
 
 @tasks.loop(minutes=5)
-async def token_price_report():
-    channel = bot.get_channel(PRICE_UPDATE_CHANNEL_ID)
-    if not channel:
-        print("[ERROR] Price update channel not found.")
-        return
+async def periodic_report():
+    """
+    Runs every 5 minutes:
+      • Always: 5-min market update
+      • If minute==5: post the hourly summary (last 60m)
+      • If hour==0 and minute==5: post the daily summary (last 24h)
+    """
+    now = datetime.utcnow()
+    ch  = bot.get_channel(PRICE_UPDATE_CHANNEL_ID)
 
-    timestamp = datetime.utcnow().strftime('%H:%M UTC')
-    lines = [f"📊 **5-Minute Market Update** (`{timestamp}`)"]
-
-    for token, stats in price_data.items():
-        if token not in previous_snapshot:
-            # Bootstrap snapshot if missing
-            previous_snapshot[token] = {"buy": stats["buy"], "sell": stats["sell"]}
-
-        old = previous_snapshot[token]
-        change_buy = calc_change(old["buy"], stats["buy"])
-        change_sell = calc_change(old["sell"], stats["sell"])
-
-        buy_stats = volume_tracker[token]["buy"]
-        sell_stats = volume_tracker[token]["sell"]
-
+    # --- 5-min update ---
+    ts = now.strftime("%H:%M UTC")
+    lines = [f"📊 **5-Minute Market Update** (`{ts}`)"]
+    for sym, stats in price_data.items():
+        prev = previous_snapshot.get(sym, {"buy":0,"sell":0})
+        cb   = calc_change(prev["buy"],  stats["buy"])
+        cs   = calc_change(prev["sell"], stats["sell"])
+        v5   = volume_5m[sym]
         lines.append(
-            f"\n**{token}**"
-            f"\n🟢 Buy: `{stats['buy']:.6f}` ORBIT ({change_buy:+.2f}%)"
-            f"\n🔴 Sell: `{stats['sell']:.6f}` ORBIT ({change_sell:+.2f}%)"
-            f"\n🔼 {buy_stats['count']} buys | {buy_stats['tokens']:.2f} tokens | {buy_stats['orbit']:.2f} ORBIT"
-            f"\n🔽 {sell_stats['count']} sells | {sell_stats['tokens']:.2f} tokens | {sell_stats['orbit']:.2f} ORBIT"
+            f"\n**{sym}**"
+            f"\n🟢 Buy: `{stats['buy']:.6f}` ({cb:+.2f}%)"
+            f"\n🔴 Sell:`{stats['sell']:.6f}` ({cs:+.2f}%)"
+            f"\n🔼 {v5['buy']:.2f} tokens"
+            f"\n🔽 {v5['sell']:.2f} tokens"
         )
+        # reset for next window & snapshot
+        previous_snapshot[sym] = dict(stats)
+        volume_5m[sym] = {"buy":0.0,"sell":0.0}
 
-        # Update snapshot for next interval
-        previous_snapshot[token] = {"buy": stats["buy"], "sell": stats["sell"]}
+    await ch.send("\n".join(lines))
 
-        # Reset volume tracker
-        volume_tracker[token] = {
-            "buy": {"count": 0, "orbit": 0.0, "tokens": 0.0},
-            "sell": {"count": 0, "orbit": 0.0, "tokens": 0.0}
-        }
+    # --- hourly at :05 ---
+    if now.minute == 5:
+        await post_summary(ch, volume_1h, "🕐 Hourly Market Summary", now)
 
-    await channel.send("\n".join(lines))
+    # --- daily at 00:05 UTC ---
+    if now.hour == 0 and now.minute == 5:
+        await post_summary(ch, volume_24h, "📅 Daily Market Summary", now, date_fmt="%Y-%m-%d")
 
-@tasks.loop(hours=1)
-async def hourly_report():
-    channel = bot.get_channel(PRICE_UPDATE_CHANNEL_ID)
-    timestamp = datetime.utcnow().strftime('%H:%M UTC')
-    lines = [f"🕐 **Hourly Market Summary** (`{timestamp}`)"]
-
-    for token, stats in hourly_tracker.items():
-        buy = stats["buy"]
-        sell = stats["sell"]
+async def post_summary(channel, tracker, title, now, date_fmt="%H:%M UTC"):
+    ts = now.strftime(date_fmt)
+    lines = [f"**{title}** (`{ts}`)"]
+    for sym, vol in tracker.items():
         lines.append(
-            f"\n**{token}**"
-            f"\n🔼 {buy['count']} buys | {buy['tokens']:.2f} tokens | {buy['orbit']:.2f} ORBIT"
-            f"\n🔽 {sell['count']} sells | {sell['tokens']:.2f} tokens | {sell['orbit']:.2f} ORBIT"
+            f"\n**{sym}**"
+            f"\n🔼 {vol['buy']:.2f} tokens"
+            f"\n🔽 {vol['sell']:.2f} tokens"
         )
-        hourly_tracker[token] = {"buy": {"count": 0, "orbit": 0.0, "tokens": 0.0},
-                                 "sell": {"count": 0, "orbit": 0.0, "tokens": 0.0}}
-
+        # reset
+        tracker[sym] = {"buy":0.0,"sell":0.0}
     await channel.send("\n".join(lines))
-
-@tasks.loop(hours=24)
-async def daily_report():
-    channel = bot.get_channel(PRICE_UPDATE_CHANNEL_ID)
-    timestamp = datetime.utcnow().strftime('%Y-%m-%d')
-    lines = [f"📅 **Daily Market Summary** (`{timestamp}`)"]
-
-    for token, stats in daily_tracker.items():
-        buy = stats["buy"]
-        sell = stats["sell"]
-        lines.append(
-            f"\n**{token}**"
-            f"\n🔼 {buy['count']} buys | {buy['tokens']:.2f} tokens | {buy['orbit']:.2f} ORBIT"
-            f"\n🔽 {sell['count']} sells | {sell['tokens']:.2f} tokens | {sell['orbit']:.2f} ORBIT"
-        )
-        daily_tracker[token] = {"buy": {"count": 0, "orbit": 0.0, "tokens": 0.0},
-                                "sell": {"count": 0, "orbit": 0.0, "tokens": 0.0}}
-
-    await channel.send("\n".join(lines))
-
 
 
 bot.run(DISCORD_TOKEN)
