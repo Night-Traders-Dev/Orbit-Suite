@@ -70,7 +70,11 @@ async def bootstrap_from_chain():
             # top-level ORBIT amount
             orbit_amt = tx.get("amount", 0.0)
             ts = datetime.utcfromtimestamp(tx.get("timestamp", 0))
-            note_type = tx.get("note", {}).get("type", {})
+            # guard against note being a string or None
+            raw_note = tx.get("note", {})
+            note_obj = raw_note if isinstance(raw_note, dict) else {}
+            note_type = note_obj.get("type", {})
+
             xfer = note_type.get("token_transfer")
             if not xfer:
                 continue
