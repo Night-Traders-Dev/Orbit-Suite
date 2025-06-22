@@ -17,19 +17,20 @@ CHAIN_API_URL           = "https://oliver-butler-oasis-builder.trycloudflare.com
 # Current per-token prices from chain (per side)
 price_data = defaultdict(lambda: {"buy": 0.0, "sell": 0.0})
 
-# Snapshots (last reported price) for each interval (used for % change comparisons)
+# Snapshots (last reported price) for each interval for % change calculation.
 snapshot_5m  = defaultdict(lambda: {"buy": 0.0, "sell": 0.0})
 snapshot_1h  = defaultdict(lambda: {"buy": 0.0, "sell": 0.0})
 snapshot_24h = defaultdict(lambda: {"buy": 0.0, "sell": 0.0})
 
-# Separate accumulators for buy vs. sell volumes over each interval.
-# They track both the number of tokens traded and the total ORBIT (spent or received)
-buy_vol_5m    = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
-sell_vol_5m   = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
-buy_vol_1h    = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
-sell_vol_1h   = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
-buy_vol_24h   = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
-sell_vol_24h  = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
+# Accumulators for token volumes and ORBIT amounts on each side and per interval.
+# For buys:
+buy_vol_5m   = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
+buy_vol_1h   = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
+buy_vol_24h  = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
+# For sells:
+sell_vol_5m  = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
+sell_vol_1h  = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
+sell_vol_24h = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
 
 def calc_change(old, new):
     return round(((new - old) / old) * 100, 2) if old else 0.0
@@ -46,9 +47,11 @@ async def on_ready():
 
 async def bootstrap_chain():
     """
-    Loads the full chain and allocates each token_transfer into per-token accumulators.
-    It sets per-side price_data and, according to the timestamp, adds the traded tokens and ORBIT
-    to the proper interval accumulators (5min, 1h, 24h). It also sets snapshot values.
+    Loads the full chain and processes each token_transfer to:
+      • Set a per-token price (ORBIT per token) for buy and sell actions.
+      • Accumulate tokens and ORBIT amounts in separate maps on the intervals:
+          - Last 5 minutes, 1 hour, and 24 hours.
+      • Set snapshot prices to allow calculation of % changes.
     """
     now  = datetime.utcnow()
     t5   = now - timedelta(minutes=5)
@@ -66,50 +69,46 @@ async def bootstrap_chain():
             amt = tx.get("amount", 0.0)
             ts  = datetime.utcfromtimestamp(tx.get("timestamp", 0))
             note = tx.get("note") or {}
-            if not isinstance(note, dict):
+            if not isinstance(note, dict): 
                 continue
             xfer = note.get("type", {}).get("token_transfer")
             if not isinstance(xfer, dict):
                 continue
 
-            sym   = xfer.get("token_symbol")
-            toks  = xfer.get("amount", 0.0)
-            txt   = xfer.get("note", "")
-            act   = None
-            if "purchased" in txt:
-                act = "buy"
-            elif "sold" in txt:
-                act = "sell"
+            sym = xfer.get("token_symbol")
+            toks = xfer.get("amount", 0.0)
+            txt = xfer.get("note", "")
+            act = "buy" if "purchased" in txt else "sell" if "sold" in txt else None
             if not sym or not act or toks <= 0:
                 continue
 
-            # Calculate per-transaction price.
+            # Calculate the transaction's price.
             price_data[sym][act] = round(amt / toks, 6)
 
-            # Allocate volumes & ORBIT amounts to intervals:
+            # Allocate token volumes and ORBIT amounts into the appropriate interval accumulators:
             if ts >= t24:
                 if act == "buy":
                     buy_vol_24h[sym]["tokens"] += toks
-                    buy_vol_24h[sym]["orbit"]  += amt
+                    buy_vol_24h[sym]["orbit"] += amt
                 else:
                     sell_vol_24h[sym]["tokens"] += toks
-                    sell_vol_24h[sym]["orbit"]  += amt
+                    sell_vol_24h[sym]["orbit"] += amt
             if ts >= t1:
                 if act == "buy":
                     buy_vol_1h[sym]["tokens"] += toks
-                    buy_vol_1h[sym]["orbit"]  += amt
+                    buy_vol_1h[sym]["orbit"] += amt
                 else:
                     sell_vol_1h[sym]["tokens"] += toks
-                    sell_vol_1h[sym]["orbit"]  += amt
+                    sell_vol_1h[sym]["orbit"] += amt
             if ts >= t5:
                 if act == "buy":
                     buy_vol_5m[sym]["tokens"] += toks
-                    buy_vol_5m[sym]["orbit"]  += amt
+                    buy_vol_5m[sym]["orbit"] += amt
                 else:
                     sell_vol_5m[sym]["tokens"] += toks
-                    sell_vol_5m[sym]["orbit"]  += amt
+                    sell_vol_5m[sym]["orbit"] += amt
 
-            # Snapshots are set based on the last price before the interval thresholds.
+            # Set snapshot prices (last price prior to the threshold)
             if ts <= t5:
                 snapshot_5m[sym][act] = price_data[sym][act]
             if ts <= t1:
@@ -132,30 +131,30 @@ async def on_message(msg):
         print("[ERR] on_message parse:", e)
         return
 
-    act  = data["action"].lower()
-    sym  = data["symbol"].upper()
+    act = data["action"].lower()
+    sym = data["symbol"].upper()
     toks = data["tokens_received"] if act == "buy" else data["tokens_sold"]
-    amt  = data["orbit_spent"] if act == "buy" else data["orbit_received"]
+    amt = data["orbit_spent"] if act == "buy" else data["orbit_received"]
 
     price_data[sym][act] = round(amt / toks, 6)
 
-    # Update live accumulators:
+    # Update live accumulators across intervals.
     if act == "buy":
         buy_vol_5m[sym]["tokens"] += toks
-        buy_vol_5m[sym]["orbit"]  += amt
+        buy_vol_5m[sym]["orbit"] += amt
         buy_vol_1h[sym]["tokens"] += toks
-        buy_vol_1h[sym]["orbit"]  += amt
+        buy_vol_1h[sym]["orbit"] += amt
         buy_vol_24h[sym]["tokens"] += toks
-        buy_vol_24h[sym]["orbit"]  += amt
+        buy_vol_24h[sym]["orbit"] += amt
     elif act == "sell":
         sell_vol_5m[sym]["tokens"] += toks
-        sell_vol_5m[sym]["orbit"]  += amt
+        sell_vol_5m[sym]["orbit"] += amt
         sell_vol_1h[sym]["tokens"] += toks
-        sell_vol_1h[sym]["orbit"]  += amt
+        sell_vol_1h[sym]["orbit"] += amt
         sell_vol_24h[sym]["tokens"] += toks
-        sell_vol_24h[sym]["orbit"]  += amt
+        sell_vol_24h[sym]["orbit"] += amt
 
-    # Set snapshots if not already set for this side.
+    # Set snapshots if not already set.
     if snapshot_5m[sym][act] == 0:
         snapshot_5m[sym][act] = price_data[sym][act]
     if snapshot_1h[sym][act] == 0:
@@ -173,11 +172,11 @@ async def on_message(msg):
 @tasks.loop(minutes=5)
 async def periodic_report():
     now = datetime.utcnow()
-    ch  = bot.get_channel(PRICE_UPDATE_CHANNEL_ID)
+    ch = bot.get_channel(PRICE_UPDATE_CHANNEL_ID)
     tm = now.strftime("%H:%M UTC")
     lines = [f"📊 **5-Min Update** (`{tm}`)"]
 
-    # 5-minute update with averages calculated from the chain data:
+    # 5-minute update: compute average prices from the accumulators.
     for s, stats in price_data.items():
         b = stats["buy"]
         sll = stats["sell"]
@@ -185,35 +184,37 @@ async def periodic_report():
         old_s = snapshot_5m[s]["sell"]
         cb = calc_change(old_b, b)
         cs = calc_change(old_s, sll)
-        # Retrieve the 5-min volume accumulators:
+
         buy_tok = buy_vol_5m[s]["tokens"]
         buy_orb = buy_vol_5m[s]["orbit"]
         sell_tok = sell_vol_5m[s]["tokens"]
         sell_orb = sell_vol_5m[s]["orbit"]
+
+        # Average prices for 5-min interval.
+        avg_buy = buy_orb / buy_tok if buy_tok else 0.0
+        avg_sell = sell_orb / sell_tok if sell_tok else 0.0
+
         lines.append(
             f"\n**{s}**\n"
             f"🟢 Buy: {b:.6f} ({cb:+.2f}%)\n"
             f"🔴 Sell: {sll:.6f} ({cs:+.2f}%)\n"
-            f"🔼 {buy_tok:,.2f} tokens, Orbit Spent: {buy_orb:,.2f} ORBIT\n"
-            f"🔽 {sell_tok:,.2f} tokens, Orbit Received: {sell_orb:,.2f} ORBIT"
+            f"🔼 Buy: {buy_tok:,.2f} tokens, Orbit Spent: {buy_orb:,.2f} ORBIT\n"
+            f"🔽 Sell: {sell_tok:,.2f} tokens, Orbit Received: {sell_orb:,.2f} ORBIT\n"
+            f"💹 Avg Buy Price: {avg_buy:.6f} ORBIT | Avg Sell Price: {avg_sell:.6f} ORBIT"
         )
         snapshot_5m[s] = {"buy": b, "sell": sll}
         buy_vol_5m[s] = {"tokens": 0.0, "orbit": 0.0}
         sell_vol_5m[s] = {"tokens": 0.0, "orbit": 0.0}
+
     await ch.send("\n".join(lines))
 
     await report_interval(ch, "Hourly", snapshot_1h, buy_vol_1h, sell_vol_1h)
     await report_interval(ch, "Daily", snapshot_24h, buy_vol_24h, sell_vol_24h)
 
 async def report_interval(channel, label, snap, buy_map, sell_map):
-    """
-    Reports the summary for the given interval.
-    It shows the current token prices (and change from the interval snapshot),
-    total volume in tokens, and calculates the average buy and sell prices using the
-    accumulated ORBIT amounts.
-    """
     tm = datetime.utcnow().strftime("%H:%M UTC" if label=="Hourly" else "%Y-%m-%d")
     lines = [f"🕐 **{label} Summary** (`{tm}`)"]
+
     for s, stats in price_data.items():
         b = stats["buy"]
         sll = stats["sell"]
@@ -221,6 +222,7 @@ async def report_interval(channel, label, snap, buy_map, sell_map):
         old_s = snap[s]["sell"]
         cb = calc_change(old_b, b)
         cs = calc_change(old_s, sll)
+
         buy_tok = buy_map[s]["tokens"]
         buy_orb = buy_map[s]["orbit"]
         sell_tok = sell_map[s]["tokens"]
@@ -233,8 +235,9 @@ async def report_interval(channel, label, snap, buy_map, sell_map):
             f"\n**{s}**\n"
             f"🟢 Buy: {b:.6f} ({cb:+.2f}%)\n"
             f"🔴 Sell: {sll:.6f} ({cs:+.2f}%)\n"
-            f"Vol: {total_vol:,.2f} tokens\n"
-            f"Avg Buy Price: {avg_buy:.6f} ORBIT | Avg Sell Price: {avg_sell:.6f} ORBIT"
+            f"🔼 Buy: {buy_tok:,.2f} tokens, Orbit Spent: {buy_orb:,.2f} ORBIT\n"
+            f"🔽 Sell: {sell_tok:,.2f} tokens, Orbit Received: {sell_orb:,.2f} ORBIT\n"
+            f"💹 Avg Buy Price: {avg_buy:.6f} ORBIT | Avg Sell Price: {avg_sell:.6f} ORBIT"
         )
         snap[s] = {"buy": b, "sell": sll}
         buy_map[s] = {"tokens": 0.0, "orbit": 0.0}
