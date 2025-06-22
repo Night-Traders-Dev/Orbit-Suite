@@ -13,21 +13,21 @@
     {{ token.name|default('Unknown') }} ({{ token.symbol|default('') }})
   </h2>
 
-  <!-- Top Stats Grid -->
+  <!-- Stats Grid -->
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-800 p-6 rounded-xl shadow-inner">
 
     <!-- Current Price -->
-    <div title="Current exchange price in Orbit">
+    <div>
       <strong>Current Price:</strong>
-      <span class="inline-flex items-center gap-1 text-green-400 font-semibold">
+      <span class="text-green-400 font-semibold">
         {{ "{:,.6f}".format(token.current_price|default(0.0)) }} Orbit
       </span>
     </div>
 
     <!-- Market Cap -->
-    <div title="Market Cap">
+    <div>
       <strong>Market Cap:</strong>
-      <span id="marketcap" class="inline-flex items-center gap-1 text-green-400 font-semibold">
+      <span id="marketcap" class="text-green-400 font-semibold">
         {{ "{:,.2f}".format(token.mc|default(0.0)) }} Orbit
       </span>
     </div>
@@ -39,41 +39,40 @@
       function updateMarketCap() {
         const m = tokenData.price * tokenData.volume_received;
         document.getElementById("marketcap").textContent =
-          m.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-          + " Orbit";
+          m.toLocaleString(undefined, { minimumFractionDigits:2, maximumFractionDigits:2 }) + " Orbit";
       }
       window.onload = updateMarketCap;
     </script>
 
-    <!-- Circulating & Total Supply -->
-    <div title="Total circulating supply">
+    <!-- Circulating & Supply -->
+    <div>
       <strong>Circulating:</strong>
-      <span class="text-blue-400 font-medium">
+      <span class="text-blue-400">
         {{ "{:,}".format(token.circulating|default(0)) }}
       </span>
     </div>
-    <div title="Total supply">
+    <div>
       <strong>Supply:</strong>
-      <span class="text-blue-400 font-medium">
+      <span class="text-blue-400">
         {{ "{:,}".format(token.supply|default(0)) }}
       </span>
     </div>
 
-    <!-- Transaction Counts -->
-    <div title="Total buy orders">
+    <!-- Tx Counts -->
+    <div>
       <strong>Buy TXs:</strong>
       <span class="badge bg-green-200 text-green-900 px-2 py-1 rounded-full text-sm">
         {{ "{:,}".format(token.buy_cnt|default(0)) }}
       </span>
     </div>
-    <div title="Total sell orders">
+    <div>
       <strong>Sell TXs:</strong>
       <span class="badge bg-red-200 text-red-900 px-2 py-1 rounded-full text-sm">
         {{ "{:,}".format(token.sell_cnt|default(0)) }}
       </span>
     </div>
 
-    <!-- Average Prices -->
+    <!-- Avg Prices -->
     <div>
       <strong>Avg Buy Price:</strong>
       <span class="text-green-400">
@@ -87,7 +86,7 @@
       </span>
     </div>
 
-    <!-- Orbit Spent / Earned -->
+    <!-- Orbit Spent/Earned -->
     <div>
       <strong>Orbit Spent Buying:</strong>
       {{ "{:,.6f}".format(token.orbit_spent_buying|default(0.0)) }}
@@ -97,7 +96,7 @@
       {{ "{:,.6f}".format(token.orbit_earned_selling|default(0.0)) }}
     </div>
 
-    <!-- Creator & Creation Date -->
+    <!-- Creator & Created At -->
     {% if token.creator %}
       <div>
         <strong>Creator:</strong>
@@ -111,7 +110,6 @@
     <div>
       <strong>Created At:</strong> {{ token.created_at|default('')|ts }}
     </div>
-
   </div>
 
   <!-- Buy vs Sell Volume -->
@@ -135,7 +133,7 @@
     {% endif %}
   </div>
 
-  <!-- Open Orders Pressure Chart -->
+  <!-- Pressure Chart -->
   <div class="mt-10">
     <h3 class="text-xl font-semibold mb-2">Buy/Sell Pressure (Open Orders)</h3>
     <canvas id="pressureChart" height="100"></canvas>
@@ -163,56 +161,51 @@
           x: { ticks:{ color:'#ccc' } }
         },
         plugins: {
-          legend:{ display: false },
-          tooltip:{
-            callbacks:{
-              label: ctx => ctx.parsed.y.toLocaleString() + ' tokens'
-            }
-          }
+          legend:{ display:false },
+          tooltip:{ callbacks:{ label: ctx => ctx.parsed.y.toLocaleString() + ' tokens' }}
         }
       }
     });
   </script>
 
-  <!-- Order Book Depth Chart -->
+  <!-- Order Book Depth -->
   <div class="mt-10">
     <h3 class="text-xl font-semibold mb-2">Order Book Depth</h3>
     <canvas id="orderBookChart" height="100"></canvas>
   </div>
   <script>
-    const buyDepth  = {{ token.buy_depth | tojson }};
-    const sellDepth = {{ token.sell_depth|tojson }};
+    const buyDepth  = {{ token.buy_depth|default([])|tojson }};
+    const sellDepth = {{ token.sell_depth|default([])|tojson }};
     const oCtx = document.getElementById('orderBookChart').getContext('2d');
     new Chart(oCtx, {
-      type: 'line',
-      data: {
-        datasets: [
+      type:'line',
+      data:{
+        datasets:[
           {
-            label: 'Buy Depth',
-            data: buyDepth .map(d => ({ x: d.price, y: d.cum_quantity })),
-            borderColor: 'green',
-            backgroundColor: 'rgba(0,255,0,0.1)',
-            stepped: true
+            label:'Buy Depth',
+            data: buyDepth.map(d => ({ x:d.price, y:d.cum_quantity })),
+            borderColor:'green',
+            backgroundColor:'rgba(0,255,0,0.1)',
+            stepped:true
           },
           {
-            label: 'Sell Depth',
-            data: sellDepth.map(d => ({ x: d.price, y: d.cum_quantity })),
-            borderColor: 'red',
-            backgroundColor: 'rgba(255,0,0,0.1)',
-            stepped: true
+            label:'Sell Depth',
+            data:sellDepth.map(d => ({ x:d.price, y:d.cum_quantity })),
+            borderColor:'red',
+            backgroundColor:'rgba(255,0,0,0.1)',
+            stepped:true
           }
         ]
       },
-      options: {
-        responsive: true,
-        plugins: { tooltip: { mode: 'index', intersect: false } },
-        scales: {
-          x: { title: { display: true, text: 'Price (Orbit)' }, type: 'linear', ticks: { color: '#ccc' } },
-          y: { title: { display: true, text: 'Cumulative Quantity' }, ticks: { color: '#ccc' } }
+      options:{
+        responsive:true,
+        plugins:{ tooltip:{ mode:'index', intersect:false } },
+        scales:{
+          x:{ title:{ display:true, text:'Price (Orbit)' }, type:'linear', ticks:{ color:'#ccc' } },
+          y:{ title:{ display:true, text:'Cumulative Quantity' }, ticks:{ color:'#ccc' } }
         }
       }
     });
   </script>
-
 </div>
 {% endblock %}
