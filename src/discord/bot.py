@@ -139,14 +139,14 @@ async def on_message(msg):
     price_data[sym][act] = round(amt / toks, 6)
 
     # Update live accumulators across intervals.
-    if act.lower() == "buy":
+    if act == "BUY":
         buy_vol_5m[sym]["tokens"] += toks
         buy_vol_5m[sym]["orbit"] += amt
         buy_vol_1h[sym]["tokens"] += toks
         buy_vol_1h[sym]["orbit"] += amt
         buy_vol_24h[sym]["tokens"] += toks
         buy_vol_24h[sym]["orbit"] += amt
-    elif act.lower() == "sell":
+    elif act == "SELL":
         sell_vol_5m[sym]["tokens"] += toks
         sell_vol_5m[sym]["orbit"] += amt
         sell_vol_1h[sym]["tokens"] += toks
