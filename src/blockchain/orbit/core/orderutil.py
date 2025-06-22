@@ -353,14 +353,14 @@ async def token_stats(token=TOKEN):
 
         open_list.append({
             "token": tok,
-            "adjusted_balance": round(adjusted_balance, 8),
+            "adjusted_balance": round(adjusted_balance, 6),
             "buy_tokens": ob,
             "buy_orbit": obo,
             "sell_tokens": os,
             "sell_orbit": oso,
-            "avg_buy_price": round(open_avg_buy_price, 4),
-            "avg_sell_price": round(open_avg_sell_price, 4),
-            "open_price": round(open_price, 4)
+            "avg_buy_price": round(open_avg_buy_price, 6),
+            "avg_sell_price": round(open_avg_sell_price, 6),
+            "open_price": round(open_price, 6)
         })
 
         tx_counts.append({
