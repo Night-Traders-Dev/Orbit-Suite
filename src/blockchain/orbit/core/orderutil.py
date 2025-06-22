@@ -312,15 +312,15 @@ async def token_stats(token=TOKEN):
         # Price calculations
         net_tokens = fb - fs
         net_orbit = fbo - fso
-        avg_buy_price = (net_orbit / net_tokens) if net_tokens else 0.0
-        avg_sell_price = (fso / fs) if fs else 0.0
+        avg_buy_price = (net_orbit / net_tokens) if net_tokens else 0.0001
+        avg_sell_price = (fso / fs) if fs else 0.0001
 
         raw_price = (
             (avg_buy_price + avg_sell_price) / 2
             if avg_buy_price and avg_sell_price
             else avg_buy_price or avg_sell_price or BASE_PRICE
         )
-        current_price =max(raw_price, 0.0001)
+        current_price = max(raw_price, 0.0001)
         stat_list.append({
             "token": tok,
             "adjusted_balance": round(adjusted_balance, 8),
@@ -336,8 +336,8 @@ async def token_stats(token=TOKEN):
         # Open order price stats
         open_net_tokens = ob - os
         open_net_orbit = obo - oso
-        open_avg_buy_price = (open_net_orbit / open_net_tokens) if open_net_tokens else 0.0
-        open_avg_sell_price = (oso / os) if os else 0.0
+        open_avg_buy_price = (open_net_orbit / open_net_tokens) if open_net_tokens else 0.0001
+        open_avg_sell_price = (oso / os) if os else 0.0001
 
         raw_open_price = (
             (open_avg_buy_price + open_avg_sell_price) / 2
