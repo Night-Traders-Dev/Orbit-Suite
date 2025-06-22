@@ -14,6 +14,7 @@ def ensure_min(val, min_val=0.000001):
 
 async def get_token_meta(symbol):
     token_sym = symbol.upper()
+    print(token_sym)
 
     # ALWAYS include symbol so SimpleNamespace.symbol exists
     token_meta = {"symbol": token_sym}
