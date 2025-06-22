@@ -114,7 +114,7 @@ async def all_tokens_stats(symbol_filter=None):
                 # update wallet balances
                 if sender:
                     wallets.setdefault(sender, {"amount": 0.0})
-                    wallets[sender]["amount"] = max(wallets[sender]["amount"] - amount, 0.0001)
+                    wallets[sender]["amount"] = max(wallets[sender]["amount"] - amount, 0.000001)
                 if receiver:
                     wallets.setdefault(receiver, {"amount": 0.0})
                     wallets[receiver]["amount"] += amount
@@ -216,12 +216,12 @@ async def token_stats(token=TOKEN):
                 tokens[tok] = tokens.get(tok, 0) + qty
                 if tx_note == "Token purchased from exchange":
                     stats["buy_tokens"] += qty
-                    stats["buy_orbit"] += max(orbit_amount, 0.0001)
+                    stats["buy_orbit"] += max(orbit_amount, 0.000001)
                     transfer_cnt += 1
                     exchange_only[tok] = True
                 elif tx_note == "Token sold to exchange":
                     stats["sell_tokens"] += qty
-                    stats["sell_orbit"] += max(orbit_amount, 0.0001)
+                    stats["sell_orbit"] += max(orbit_amount, 0.000001)
                     transfer_cnt += 1
                     exchange_only[tok] = True
 
@@ -244,7 +244,7 @@ async def token_stats(token=TOKEN):
                     tokens[tok] = tokens.get(tok, 0) + qty
                     fill_stats = await get_stats(filled_stats, tok)
                     fill_stats["buy_tokens"] += qty
-                    fill_stats["buy_orbit"] += qty * max(price, 0.0001)
+                    fill_stats["buy_orbit"] += qty * max(price, 0.000001)
                     buy_cnt += 1
                     traded_tokens.add(tok)
 
@@ -261,7 +261,7 @@ async def token_stats(token=TOKEN):
                     tokens[tok] = tokens.get(tok, 0) + qty
                     op_stats = await get_stats(open_stats, tok)
                     op_stats["buy_tokens"] += qty
-                    op_stats["buy_orbit"] += qty * max(price, 0.0001)
+                    op_stats["buy_orbit"] += qty * max(price, 0.000001)
                     open_orders.append({"token": tok, "type": "buy", "price": price, "amount": qty})
                     buy_cnt += 1
                     traded_tokens.add(tok)
@@ -284,7 +284,7 @@ async def token_stats(token=TOKEN):
 
                     fill_stats = await get_stats(filled_stats, tok)
                     fill_stats["sell_tokens"] += qty
-                    fill_stats["sell_orbit"] += qty * max(price, 0.0001)
+                    fill_stats["sell_orbit"] += qty * max(price, 0.000001)
                     sell_cnt += 1
                     traded_tokens.add(tok)
 
@@ -301,7 +301,7 @@ async def token_stats(token=TOKEN):
                     tokens[tok] = tokens.get(tok, 0) - qty
                     op_stats = await get_stats(open_stats, tok)
                     op_stats["sell_tokens"] += qty
-                    op_stats["sell_orbit"] += qty * max(price, 0.0001)
+                    op_stats["sell_orbit"] += qty * max(price, 0.000001)
                     open_orders.append({"token": tok, "type": "sell", "price": price, "amount": qty})
                     sell_cnt += 1
                     traded_tokens.add(tok)
@@ -332,10 +332,10 @@ async def token_stats(token=TOKEN):
         # Price calculations
         net_tokens = fb - fs
         net_orbit = fbo - fso
-        avg_buy_price = (net_orbit / net_tokens) if net_tokens else 0.0001
-        avg_sell_price = (fso / fs) if fs else 0.0001
-        avg_buy_price  = max(avg_buy_price,  0.0001)
-        avg_sell_price = max(avg_sell_price, 0.0001)
+        avg_buy_price = (net_orbit / net_tokens) if net_tokens else 0.000001
+        avg_sell_price = (fso / fs) if fs else 0.000001
+        avg_buy_price  = max(avg_buy_price,  0.000001)
+        avg_sell_price = max(avg_sell_price, 0.000001)
 
 
         raw_price = (
@@ -343,7 +343,7 @@ async def token_stats(token=TOKEN):
             if avg_buy_price and avg_sell_price
             else avg_buy_price or avg_sell_price or BASE_PRICE
         )
-        current_price = max(raw_price, 0.0001)
+        current_price = max(raw_price, 0.000001)
         stat_list.append({
             "token": tok,
             "adjusted_balance": round(adjusted_balance, 8),
@@ -359,17 +359,17 @@ async def token_stats(token=TOKEN):
         # Open order price stats
         open_net_tokens = ob - os
         open_net_orbit = obo - oso
-        open_avg_buy_price = (open_net_orbit / open_net_tokens) if open_net_tokens else 0.0001
-        open_avg_sell_price = (oso / os) if os else 0.0001
-        open_avg_buy_price  = max(open_avg_buy_price,  0.0001)
-        open_avg_sell_price = max(open_avg_sell_price, 0.0001)
+        open_avg_buy_price = (open_net_orbit / open_net_tokens) if open_net_tokens else 0.000001
+        open_avg_sell_price = (oso / os) if os else 0.000001
+        open_avg_buy_price  = max(open_avg_buy_price,  0.000001)
+        open_avg_sell_price = max(open_avg_sell_price, 0.000001)
 
         raw_open_price = (
             (open_avg_buy_price + open_avg_sell_price) / 2
             if open_avg_buy_price and open_avg_sell_price
             else open_avg_buy_price or open_avg_sell_price or BASE_PRICE
         )
-        open_price = max(raw_open_price, 0.0001)
+        open_price = max(raw_open_price, 0.000001)
 
         open_list.append({
             "token": tok,
