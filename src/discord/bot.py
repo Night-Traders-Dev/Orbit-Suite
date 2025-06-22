@@ -202,12 +202,8 @@ async def periodic_report():
         sell_vol_5m[s] = {"tokens": 0.0, "orbit": 0.0}
     await ch.send("\n".join(lines))
 
-    # Hourly summary on minute 5 of the hour.
-    if now.minute == 5:
-        await report_interval(ch, "Hourly", snapshot_1h, buy_vol_1h, sell_vol_1h)
-    # Daily summary on 00:05 UTC.
-    if now.hour == 0 and now.minute == 5:
-        await report_interval(ch, "Daily", snapshot_24h, buy_vol_24h, sell_vol_24h)
+    await report_interval(ch, "Hourly", snapshot_1h, buy_vol_1h, sell_vol_1h)
+    await report_interval(ch, "Daily", snapshot_24h, buy_vol_24h, sell_vol_24h)
 
 async def report_interval(channel, label, snap, buy_map, sell_map):
     """
