@@ -231,7 +231,7 @@ async def token_stats(token=TOKEN):
                     if created_at and qty > 0:
                         history_data[tok].append({
                             "time": created_at,
-                            "price": round(price, 4)
+                            "price": round(price, 6)
                         })
                 else:
                     if order_id in filled_order_ids:
@@ -271,7 +271,7 @@ async def token_stats(token=TOKEN):
                     if created_at and qty > 0:
                         history_data[tok].append({
                             "time": created_at,
-                            "price": round(price, 4)
+                            "price": round(price, 6)
                         })
                 else:
                     if order_id in filled_order_ids:
@@ -326,14 +326,14 @@ async def token_stats(token=TOKEN):
         current_price = max(raw_price, 0.000001)
         stat_list.append({
             "token": tok,
-            "adjusted_balance": round(adjusted_balance, 8),
+            "adjusted_balance": round(adjusted_balance, 6),
             "buy_tokens": fb,
             "buy_orbit": fbo,
             "sell_tokens": fs,
             "sell_orbit": fso,
-            "avg_buy_price": round(avg_buy_price, 4),
-            "avg_sell_price": round(avg_sell_price, 4),
-            "current_price": round(current_price, 4)
+            "avg_buy_price": round(avg_buy_price, 6),
+            "avg_sell_price": round(avg_sell_price, 6),
+            "current_price": round(current_price, 6)
         })
 
         # Open order price stats
