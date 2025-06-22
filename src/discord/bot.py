@@ -236,9 +236,9 @@ async def report_interval(channel, label, snap, buy_map, sell_map):
             f"\n**{s}**\n"
             f"🟢 Buy: {b:.6f} ({cb:+.2f}%)\n"
             f"🔴 Sell: {sll:.6f} ({cs:+.2f}%)\n"
-            f"🔼 Buy: {buy_tok:,.2f} tokens\nOrbit Spent: {buy_orb:,.2f} ORBIT\n"
-            f"🔽 Sell: {sell_tok:,.2f} tokens\nOrbit Received: {sell_orb:,.2f} ORBIT\n"
-            f"💹 Avg Buy Price: {avg_buy:.6f} ORBIT\nAvg Sell Price: {avg_sell:.6f} ORBIT"
+            f"🔼 Buy: {buy_tok:,.2f} tokens\n🔼 Orbit Spent: {buy_orb:,.2f} ORBIT\n"
+            f"🔽 Sell: {sell_tok:,.2f} tokens\n🔽 Orbit Received: {sell_orb:,.2f} ORBIT\n"
+            f"💹 Avg Buy Price: {avg_buy:.6f} ORBIT\n💹 Avg Sell Price: {avg_sell:.6f} ORBIT"
         )
         snap[s] = {"buy": b, "sell": sll}
         buy_map[s] = {"tokens": 0.0, "orbit": 0.0}
