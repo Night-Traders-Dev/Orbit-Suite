@@ -324,7 +324,6 @@ async def token_stats(token=TOKEN):
 
         if avg_buy_price < 0:
             print(f"⚠️ Negative avg_buy_price for {tok}: {avg_buy_price} (fbo={fbo}, fb={fb}, fso={fso}, fs={fs})")
-            ne
         if avg_sell_price < 0:
             print(f"⚠️ Negative avg_sell_price for {tok}: {avg_sell_price} (fso={fso}, fs={fs})")
             avg_buy_price = (avg_buy_price - avg_buy_price) + avg_buy_price
