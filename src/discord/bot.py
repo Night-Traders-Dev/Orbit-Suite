@@ -34,6 +34,9 @@ sell_vol_5m  = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
 sell_vol_1h  = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
 sell_vol_24h = defaultdict(lambda: {"tokens": 0.0, "orbit": 0.0})
 
+daily_history = defaultdict(lambda: {"hour": [], "buy": [], "sell": []})
+
+
 def calc_change(old, new):
     return round(((new - old) / old) * 100, 2) if old else 0.0
 
@@ -223,6 +226,11 @@ async def report_interval(channel, label, snap, buy_map, sell_map):
         total_vol = buy_tok + sell_tok
         avg_buy = buy_orb / buy_tok if buy_tok else 0.0
         avg_sell = sell_orb / sell_tok if sell_tok else 0.0
+        if label == "Hourly":
+            current_hour = datetime.utcnow().strftime("%H:00 UTC")
+            daily_history[s]["hour"].append(current_hour)
+            daily_history[s]["buy"].append(avg_buy)
+            daily_history[s]["sell"].append(avg_sell)
 
         lines.append(
             f"\n**{s}**\n"
