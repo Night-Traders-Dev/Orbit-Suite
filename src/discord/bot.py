@@ -82,9 +82,9 @@ async def bootstrap_from_chain():
             tokens = xfer.get("amount", 0.0)
             note   = xfer.get("note", "")
             action = None
-            if "purchased from exchange" in note:
+            if "Token purchased from exchange" in note:
                 action = "buy"
-            elif "sold to exchange" in note:
+            elif "Token sold to exchange" in note:
                 action = "sell"
             if not sym or not action:
                 continue
