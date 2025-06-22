@@ -42,18 +42,18 @@ async def get_token_meta(symbol):
         c = cnt_dict.get(token_sym,    {})
 
         # Filled stats
-        fb  = f.get("buy_tokens",  0)
-        fbo = f.get("buy_orbit",   0)
-        fs  = f.get("sell_tokens", 0)
-        fso = f.get("sell_orbit",  0)
-        avg_buy  = ensure_min(f.get("avg_buy_price",  0))
-        avg_sell = ensure_min(f.get("avg_sell_price", 0))
+        fb  = f.get("buy_tokens",  0.000001)
+        fbo = f.get("buy_orbit",   0.000001)
+        fs  = f.get("sell_tokens", 0.)
+        fso = f.get("sell_orbit",  0.000001)
+        avg_buy  = ensure_min(f.get("avg_buy_price",  0.000001))
+        avg_sell = ensure_min(f.get("avg_sell_price", 0.))
 
         # Open stats
-        ob  = o.get("buy_tokens",  0)
-        obo = o.get("buy_orbit",   0)
-        os_ = o.get("sell_tokens", 0)
-        oso = o.get("sell_orbit",  0)
+        ob  = o.get("buy_tokens",  0.000001)
+        obo = o.get("buy_orbit",   0.000001)
+        os_ = o.get("sell_tokens", 0.000001)
+        oso = o.get("sell_orbit",  0.000001)
         open_avg_buy  = ensure_min(o.get("avg_buy_price",  0))
         open_avg_sell = ensure_min(o.get("avg_sell_price", 0))
 
@@ -71,7 +71,7 @@ async def get_token_meta(symbol):
                 created = raw_dt
 
         # Current price
-        raw_price     = f.get("current_price") or m.get("initial_price") or BASE_PRICE
+        raw_price     = f.get("current_price") or m.get("initial_price") or 0.000001
         current_price = ensure_min(raw_price)
 
         # Counters
