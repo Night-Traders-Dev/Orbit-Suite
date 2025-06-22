@@ -120,7 +120,7 @@ async def get_token_meta(symbol):
                 "symbol": token_sym,
                 "current_price": current_price,
                 "supply": meta_supply,
-                "circulating": (filled_tokens_bought - filled_tokens_sold),
+                "circulating": (round(filled_tokens_bought, 6) - round(filled_tokens_sold, 6)),
                 "mc": (current_price * filled_tokens_bought),
                 "volume_received": filled_tokens_bought,
                 "volume_sent": filled_tokens_sold,
