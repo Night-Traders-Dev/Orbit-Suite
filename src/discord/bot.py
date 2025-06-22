@@ -201,12 +201,11 @@ async def periodic_report():
 
     await ch.send("\n".join(lines))
 
-    await bootstrap_chain()
     await report_interval(ch, "Hourly", snapshot_1h, buy_vol_1h, sell_vol_1h)
     await report_interval(ch, "Daily", snapshot_24h, buy_vol_24h, sell_vol_24h)
-    await generate_daily_chart(ch)
 
 async def report_interval(channel, label, snap, buy_map, sell_map):
+    await bootstrap_chain()
     tm = datetime.utcnow().strftime("%H:%M UTC" if label=="Hourly" else "%Y-%m-%d")
     lines = [f"🕐 **{label} Summary** (`{tm}`)"]
     for s, stats in price_data.items():
@@ -234,6 +233,8 @@ async def report_interval(channel, label, snap, buy_map, sell_map):
             f"🔽 Sell: {sell_tok:,.2f} tokens\n🔽 Orbit Received: {sell_orb:,.2f} ORBIT\n"
             f"💹 Avg Buy Price: {avg_buy:.6f} ORBIT\n💹 Avg Sell Price: {avg_sell:.6f} ORBIT"
         )
+        await generate_daily_chart(ch)
+
         snap[s] = {"buy": b, "sell": sll}
         buy_map[s] = {"tokens": 0.0, "orbit": 0.0}
         sell_map[s] = {"tokens": 0.0, "orbit": 0.0}
