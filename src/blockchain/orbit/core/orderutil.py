@@ -310,12 +310,21 @@ async def token_stats(token=TOKEN):
         adjusted_balance = raw_balance - fb + ob + os
 
         # Price calculations
-        net_tokens = fb - fs
-        net_orbit = fbo - fso
-        avg_buy_price = (net_orbit / net_tokens) if net_tokens else 0.000001
-        avg_sell_price = (fso / fs) if fs else 0.000001
+  #      net_tokens = fb - fs
+ #       net_orbit = fbo - fso
+#        avg_buy_price = (net_orbit / net_tokens) if net_tokens else 0.000001
+#        avg_sell_price = (fso / fs) if fs else 0.000001
+        # Price calculations (fixed per‐side)
+        avg_buy_price_raw  = (fbo / fb) if fb else BASE_PRICE
+        avg_sell_price_raw = (fso / fs) if fs else BASE_PRICE
+
+        # clamp to avoid zero/negative
+        avg_buy_price  = max(avg_buy_price_raw,  0.000001)
+        avg_sell_price = max(avg_sell_price_raw, 0.000001)
+
         if avg_buy_price < 0:
             print(f"⚠️ Negative avg_buy_price for {tok}: {avg_buy_price} (fbo={fbo}, fb={fb}, fso={fso}, fs={fs})")
+            ne
         if avg_sell_price < 0:
             print(f"⚠️ Negative avg_sell_price for {tok}: {avg_sell_price} (fso={fso}, fs={fs})")
             avg_buy_price = (avg_buy_price - avg_buy_price) + avg_buy_price
