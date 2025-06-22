@@ -314,6 +314,7 @@ async def token_stats(token=TOKEN):
         net_orbit = fbo - fso
         avg_buy_price = (net_orbit / net_tokens) if net_tokens else 0.000001
         avg_sell_price = (fso / fs) if fs else 0.000001
+        print(avg_buy_price:.18f, avg_sell_price, net_tokens, net_orbit, fb, fs, fbo, fso)
         avg_buy_price  = max(avg_buy_price,  0.000001)
         avg_sell_price = max(avg_sell_price, 0.000001)
 
