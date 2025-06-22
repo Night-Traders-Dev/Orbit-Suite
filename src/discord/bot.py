@@ -226,4 +226,23 @@ async def daily_summary(channel, now):
     ts = now.strftime("%Y-%m-%d")
     lines = [f"📅 **Daily Market Summary** (`{ts}`)"]
     for sym, curr in price_data.items():
-        old = price_snap_24h
+        old = price_snap_24h.get(sym, {"buy": 0.0, "sell": 0.0})
+        cb  = calc_change(old["buy"],  curr["buy"])
+        cs  = calc_change(old["sell"], curr["sell"])
+        vol = volume_24h[sym]
+        lines.append(
+            f"\n**{sym}**"
+            f"\n🟢 Buy: `{curr['buy']:.6f}` ({cb:+.2f}%)"
+            f"\n🔴 Sell:`{curr['sell']:.6f}` ({cs:+.2f}%)"
+            f"\n🔼 {vol['buy']:.2f} tokens"
+            f"\n🔽 {vol['sell']:.2f} tokens"
+        )
+        # reset counters & snapshot
+        volume_24h[sym]    = {"buy": 0.0, "sell": 0.0}
+        price_snap_24h[sym] = dict(curr)
+
+    await channel.send("\n".join(lines))
+
+
+# Start the bot
+bot.run(DISCORD_TOKEN)
