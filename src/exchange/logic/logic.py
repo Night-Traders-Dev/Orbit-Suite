@@ -170,7 +170,7 @@ async def swap_token(amount, receiver, sender):
     receiver=receiver,
     amount=transfer_amount,
     token_symbol=symbol,
-    note={"Swap": {"sender": sender, "receiver": user, "symbol": symbol, "amount": transfer_amount}}
+    note={"Swap": {"sender": sender, "receiver": receiver, "symbol": symbol, "amount": transfer_amount}}
     )
     orbit_amount = 10
     txt = f"{symbol} Swap"
