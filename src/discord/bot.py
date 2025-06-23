@@ -130,9 +130,10 @@ async def on_message(msg):
         print("[ERR] on_message parse:", e)
         return
 
-    act = data["action"]
-    if act not in ["buy", "sell"]:
-        print("[ERR] on_message action:", act)
+    if "action" in data:
+        act = data["action"].lower()
+        if act not in ["buy", "sell"]:
+            print("[ERR] on_message action:", act)
     sym = data["symbol"].upper()
     toks = data["tokens_received"] if act == "buy" else data["tokens_sold"]
     amt = data["orbit_spent"] if act == "buy" else data["orbit_received"]
