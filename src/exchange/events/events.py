@@ -46,6 +46,7 @@ def register_events(bot):
             success, result = await buy_token_from_exchange(command["symbol"], command["amount"], command["buyer"])
         elif action == "swap_token":
             receiver = "ORB.3358818231E648618486921F"
+            print(f"[ExchangeBot] Swapping {command['amount']} to {receiver} from {command['buyer']}")
             success, result = await swap_token(command["amount"], command["buyer"], receiver)
         elif action == "BUY" or action == "SELL":
             success, result = await trade_token_on_exchange(
