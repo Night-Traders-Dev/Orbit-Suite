@@ -175,6 +175,7 @@ async def swap_token(amount, receiver, sender):
     orbit_amount = 10
     txt = f"{symbol} Swap"
     result = await send_orbit_api(receiver, sender, orbit_amount, order=token_tx)
+    print(result)
     return(True, {txt: {"sender": sender, "receiver": user, "amount": transfer_amount}})
 
 
