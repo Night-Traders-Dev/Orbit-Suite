@@ -153,9 +153,9 @@ async def swap_token(from_token, to_token, amount, receiver, sender):
     user = receiver
     receiver = sender
     import re
-    symbol = "CORAL"
-    response = await get_wallet_stats(symbol)
-    for wallet in response:
+#    tokens_to_swap = [from_token, to_token]
+    token_res = await get_wallet_stats(to_token)
+    for wallet in token_res:
         if sender in wallet:
             match = re.search(r': ([\d,\.]+)\(([\d,\.]+) Orbit\)', wallet)
             if match:
@@ -169,7 +169,7 @@ async def swap_token(from_token, to_token, amount, receiver, sender):
     sender=sender,
     receiver=receiver,
     amount=transfer_amount,
-    token_symbol=symbol,
+    token_symbol=to_token,
     note={"Swap": {"sender": sender, "receiver": user, "from_token": from_token, "to_token": to_token, "amount": transfer_amount, "price": current_price}}
     )
     orbit_amount = transfer_amount * 0.015 # 1.5% orbit fee for swap
