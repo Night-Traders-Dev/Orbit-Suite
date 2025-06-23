@@ -149,6 +149,35 @@ async def withdrawal(amount, receiver, sender):
     result = await send_orbit_api(receiver, sender, orbit_amount, order=token_tx)
     return(True, {txt: {"sender": sender, "receiver": receiver, "amount": transfer_amount}})
 
+async def swap_token(amount, receiver, sender):
+    user = receiver
+    receiver = sender
+    import re
+    symbol = "CORAL"
+    response = await get_wallet_stats(symbol)
+    for wallet in response:
+        if sender in wallet:
+            match = re.search(r': ([\d,\.]+)\(([\d,\.]+) Orbit\)', wallet)
+            if match:
+                quantity_str = match.group(1).replace(",", "")
+                orbit_value_str = match.group(2).replace(",", "")
+                quantity = float(quantity_str)
+                orbit_value = float(orbit_value_str)
+                current_price = (orbit_value / quantity)
+                transfer_amount = (current_price * amount)
+    token_tx = TXExchange.create_token_transfer_tx(
+    sender=sender,
+    receiver=receiver,
+    amount=transfer_amount,
+    token_symbol=symbol,
+    note={"Swap": {"sender": sender, "receiver": user, "symbol": symbol, "amount": transfer_amount}}
+    )
+    orbit_amount = 10
+    txt = f"{symbol} Swap"
+    result = await send_orbit_api(receiver, sender, orbit_amount, order=token_tx)
+    return(True, {txt: {"sender": sender, "receiver": user, "amount": transfer_amount}})
+
+
 EXCHANGE_PRICE = 0.1
 
 

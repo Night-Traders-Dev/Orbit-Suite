@@ -5,6 +5,7 @@ from logic.logic import (
     create_token,
     deposit,
     withdrawal,
+    swap_token,
     buy_token_from_exchange,
     trade_token_on_exchange
 )
@@ -43,6 +44,8 @@ def register_events(bot):
 
         if action == "buy_token_from_exchange":
             success, result = await buy_token_from_exchange(command["symbol"], command["amount"], command["buyer"])
+        elif action == "swap_token":
+            success, result = await swap_token(command["symbol"], command["amount"], command["buyer"])
         elif action == "BUY" or action == "SELL":
             success, result = await trade_token_on_exchange(
                 symbol=command["symbol"],

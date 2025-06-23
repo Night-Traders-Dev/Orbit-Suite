@@ -30,6 +30,17 @@ async def parse_exchange_command(message_content):
                     "buyer": buyer
                 }
 
+            elif cmd_type == "SWAP":
+                symbol = parts[2]
+                amount = float(parts[3])
+                buyer = parts[4]
+                return {
+                    "action": "swap_token",
+                    "symbol": symbol,
+                    "amount": amount,
+                    "buyer": buyer
+                }
+
             elif cmd_type == "TRADEEX":
                 symbol = parts[2]
                 amount = float(parts[3])
