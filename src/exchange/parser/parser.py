@@ -37,8 +37,8 @@ async def parse_exchange_command(message_content):
                 buyer = parts[5]
                 return {
                     "action": "swap_token",
-                    "from": from_symbol,
-                    "to": to_symbol,
+                    "from_token": from_symbol,
+                    "to_token": to_symbol,
                     "amount": amount,
                     "buyer": buyer
                 }
