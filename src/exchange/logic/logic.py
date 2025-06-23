@@ -173,7 +173,7 @@ async def swap_token(from_token, to_token, amount, receiver, sender):
     note={"Swap": {"sender": sender, "receiver": user, "from_token": from_token, "to_token": to_token, "amount": transfer_amount, "price": current_price}}
     )
     orbit_amount = transfer_amount * 0.015 # 1.5% orbit fee for swap
-    txt = f"{symbol} Swap"
+    txt = f"{to_token}/{from_token} Swap"
 #    result = await send_orbit_api("ORB.52234E31F8C4351E2040E6C7", sender, orbit_amount, order=token_tx)
     return(True, {txt: {"sender": sender, "receiver": user,  "from_token": from_token, "to_token": to_token, "amount": transfer_amount, "price": current_price}})
 
