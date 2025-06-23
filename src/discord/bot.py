@@ -130,44 +130,42 @@ async def on_message(msg):
         print("[ERR] on_message parse:", e)
         return
 
-    if "action" in data:
+    if "action" in data and "symbol" in data:
         act = data["action"].lower()
-        if act not in ["buy", "sell"]:
-            print("[ERR] on_message action:", act)
-    sym = data["symbol"].upper()
-    toks = data["tokens_received"] if act == "buy" else data["tokens_sold"]
-    amt = data["orbit_spent"] if act == "buy" else data["orbit_received"]
+        sym = data["symbol"].upper()
+        toks = data["tokens_received"] if act == "buy" else data["tokens_sold"]
+        amt = data["orbit_spent"] if act == "buy" else data["orbit_received"]
 
-    price_data[sym][act] = round(amt / toks, 6)
+        price_data[sym][act] = round(amt / toks, 6)
 
-    if act == "buy":
-        buy_vol_5m[sym]["tokens"] += toks
-        buy_vol_5m[sym]["orbit"] += amt
-        buy_vol_1h[sym]["tokens"] += toks
-        buy_vol_1h[sym]["orbit"] += amt
-        buy_vol_24h[sym]["tokens"] += toks
-        buy_vol_24h[sym]["orbit"] += amt
-    elif act == "sell":
-        sell_vol_5m[sym]["tokens"] += toks
-        sell_vol_5m[sym]["orbit"] += amt
-        sell_vol_1h[sym]["tokens"] += toks
-        sell_vol_1h[sym]["orbit"] += amt
-        sell_vol_24h[sym]["tokens"] += toks
-        sell_vol_24h[sym]["orbit"] += amt
+        if act == "buy":
+            buy_vol_5m[sym]["tokens"] += toks
+            buy_vol_5m[sym]["orbit"] += amt
+            buy_vol_1h[sym]["tokens"] += toks
+            buy_vol_1h[sym]["orbit"] += amt
+            buy_vol_24h[sym]["tokens"] += toks
+            buy_vol_24h[sym]["orbit"] += amt
+        elif act == "sell":
+            sell_vol_5m[sym]["tokens"] += toks
+            sell_vol_5m[sym]["orbit"] += amt
+            sell_vol_1h[sym]["tokens"] += toks
+            sell_vol_1h[sym]["orbit"] += amt
+            sell_vol_24h[sym]["tokens"] += toks
+            sell_vol_24h[sym]["orbit"] += amt
 
-    if snapshot_5m[sym][act] == 0:
-        snapshot_5m[sym][act] = price_data[sym][act]
-    if snapshot_1h[sym][act] == 0:
-        snapshot_1h[sym][act] = price_data[sym][act]
-    if snapshot_24h[sym][act] == 0:
-        snapshot_24h[sym][act] = price_data[sym][act]
+        if snapshot_5m[sym][act] == 0:
+            snapshot_5m[sym][act] = price_data[sym][act]
+        if snapshot_1h[sym][act] == 0:
+            snapshot_1h[sym][act] = price_data[sym][act]
+        if snapshot_24h[sym][act] == 0:
+            snapshot_24h[sym][act] = price_data[sym][act]
 
-    pfx = "🟢 BUY" if act == "buy" else "🔴 SELL"
-    await bot.get_channel(PRICE_UPDATE_CHANNEL_ID).send(
-        f"💱 **{sym} {act.upper()}**\n"
-        f"{pfx}: `{price_data[sym][act]:.6f}` ORBIT per {sym}\n"
-        f"Tokens: `{toks}` | ORBIT: `{amt}`"
-    )
+        pfx = "🟢 BUY" if act == "buy" else "🔴 SELL"
+        await bot.get_channel(PRICE_UPDATE_CHANNEL_ID).send(
+            f"💱 **{sym} {act.upper()}**\n"
+            f"{pfx}: `{price_data[sym][act]:.6f}` ORBIT per {sym}\n"
+            f"Tokens: `{toks}` | ORBIT: `{amt}`"
+        )
 
 @tasks.loop(minutes=5)
 async def periodic_report():
