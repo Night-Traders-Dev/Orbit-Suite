@@ -123,6 +123,7 @@ async def on_message(msg):
         return
     if not msg.content.startswith("[ExchangeBot] Success"):
         return
+
     try:
         payload = msg.content.split("```json")[1].split("```")[0].strip()
         data = json.loads(payload)
@@ -130,42 +131,76 @@ async def on_message(msg):
         print("[ERR] on_message parse:", e)
         return
 
+    # ✅ Handle OLD format
     if "action" in data and "symbol" in data:
         act = data["action"].lower()
         sym = data["symbol"].upper()
         toks = data["tokens_received"] if act == "buy" else data["tokens_sold"]
         amt = data["orbit_spent"] if act == "buy" else data["orbit_received"]
 
-        price_data[sym][act] = round(amt / toks, 6)
+    # ✅ Handle NEW format: ORBIT/CORAL Swap or CORAL/ORBIT Swap
+    else:
+        swap_key = next((k for k in data if "Swap" in k), None)
+        if not swap_key:
+            return
 
-        if act == "buy":
-            buy_vol_5m[sym]["tokens"] += toks
-            buy_vol_5m[sym]["orbit"] += amt
-            buy_vol_1h[sym]["tokens"] += toks
-            buy_vol_1h[sym]["orbit"] += amt
-            buy_vol_24h[sym]["tokens"] += toks
-            buy_vol_24h[sym]["orbit"] += amt
-        elif act == "sell":
-            sell_vol_5m[sym]["tokens"] += toks
-            sell_vol_5m[sym]["orbit"] += amt
-            sell_vol_1h[sym]["tokens"] += toks
-            sell_vol_1h[sym]["orbit"] += amt
-            sell_vol_24h[sym]["tokens"] += toks
-            sell_vol_24h[sym]["orbit"] += amt
+        swap = data[swap_key]
+        from_token = swap.get("from_token")
+        to_token = swap.get("to_token")
+        price = float(swap.get("price", 0))
+        amount = float(swap.get("amount", 0))
 
-        if snapshot_5m[sym][act] == 0:
-            snapshot_5m[sym][act] = price_data[sym][act]
-        if snapshot_1h[sym][act] == 0:
-            snapshot_1h[sym][act] = price_data[sym][act]
-        if snapshot_24h[sym][act] == 0:
-            snapshot_24h[sym][act] = price_data[sym][act]
+        if not from_token or not to_token or not price or not amount:
+            return
 
-        pfx = "🟢 BUY" if act == "buy" else "🔴 SELL"
-        await bot.get_channel(PRICE_UPDATE_CHANNEL_ID).send(
-            f"💱 **{sym} {act.upper()}**\n"
-            f"{pfx}: `{price_data[sym][act]:.6f}` ORBIT per {sym}\n"
-            f"Tokens: `{toks}` | ORBIT: `{amt}`"
-        )
+        # Determine which direction this is
+        if from_token == "CORAL" and to_token == "ORBIT":
+            act = "sell"
+            sym = "CORAL"
+            toks = amount
+            amt = round(amount * price, 6)
+
+        elif from_token == "ORBIT" and to_token == "CORAL":
+            act = "buy"
+            sym = "CORAL"
+            amt = amount
+            toks = round(amount / price, 6)
+
+        else:
+            return  # not a known direction
+
+    # Update state and log
+    price_data[sym][act] = round(amt / toks, 6)
+
+    if act == "buy":
+        buy_vol_5m[sym]["tokens"] += toks
+        buy_vol_5m[sym]["orbit"] += amt
+        buy_vol_1h[sym]["tokens"] += toks
+        buy_vol_1h[sym]["orbit"] += amt
+        buy_vol_24h[sym]["tokens"] += toks
+        buy_vol_24h[sym]["orbit"] += amt
+    elif act == "sell":
+        sell_vol_5m[sym]["tokens"] += toks
+        sell_vol_5m[sym]["orbit"] += amt
+        sell_vol_1h[sym]["tokens"] += toks
+        sell_vol_1h[sym]["orbit"] += amt
+        sell_vol_24h[sym]["tokens"] += toks
+        sell_vol_24h[sym]["orbit"] += amt
+
+    if snapshot_5m[sym][act] == 0:
+        snapshot_5m[sym][act] = price_data[sym][act]
+    if snapshot_1h[sym][act] == 0:
+        snapshot_1h[sym][act] = price_data[sym][act]
+    if snapshot_24h[sym][act] == 0:
+        snapshot_24h[sym][act] = price_data[sym][act]
+
+    pfx = "🟢 BUY" if act == "buy" else "🔴 SELL"
+    await bot.get_channel(PRICE_UPDATE_CHANNEL_ID).send(
+        f"💱 **{sym} {act.upper()}**\n"
+        f"{pfx}: `{price_data[sym][act]:.6f}` ORBIT per {sym}\n"
+        f"Tokens: `{toks}` | ORBIT: `{amt}`"
+    )
+
 
 @tasks.loop(minutes=5)
 async def periodic_report():
