@@ -156,8 +156,10 @@ async def swap_token(from_token, to_token, amount, receiver, sender):
 #    tokens_to_swap = [from_token, to_token]
     if from_token != "ORBIT" and to_token == "ORBIT":
         token_res = await get_wallet_stats(from_token)
-    else to_token != "ORBIT" and from_token == "ORBIT":
+    elif to_token != "ORBIT" and from_token == "ORBIT":
         token_res = await get_wallet_stats(to_token)
+    else:
+        return (False, "Invalid token swap request. One token must be ORBIT.")
     for wallet in token_res:
         if sender in wallet:
             match = re.search(r': ([\d,\.]+)\(([\d,\.]+) Orbit\)', wallet)
