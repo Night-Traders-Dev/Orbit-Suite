@@ -190,11 +190,7 @@ async def token_stats(token=TOKEN):
                 sender = data.get("sender")
                 receiver = data.get("receiver")
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
-                    # Burned tokens, adjust supply
-                    print(meta_list)
-                    if tok in tokens:
-                        tokens[tok] -= qty
-                    continue
+                    print(f"⚠️ Token {tok} transfer to burn address detected, skipping.")
                 tx_note = data.get("note")
 
                 if not tok or not isinstance(qty, (int, float)):
