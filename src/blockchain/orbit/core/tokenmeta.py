@@ -1,4 +1,5 @@
 from core.orderutil import token_stats
+import datetime
 async def get_token_meta(symbol):
     token_sym = symbol.upper()
     token_meta = {}
@@ -58,7 +59,7 @@ async def get_token_meta(symbol):
                     meta_created = meta_created_raw
 
             # 📈 Price (fallback to BASE_PRICE or initial price if needed)
-            current_price = f_stat.get("current_price") or m_stat.get("initial_price") or BASE_PRICE
+            current_price = f_stat.get("current_price") or m_stat.get("initial_price") or 0.1
 
             # 🔁 Exchange Stats
             exchange_cnt = c_stat.get("exchange_cnt", 0)
@@ -102,7 +103,7 @@ async def get_token_meta(symbol):
                 if isinstance(entry, dict):
                     try:
                         ts = float(entry.get("time", 0))
-                        dt = datetime.datetime.utcfromtimestamp(ts)
+                        dt = ts.fromtimestamp(datetime.timezone.utc)
                         date_str = dt.strftime("%Y-%m-%d")
                         price = entry.get("price")
                         if date_str in date_index_map:
