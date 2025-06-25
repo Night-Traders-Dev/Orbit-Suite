@@ -173,7 +173,14 @@ async def token_stats(token=TOKEN):
                 if not meta_id:
                     continue
 
-
+                meta_list.append({
+                    "id": meta_id,
+                    "name": meta_name,
+                    "symbol": meta_symbol,
+                    "supply": meta_supply,
+                    "owner": meta_owner,
+                    "created_at": meta_created
+                })
 
             # Token transfer
             if "token_transfer" in tx_type:
@@ -185,16 +192,8 @@ async def token_stats(token=TOKEN):
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     # Burned tokens, adjust supply
                     if tok in tokens:
-                        meta_supply = tokens[tok].get("supply", 0) - qty
-                        tokens[tok]["supply"] = max(meta_supply, 0)
-                    meta_list.append({
-                        "id": meta_id,
-                        "name": meta_name,
-                        "symbol": meta_symbol,
-                        "supply": meta_supply,
-                        "owner": meta_owner,
-                        "created_at": meta_created
-                    })
+                        tokens[tok] -= qty
+                    continue
                 tx_note = data.get("note")
 
                 if not tok or not isinstance(qty, (int, float)):
