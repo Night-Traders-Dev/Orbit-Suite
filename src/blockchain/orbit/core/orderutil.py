@@ -250,6 +250,7 @@ async def token_stats(token=TOKEN):
                                 )
                             processed_burn_txs.add(tx_key)
                             print(f"Processed burn TX {tx_key} for token {tok}")
+                        continue
                     except Exception as e:
                         print(f"Error updating supply for token {tok}: {e}")
                         continue
