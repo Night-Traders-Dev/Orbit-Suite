@@ -174,6 +174,7 @@ async def token_stats(token=TOKEN):
     buy_cnt = 0
     sell_cnt = 0
     history_data = defaultdict(list)
+    meta_supply = 0
 
     for block in reversed(chain):
         for tx in block.get("transactions", []):
