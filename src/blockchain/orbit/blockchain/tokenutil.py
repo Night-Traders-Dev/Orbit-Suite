@@ -13,6 +13,7 @@ def send_orbit(sender, recipient, amount, order=None):
 
     if recipient is "ORB.BURN":
         recipient = "ORB.00000000000000000000BURN"
+        print("Sending Orbit to burn address.")
 
     if len(sender) != 28 or len(recipient) != 28:
         return
