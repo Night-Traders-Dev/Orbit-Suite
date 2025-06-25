@@ -217,7 +217,7 @@ async def token_stats(token=TOKEN):
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     supply = data.get("supply", 0) - qty
                     await upsert_token_meta(
-                        meta_list, None, None, None, supply, None, None
+                        meta_list, data.get("id"), data.get("name"), data.get("symbol"), supply, data.get("owner"), data.get("created_at")
                     )
                 tx_note = data.get("note")
 
