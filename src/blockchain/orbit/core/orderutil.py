@@ -129,6 +129,31 @@ async def get_stats(stats_dict, token):
         "sell_orbit": 0.0
     })
 
+async def upsert_token_meta(
+    meta_list: list,
+    meta_id: str,
+    meta_name: str,
+    meta_symbol: str,
+    meta_supply: float,
+    meta_owner: str,
+    meta_created: datetime
+):
+    # look for an existing entry
+    for entry in meta_list:
+        if entry["id"] == meta_id:
+            # found → update only the supply
+            entry["supply"] = meta_supply
+            return
+
+    # not found → append new
+    meta_list.append({
+        "id":         meta_id,
+        "name":       meta_name,
+        "symbol":     meta_symbol,
+        "supply":     meta_supply,
+        "owner":      meta_owner,
+        "created_at": meta_created
+    })
 
 
 async def token_stats(token=TOKEN):
@@ -190,7 +215,10 @@ async def token_stats(token=TOKEN):
                 sender = data.get("sender")
                 receiver = data.get("receiver")
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
-                    tokens[tok] = tokens.get(tok, 0) - qty
+                    supply = data.get("supply", 0) - qty
+                    await upsert_token_meta(
+                        meta_list, None, None, None, supply, None, None
+                    )
                 tx_note = data.get("note")
 
                 if not tok or not isinstance(qty, (int, float)):
