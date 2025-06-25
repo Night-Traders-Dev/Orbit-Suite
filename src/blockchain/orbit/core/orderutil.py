@@ -197,25 +197,24 @@ async def token_stats(token=TOKEN):
                     data.get("creator"),
                     data.get("created_at")
                 )
-                data = tx_type["create_token"]
-#                meta_id = data.get("token_id")
-#                meta_name = data.get("name")
-#                meta_symbol = data.get("symbol")
-#                meta_supply = data.get("supply")
-#                meta_owner = data.get("creator")
-#                meta_created = data.get("created_at")
+                meta_id = data.get("token_id")
+                meta_name = data.get("name")
+                meta_symbol = data.get("symbol")
+                meta_supply = data.get("supply")
+                meta_owner = data.get("creator")
+                meta_created = data.get("created_at")
 
                 if not meta_id:
                     continue
 
-#                meta_list.append({
-#                    "id": meta_id,
-#                    "name": meta_name,
-#                    "symbol": meta_symbol,
-#                    "supply": meta_supply,
-#                    "owner": meta_owner,
-#                    "created_at": meta_created
-#                })
+                meta_list.append({
+                    "id": meta_id,
+                    "name": meta_name,
+                    "symbol": meta_symbol,
+                    "supply": meta_supply,
+                    "owner": meta_owner,
+                    "created_at": meta_created
+                })
 
             # Token transfer
             if "token_transfer" in tx_type:
