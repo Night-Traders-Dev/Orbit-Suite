@@ -2,6 +2,11 @@ import requests
 from collections import defaultdict
 from core.ioutil import fetch_chain
 import datetime
+import hashlib
+
+# global set of burn‐TX identifiers we’ve already processed
+processed_burn_txs = set()
+
 
 BASE_PRICE = 0.1
 TOKEN = "FUEL"
@@ -179,12 +184,17 @@ async def token_stats(token=TOKEN):
     sell_cnt = 0
     history_data = defaultdict(list)
 
-    for block in reversed(chain):
-        for tx in block.get("transactions", []):
+    for block_idx, block in enumerate(reversed(chain)):
+        for tx_idx, tx in enumerate(block.get("transactions", [])):
             note = tx.get("note")
             orbit_amount = tx.get("amount")
+
             if not isinstance(note, dict):
                 continue
+
+            # build a simple, reproducible key for this TX
+            raw_id = tx.get("hash") or f"{block_idx}-{tx_idx}-{tx.get('timestamp')}"
+            tx_key = hashlib.sha256(raw_id.encode()).hexdigest()
 
             tx_type = note.get("type", {})
             created_at = tx.get("timestamp") or block.get("timestamp")
@@ -228,15 +238,15 @@ async def token_stats(token=TOKEN):
                 meta_created = meta_list[0]["created_at"] if meta_list else None
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     try:
-                        print(meta_list)
-                        supply = meta_supply - qty
-                        print(f"Updating supply for token {tok}: {qty} (burned) → {supply}")
-                        if not meta_id:
-                            pass
-                        else:
-                            await upsert_token_meta(
-                                meta_list, meta_id, meta_name, meta_symbol, supply, meta_owner, meta_created
-                            )
+                        if tx_key not in processed_burn_txs:                    
+                            supply = meta_supply - qty
+                            print(f"Updating supply for token {tok}: {qty} (burned) → {supply}")
+                            if not meta_id:
+                                pass
+                            else:
+                                await upsert_token_meta(
+                                    meta_list, meta_id, meta_name, meta_symbol, supply, meta_owner, meta_created
+                                )
                     except Exception as e:
                         print(f"Error updating supply for token {tok}: {e}")
                         continue
