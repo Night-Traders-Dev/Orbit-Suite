@@ -187,16 +187,7 @@ async def token_stats(token=TOKEN):
 
             # Token creation metadata
             if "create_token" in tx_type:
-                data = tx_type["create_token"],
-                await upsert_token_meta(
-                    meta_list,
-                    data.get("token_id"),
-                    data.get("name"),
-                    data.get("symbol"),
-                    data.get("supply", 0),
-                    data.get("creator"),
-                    data.get("created_at")
-                )
+                data = tx_type["create_token"]
                 meta_id = data.get("token_id")
                 meta_name = data.get("name")
                 meta_symbol = data.get("symbol")
@@ -215,6 +206,7 @@ async def token_stats(token=TOKEN):
                     "owner": meta_owner,
                     "created_at": meta_created
                 })
+                print(meta_list)
 
             # Token transfer
             if "token_transfer" in tx_type:
@@ -224,12 +216,9 @@ async def token_stats(token=TOKEN):
                 sender = data.get("sender")
                 receiver = data.get("receiver")
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
-                    supply = data.get("supply", 0) - qty
-                    print(tokens)
+                    supply = meta_supply - qty
                     print(f"Token {tok} burned {qty} units, new supply: {supply}")
-#                    await upsert_token_meta(
-#                        meta_list, meta_list[0]["id"], meta_list[0]["name"], meta_list[0]["symbol"], supply, meta_list[0]["owner"], meta_list[0]["created_at"]
-#                    )
+
                 tx_note = data.get("note")
 
                 if not tok or not isinstance(qty, (int, float)):
