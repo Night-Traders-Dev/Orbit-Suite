@@ -215,10 +215,12 @@ async def token_stats(token=TOKEN):
                 sender = data.get("sender")
                 receiver = data.get("receiver")
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
-                    supply = meta_supply - qty
-                    print(f"Token {tok} burned {qty} units, new supply: {supply}")
+                    try:
+                        supply = meta_supply - qty
+                        print(f"Token {tok} burned {qty} units, new supply: {supply}")
+                    except Exception as e:
+                        print(f"Error updating supply for token {tok}: {e}")
                     continue
-
                 tx_note = data.get("note")
 
                 if not tok or not isinstance(qty, (int, float)):
