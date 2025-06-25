@@ -231,7 +231,7 @@ async def token_stats(token=TOKEN):
                             continue
                         supply = meta_supply - qty
                         upsert_token_meta(
-                            meta_list,
+                            token_data,
                             meta_id,
                             token_data.get("name", ""),
                             token_data.get("symbol", ""),
