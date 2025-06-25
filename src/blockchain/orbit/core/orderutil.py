@@ -206,7 +206,6 @@ async def token_stats(token=TOKEN):
                     "owner": meta_owner,
                     "created_at": meta_created
                 })
-                print(meta_list)
 
             # Token transfer
             if "token_transfer" in tx_type:
@@ -215,9 +214,9 @@ async def token_stats(token=TOKEN):
                 qty = data.get("amount")
                 sender = data.get("sender")
                 receiver = data.get("receiver")
- #               if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
- #                   supply = meta_supply - qty
- #                   print(f"Token {tok} burned {qty} units, new supply: {supply}")
+                if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
+                    supply = meta_supply - qty
+                    print(f"Token {tok} burned {qty} units, new supply: {supply}")
 
                 tx_note = data.get("note")
 
