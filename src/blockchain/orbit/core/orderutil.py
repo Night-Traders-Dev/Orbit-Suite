@@ -230,15 +230,8 @@ async def token_stats(token=TOKEN):
                             print(f"⚠️ Non-positive quantity for token {tok}: {qty}")
                             continue
                         supply = meta_supply - qty
-                        upsert_token_meta(
-                            meta_list[0],
-                            meta_id,
-                            None,
-                            None,
-                            supply,
-                            None,
-                            None
-                        )
+                        if supply:
+                            meta_list[0]["supply"] = supply
                     except Exception as e:
                         print(f"Error updating supply for token {tok}: {e}")
                     continue
