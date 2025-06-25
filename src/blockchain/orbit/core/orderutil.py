@@ -187,26 +187,34 @@ async def token_stats(token=TOKEN):
 
             # Token creation metadata
             if "create_token" in tx_type:
+                await upsert_token_meta(
+                    data = tx_type["create_token"],
+                    meta_id = data.get("token_id"),
+                    meta_name = data.get("name"),
+                    meta_symbol = data.get("symbol"),
+                    meta_supply = data.get("supply", 0),
+                    meta_owner = data.get("creator"),
+                    meta_created = data.get("created_at", created_at
+                )
                 data = tx_type["create_token"]
-                meta_id = data.get("token_id")
-                meta_name = data.get("name")
-                meta_symbol = data.get("symbol")
-                meta_supply = data.get("supply")
-                meta_owner = data.get("creator")
-                meta_created = data.get("created_at")
+#                meta_id = data.get("token_id")
+#                meta_name = data.get("name")
+#                meta_symbol = data.get("symbol")
+#                meta_supply = data.get("supply")
+#                meta_owner = data.get("creator")
+#                meta_created = data.get("created_at")
 
                 if not meta_id:
                     continue
 
 #                meta_list.append({
-                await upsert_token_meta(
-                    meta_id = meta_id,
-                    meta_name = meta_name,
-                    meta_symbol = meta_symbol,
-                    meta_supply = meta_supply,
-                    meta_owner = meta_owner,
-                    meta_created = meta_created
-                )
+#                    "id": meta_id,
+#                    "name": meta_name,
+#                    "symbol": meta_symbol,
+#                    "supply": meta_supply,
+#                    "owner": meta_owner,
+#                    "created_at": meta_created
+#                })
 
             # Token transfer
             if "token_transfer" in tx_type:
