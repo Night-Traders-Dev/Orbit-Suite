@@ -217,6 +217,7 @@ async def token_stats(token=TOKEN):
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     supply = meta_supply - qty
                     print(f"Token {tok} burned {qty} units, new supply: {supply}")
+                    continue
 
                 tx_note = data.get("note")
 
