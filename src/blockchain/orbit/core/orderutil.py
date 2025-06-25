@@ -218,14 +218,15 @@ async def token_stats(token=TOKEN):
                 supply = 0.0
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     try:
-                        if meta_list[0].get("symbol") == tok:
-                            meta_id = meta_list[0].get("id")
-                            meta_supply = meta_list[0].get("supply", 0)
-                            supply = meta_supply - qty
-                        if supply:
-                            print(f"Updating supply for token {tok}: {meta_supply} - {qty} = {supply}")
-                            print(f"Meta ID: {meta_id}, Supply: {supply}")
-                            print(f"Meta List: {meta_list}")
+                        print(meta_list[0].get("symbol"))
+#                        if meta_list[0].get("symbol") == tok:
+#                            meta_id = meta_list[0].get("id")
+#                            meta_supply = meta_list[0].get("supply", 0)
+#                            supply = meta_supply - qty
+#                        if supply:
+#                            print(f"Updating supply for token {tok}: {meta_supply} - {qty} = {supply}")
+#                            print(f"Meta ID: {meta_id}, Supply: {supply}")
+#                            print(f"Meta List: {meta_list}")
                             continue
                     except Exception as e:
                         print(f"Error updating supply for token {tok}: {e}")
