@@ -174,7 +174,6 @@ async def token_stats(token=TOKEN):
     buy_cnt = 0
     sell_cnt = 0
     history_data = defaultdict(list)
-    meta_supply = 0
 
     for block in reversed(chain):
         for tx in block.get("transactions", []):
@@ -217,6 +216,18 @@ async def token_stats(token=TOKEN):
                 receiver = data.get("receiver")
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     try:
+                        token_data = meta_list[-1] if meta_list else {}
+                        meta_id = token_data.get("id")
+                        meta_supply = token_data.get("supply", 0)
+                        if not meta_id or not isinstance(meta_supply, (int, float)):
+                            print(f"⚠️ Invalid meta data for token {tok}: {token_data}")
+                            continue
+                        if not isinstance(qty, (int, float)):
+                            print(f"⚠️ Invalid quantity for token {tok}: {qty}")
+                            continue
+                        if qty <= 0:
+                            print(f"⚠️ Non-positive quantity for token {tok}: {qty}")
+                            continue
                         supply = meta_supply - qty
                         print(f"Token {tok} burned {qty} units, new supply: {supply}")
                     except Exception as e:
