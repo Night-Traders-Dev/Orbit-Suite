@@ -221,6 +221,7 @@ async def token_stats(token=TOKEN):
                 sender = data.get("sender")
                 receiver = data.get("receiver")
                 supply = 0.0
+                meta_list = meta_list
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     try:
                         print(meta_list)
