@@ -160,7 +160,8 @@ async def token_stats(token=TOKEN):
     chain = fetch_chain()
     tokens = {}
     filled_stats = {}
-    global meta_list = []
+    global meta_list
+    meta_list = []
     open_stats = {}
     stat_list = []
     open_list = []
