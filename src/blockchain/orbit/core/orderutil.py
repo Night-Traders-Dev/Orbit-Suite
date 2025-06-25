@@ -187,14 +187,15 @@ async def token_stats(token=TOKEN):
 
             # Token creation metadata
             if "create_token" in tx_type:
+                data = tx_type["create_token"],
                 await upsert_token_meta(
-                    data = tx_type["create_token"],
-                    meta_id = data.get("token_id"),
-                    meta_name = data.get("name"),
-                    meta_symbol = data.get("symbol"),
-                    meta_supply = data.get("supply", 0),
-                    meta_owner = data.get("creator"),
-                    meta_created = data.get("created_at")
+                    meta_list,
+                    data.get("token_id"),
+                    data.get("name"),
+                    data.get("symbol"),
+                    data.get("supply", 0),
+                    data.get("creator"),
+                    data.get("created_at")
                 )
                 data = tx_type["create_token"]
 #                meta_id = data.get("token_id")
