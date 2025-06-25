@@ -223,6 +223,7 @@ async def token_stats(token=TOKEN):
                         print(meta_list)
                     except Exception as e:
                         print(f"Error updating supply for token {tok}: {e}")
+                        continue
                 tx_note = data.get("note")
 
                 if not tok or not isinstance(qty, (int, float)):
