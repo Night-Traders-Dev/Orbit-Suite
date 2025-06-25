@@ -223,7 +223,7 @@ async def token_stats(token=TOKEN):
                 supply = 0.0
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     try:
-                        supply = meta_list[0]["supply"] - qty
+                        supply = meta_list[-1]["supply"] - qty
                         print(f"Updating supply for token {tok}: {qty} (burned) → {supply}")
                     except (IndexError, KeyError):
                         print(f"⚠️ Error updating supply for token {tok}: {qty}")
