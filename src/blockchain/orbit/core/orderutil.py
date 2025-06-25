@@ -216,7 +216,8 @@ async def token_stats(token=TOKEN):
                 receiver = data.get("receiver")
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     supply = data.get("supply", 0) - qty
-                    print(meta_list)
+                    print(tokens)
+                    print(f"Token {tok} burned {qty} units, new supply: {supply}")
 #                    await upsert_token_meta(
 #                        meta_list, meta_list[0]["id"], meta_list[0]["name"], meta_list[0]["symbol"], supply, meta_list[0]["owner"], meta_list[0]["created_at"]
 #                    )
