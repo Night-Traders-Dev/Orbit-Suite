@@ -229,7 +229,7 @@ async def token_stats(token=TOKEN):
                         meta_id = token_data.get("id")
                         meta_supply = token_data.get("supply", 0)
                         if not meta_id or not isinstance(meta_supply, (int, float)):
-                        supply = meta_supply - qty
+                            supply = meta_supply - qty
                         if supply:
                             print(f"Updating supply for token {tok}: {meta_supply} - {qty} = {supply}")
                             print(f"Meta ID: {meta_id}, Supply: {supply}")
