@@ -2,9 +2,9 @@ import discord
 from discord.ui import Modal, TextInput
 from api import get_user_address, verify_2fa_api, send_orbit_api
 from core.tx_util.tx_types import TXExchange
-from ui.views.wallet import WalletDashboard, wallet_info
 
 class SendTokenModal(Modal):
+    from ui.views.wallet import WalletDashboard, wallet_info
     def __init__(self, uid: str, token_symbol: str):
         super().__init__(title=f"Send {token_symbol}")
         self.uid = uid
