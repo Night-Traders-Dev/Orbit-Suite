@@ -199,14 +199,16 @@ async def token_stats(token=TOKEN):
                 if not meta_id:
                     continue
 
-                meta_list.append({
-                    "id": meta_id,
-                    "name": meta_name,
-                    "symbol": meta_symbol,
-                    "supply": meta_supply,
-                    "owner": meta_owner,
-                    "created_at": meta_created
-                })
+                # Avoid duplicate entries for the same token
+                if not any(entry["id"] == meta_id for entry in meta_list):
+                    meta_list.append({
+                        "id": meta_id,
+                        "name": meta_name,
+                        "symbol": meta_symbol,
+                        "supply": meta_supply,
+                        "owner": meta_owner,
+                        "created_at": meta_created
+                    })
 
             # Token transfer
             if "token_transfer" in tx_type:
@@ -219,15 +221,6 @@ async def token_stats(token=TOKEN):
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     try:
                         print(meta_list)
-#                        if meta_list[0].get("symbol") == tok:
-#                            meta_id = meta_list[0].get("id")
-#                            meta_supply = meta_list[0].get("supply", 0)
-#                            supply = meta_supply - qty
-#                        if supply:
-#                            print(f"Updating supply for token {tok}: {meta_supply} - {qty} = {supply}")
-#                            print(f"Meta ID: {meta_id}, Supply: {supply}")
-#                            print(f"Meta List: {meta_list}")
-#                            continue
                     except Exception as e:
                         print(f"Error updating supply for token {tok}: {e}")
                     continue
