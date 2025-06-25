@@ -225,12 +225,6 @@ async def token_stats(token=TOKEN):
                             print(f"Updating supply for token {tok}: {meta_supply} - {qty} = {supply}")
                             print(f"Meta ID: {meta_id}, Supply: {supply}")
                             print(f"Meta List: {meta_list}")
-                            # Find the correct token entry by id
-                            for entry in meta_list:
-                                if entry.get("id") == meta_id:
-                                    entry["supply"] = supply
-                                    break
-                            print(f"⚠️ Non-positive quantity for token {tok}: {qty}")
                             continue
                     except Exception as e:
                         print(f"Error updating supply for token {tok}: {e}")
