@@ -191,6 +191,7 @@ async def token_stats(token=TOKEN):
                 receiver = data.get("receiver")
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     # Burned tokens, adjust supply
+                    print(meta_list)
                     if tok in tokens:
                         tokens[tok] -= qty
                     continue
