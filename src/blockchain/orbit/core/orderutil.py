@@ -161,7 +161,7 @@ async def token_stats(token=TOKEN):
     chain = fetch_chain()
     tokens = {}
     filled_stats = {}
-    global meta_list
+#    global meta_list
     if not meta_list:
         # Initialize meta_list if it's empty
         meta_list = []
