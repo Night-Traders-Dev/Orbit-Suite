@@ -226,6 +226,15 @@ async def token_stats(token=TOKEN):
                 meta_supply = meta_list[0]["supply"] if meta_list else 0.0
                 meta_owner = meta_list[0]["owner"] if meta_list else None
                 meta_created = meta_list[0]["created_at"] if meta_list else None
+                meta_list = []
+                meta_list.append({
+                    "id": meta_id,
+                    "name": meta_name,
+                    "symbol": meta_symbol,
+                    "supply": meta_supply,
+                    "owner": meta_owner,
+                    "created_at": meta_created
+                })
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     try:
                         print(meta_list)
