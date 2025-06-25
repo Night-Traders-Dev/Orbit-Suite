@@ -216,9 +216,10 @@ async def token_stats(token=TOKEN):
                 receiver = data.get("receiver")
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     supply = data.get("supply", 0) - qty
-                    await upsert_token_meta(
-                        meta_list, meta_list[0]["id"], meta_list[0]["name"], meta_list[0]["symbol"], supply, meta_list[0]["owner"], meta_list[0]["created_at"]
-                    )
+                    print(meta_list)
+#                    await upsert_token_meta(
+#                        meta_list, meta_list[0]["id"], meta_list[0]["name"], meta_list[0]["symbol"], supply, meta_list[0]["owner"], meta_list[0]["created_at"]
+#                    )
                 tx_note = data.get("note")
 
                 if not tok or not isinstance(qty, (int, float)):
