@@ -220,16 +220,17 @@ async def token_stats(token=TOKEN):
                 qty = data.get("amount")
                 sender = data.get("sender")
                 receiver = data.get("receiver")
-                supply = 0.0
-                meta_list = meta_list
+                meta_id = meta_list[-1]["id"] if meta_list else None
+                meta_name = meta_list[-1]["name"] if meta_list else None
+                meta_symbol = meta_list[-1]["symbol"] if meta_list else None
+                meta_supply = meta_list[-1]["supply"] if meta_list else 0.0
+                meta_owner = meta_list[-1]["owner"] if meta_list else None
+                meta_created = meta_list[-1]["created_at"] if meta_list else None
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     try:
                         print(meta_list)
-                        supply = meta_list[-1]["supply"] - qty
+                        supply = meta_supply - qty
                         print(f"Updating supply for token {tok}: {qty} (burned) → {supply}")
-                    except (IndexError, KeyError):
-                        print(f"⚠️ Error updating supply for token {tok}: {qty}")
-                        continue
                     except Exception as e:
                         print(f"Error updating supply for token {tok}: {e}")
                         continue
