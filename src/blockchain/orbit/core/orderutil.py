@@ -5,7 +5,7 @@ import datetime
 
 BASE_PRICE = 0.1
 TOKEN = "FUEL"
-#meta_list = []
+meta_list = []
 
 async def all_tokens_stats(symbol_filter=None):
     from datetime import datetime, timedelta, UTC
