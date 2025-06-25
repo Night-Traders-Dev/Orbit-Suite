@@ -230,7 +230,15 @@ async def token_stats(token=TOKEN):
                             print(f"⚠️ Non-positive quantity for token {tok}: {qty}")
                             continue
                         supply = meta_supply - qty
-                        print(f"Token {tok} burned {qty} units, new supply: {supply}")
+                        upsert_token_meta(
+                            meta_list,
+                            meta_id,
+                            token_data.get("name", ""),
+                            token_data.get("symbol", ""),
+                            supply,
+                            token_data.get("owner", ""),
+                            token_data.get("created_at", "")
+                        )
                     except Exception as e:
                         print(f"Error updating supply for token {tok}: {e}")
                     continue
