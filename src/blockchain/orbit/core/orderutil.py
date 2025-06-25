@@ -193,7 +193,7 @@ async def token_stats(token=TOKEN):
                 meta_symbol = data.get("symbol")
                 meta_supply = data.get("supply")
                 meta_owner = data.get("creator")
-                meta_created = data.get("created_at")
+                meta_created = created_at
 
                 if not meta_id:
                     continue
@@ -215,9 +215,9 @@ async def token_stats(token=TOKEN):
                 qty = data.get("amount")
                 sender = data.get("sender")
                 receiver = data.get("receiver")
-                if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
-                    supply = meta_supply - qty
-                    print(f"Token {tok} burned {qty} units, new supply: {supply}")
+ #               if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
+ #                   supply = meta_supply - qty
+ #                   print(f"Token {tok} burned {qty} units, new supply: {supply}")
 
                 tx_note = data.get("note")
 
