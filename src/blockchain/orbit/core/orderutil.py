@@ -75,10 +75,10 @@ async def all_tokens_stats(symbol_filter=None):
 
                     sender = d.get("sender")
                     receiver = d.get("receiver")
-                    if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
-                        tokens[symbol]["supply"] -= d.get("amount", 0)
-                        print(f"⚠️ Burned {d.get('amount', 0)} of {symbol} tokens")
-                        continue
+ #                   if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
+ #                       tokens[symbol]["supply"] -= d.get("amount", 0)
+ #                       print(f"⚠️ Burned {d.get('amount', 0)} of {symbol} tokens")
+ #                       continue
                     amount = d.get("amount")
 
                     if symbol in tokens:
