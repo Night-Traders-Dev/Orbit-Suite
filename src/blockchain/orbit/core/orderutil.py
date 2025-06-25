@@ -194,7 +194,7 @@ async def token_stats(token=TOKEN):
                     meta_symbol = data.get("symbol"),
                     meta_supply = data.get("supply", 0),
                     meta_owner = data.get("creator"),
-                    meta_created = data.get("created_at", created_at
+                    meta_created = data.get("created_at")
                 )
                 data = tx_type["create_token"]
 #                meta_id = data.get("token_id")
