@@ -217,18 +217,9 @@ async def token_stats(token=TOKEN):
                 receiver = data.get("receiver")
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     try:
-                        # Find the correct token entry in meta_list by symbol or id
-                        token_data = None
-                        for entry in meta_list[0]:
-                            if entry.get("symbol") == tok:
-                                token_data = entry
-                                break
-                        if not token_data:
-                            print(f"⚠️ Token {tok} not found in meta_list for supply update.")
-                            continue
-                        meta_id = token_data.get("id")
-                        meta_supply = token_data.get("supply", 0)
-                        if not meta_id or not isinstance(meta_supply, (int, float)):
+                        if meta_list[0].get("meta_symbol") == tok:
+                            meta_id = token_data.get("meta_id")
+                            meta_supply = token_data.get("meta_supply", 0)
                             supply = meta_supply - qty
                         if supply:
                             print(f"Updating supply for token {tok}: {meta_supply} - {qty} = {supply}")
@@ -241,12 +232,6 @@ async def token_stats(token=TOKEN):
                                     break
                             print(f"⚠️ Non-positive quantity for token {tok}: {qty}")
                             continue
-                        supply = meta_supply - qty
-                        if supply:
-                            print(f"Updating supply for token {tok}: {meta_supply} - {qty} = {supply}")
-                            print(f"Meta ID: {meta_id}, Supply: {supply}")
-                            print(f"Meta List: {meta_list}")
-                            token_data["supply"] = supply
                     except Exception as e:
                         print(f"Error updating supply for token {tok}: {e}")
                     continue
