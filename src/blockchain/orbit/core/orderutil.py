@@ -231,14 +231,20 @@ async def token_stats(token=TOKEN):
                         print(meta_list)
                         supply = meta_supply - qty
                         print(f"Updating supply for token {tok}: {qty} (burned) → {supply}")
-                        meta_list.append({
-                            "id": meta_id,
-                            "name": meta_name,
-                            "symbol": meta_symbol,
-                            "supply": meta_supply,
-                            "owner": meta_owner,
-                            "created_at": meta_created
-                        })
+                        if not meta_id:
+                            pass
+                        else:
+                            await upsert_token_meta(
+                                meta_list, meta_id, meta_name, meta_symbol, supply, meta_owner, meta_created
+                            )
+#                        meta_list.append({
+#                            "id": meta_id,
+#                            "name": meta_name,
+##                            "symbol": meta_symbol,
+ #                           "supply": meta_supply,
+ #                           "owner": meta_owner,
+ #                           "created_at": meta_created
+ #                       })
                     except Exception as e:
                         print(f"Error updating supply for token {tok}: {e}")
                         continue
