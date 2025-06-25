@@ -227,7 +227,7 @@ async def token_stats(token=TOKEN):
 #                            print(f"Updating supply for token {tok}: {meta_supply} - {qty} = {supply}")
 #                            print(f"Meta ID: {meta_id}, Supply: {supply}")
 #                            print(f"Meta List: {meta_list}")
-                            continue
+#                            continue
                     except Exception as e:
                         print(f"Error updating supply for token {tok}: {e}")
                     continue
