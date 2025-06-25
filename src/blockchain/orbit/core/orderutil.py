@@ -198,14 +198,15 @@ async def token_stats(token=TOKEN):
                 if not meta_id:
                     continue
 
-                meta_list.append({
-                    "id": meta_id,
-                    "name": meta_name,
-                    "symbol": meta_symbol,
-                    "supply": meta_supply,
-                    "owner": meta_owner,
-                    "created_at": meta_created
-                })
+#                meta_list.append({
+                await upsert_token_meta(
+                    meta_id = meta_id,
+                    meta_name = meta_name,
+                    meta_symbol = meta_symbol,
+                    meta_supply = meta_supply,
+                    meta_owner = meta_owner,
+                    meta_created = meta_created
+                )
 
             # Token transfer
             if "token_transfer" in tx_type:
