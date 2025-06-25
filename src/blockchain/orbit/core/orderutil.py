@@ -215,12 +215,11 @@ async def token_stats(token=TOKEN):
                 qty = data.get("amount")
                 sender = data.get("sender")
                 receiver = data.get("receiver")
-                print(meta_list[0] if meta_list else "No meta_list available")
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     try:
                         if meta_list[0].get("symbol") == tok:
-                            meta_id = token_data.get("id")
-                            meta_supply = token_data.get("supply", 0)
+                            meta_id = meta_list[0].get("id")
+                            meta_supply = meta_list[0].get("supply", 0)
                             supply = meta_supply - qty
                         if supply:
                             print(f"Updating supply for token {tok}: {meta_supply} - {qty} = {supply}")
