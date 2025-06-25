@@ -219,7 +219,7 @@ async def token_stats(token=TOKEN):
                     try:
                         # Find the correct token entry in meta_list by symbol or id
                         token_data = None
-                        for entry in meta_list:
+                        for entry in meta_list[0]:
                             if entry.get("symbol") == tok:
                                 token_data = entry
                                 break
