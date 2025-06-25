@@ -231,13 +231,13 @@ async def token_stats(token=TOKEN):
                             continue
                         supply = meta_supply - qty
                         upsert_token_meta(
-                            token_data,
+                            meta_list[0],
                             meta_id,
-                            token_data.get("name", ""),
-                            token_data.get("symbol", ""),
+                            None,
+                            None,
                             supply,
-                            token_data.get("owner", ""),
-                            token_data.get("created_at", "")
+                            None,
+                            None
                         )
                     except Exception as e:
                         print(f"Error updating supply for token {tok}: {e}")
