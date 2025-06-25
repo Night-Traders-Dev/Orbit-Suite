@@ -11,7 +11,7 @@ NODE_FEE_ADDRESS = get_address_from_label("nodefeecollector")
 
 def send_orbit(sender, recipient, amount, order=None):
 
-    if recipient is "ORB.BURN":
+    if recipient == "ORB.BURN":
         recipient = "ORB.00000000000000000000BURN"
         print("Sending Orbit to burn address.")
 
