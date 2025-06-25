@@ -195,7 +195,6 @@ async def token_stats(token=TOKEN):
             # build a simple, reproducible key for this TX
             raw_id = tx.get("hash") or f"{block_idx}-{tx_idx}-{tx.get('timestamp')}"
             tx_key = hashlib.sha256(raw_id.encode()).hexdigest()
-            print(f"Processing TX {tx_key} in block {block_idx}, index {tx_idx}")
 
             tx_type = note.get("type", {})
             created_at = tx.get("timestamp") or block.get("timestamp")
@@ -246,10 +245,16 @@ async def token_stats(token=TOKEN):
                                 pass
                             else:
                                 await upsert_token_meta(
-                                    meta_list, meta_id, meta_name, meta_symbol, supply, meta_owner, meta_created
+                                    meta_list,
+                                    meta_id,
+                                    meta_name,
+                                    meta_symbol,
+                                    supply,
+                                    meta_owner,
+                                    meta_created
                                 )
-                            processed_burn_txs.add(tx_key)
-                            print(f"Processed burn TX {tx_key} for token {tok}")
+                                processed_burn_txs.add(tx_key)
+                                print(f"Processed burn TX {tx_key} for token {tok}")
                         continue
                     except Exception as e:
                         print(f"Error updating supply for token {tok}: {e}")
