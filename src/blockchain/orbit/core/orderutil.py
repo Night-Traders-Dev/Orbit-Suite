@@ -220,12 +220,12 @@ async def token_stats(token=TOKEN):
                 qty = data.get("amount")
                 sender = data.get("sender")
                 receiver = data.get("receiver")
-                meta_id = meta_list[-1]["id"] if meta_list else None
-                meta_name = meta_list[-1]["name"] if meta_list else None
-                meta_symbol = meta_list[-1]["symbol"] if meta_list else None
-                meta_supply = meta_list[-1]["supply"] if meta_list else 0.0
-                meta_owner = meta_list[-1]["owner"] if meta_list else None
-                meta_created = meta_list[-1]["created_at"] if meta_list else None
+                meta_id = meta_list[0]["id"] if meta_list else None
+                meta_name = meta_list[0]["name"] if meta_list else None
+                meta_symbol = meta_list[0]["symbol"] if meta_list else None
+                meta_supply = meta_list[0]["supply"] if meta_list else 0.0
+                meta_owner = meta_list[0]["owner"] if meta_list else None
+                meta_created = meta_list[0]["created_at"] if meta_list else None
                 if receiver == "ORB.BURN" or receiver == "ORB.00000000000000000000BURN":
                     try:
                         print(meta_list)
