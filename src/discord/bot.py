@@ -13,7 +13,7 @@ import os
 EXCHANGE_CHANNEL_ID     = 1379630873174872197
 PRICE_UPDATE_CHANNEL_ID = 1386066535193509948
 GUILD                   = discord.Object(id=1376608254741713008)
-CHAIN_API_URL           = "https://oliver-butler-oasis-builder.trycloudflare.com/api/chain"
+CHAIN_API_URL           = "https://amateur-eric-receptors-casa.trycloudflare.com/api/chain"
 
 # — STATE —
 # Current per-token prices (ORBIT per token) for each side.
