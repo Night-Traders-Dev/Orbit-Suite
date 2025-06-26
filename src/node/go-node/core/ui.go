@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/rivo/tview"
-	"github.com/gdamore/tcell/v2"
 )
 
 func StartTUI(node *OrbitNode) {
