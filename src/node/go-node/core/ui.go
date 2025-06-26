@@ -1,3 +1,4 @@
+// core/ui.go
 package core
 
 import (
@@ -7,68 +8,75 @@ import (
 	"github.com/rivo/tview"
 )
 
+type TUI struct {
+	app      *tview.Application
+	layout   *tview.Flex
+	textView *tview.TextView
+	node *OrbitNode
+}
+
 func StartTUI(node *OrbitNode) {
-	app := tview.NewApplication()
-
-	header := tview.NewTextView().
-		SetTextAlign(tview.AlignCenter).
-		SetText("🌐 Orbit Node Console UI")
-
-	nodeInfo := tview.NewTextView().
-		SetDynamicColors(true).
-		SetWrap(true)
-
-	chainView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetWrap(false).
-		SetChangedFunc(func() { app.Draw() })
-
-	logView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetWrap(true).
-		SetChangedFunc(func() { app.Draw() })
-
-	nodeInfo.SetText(fmt.Sprintf(`
-[blue]Node ID: [white]%s
-[blue]Orbit Address: [white]%s
-[blue]Port: [white]%d
-[blue]Tunnel: [white]%s
-[blue]Chain Length: [white]%d
-`,
-		node.NodeID, node.Address, node.Port, node.TunnelURL, len(node.Chain)))
-
-	updateChainView := func() {
-		node.ChainMu.RLock()
-		defer node.ChainMu.RUnlock()
-		chainView.Clear()
-		fmt.Fprintf(chainView, "[green]Block Height: %d\n", len(node.Chain))
-		for i := len(node.Chain) - 1; i >= 0 && i > len(node.Chain)-6; i-- {
-			blk := node.Chain[i]
-			hash, _ := blk["hash"].(string)
-			timestamp, _ := blk["timestamp"].(float64)
-			fmt.Fprintf(chainView, "[yellow]#%d [white]Hash: %s [blue]Time: %s\n", i, hash[:8], time.Unix(int64(timestamp), 0).Format("15:04:05"))
-		}
+	tui := &TUI{
+		app:      tview.NewApplication(),
+		textView: tview.NewTextView().SetDynamicColors(true).SetScrollable(true).SetWrap(true),
+		node:     node,
 	}
 
-	updateLog := func(msg string) {
-		fmt.Fprintf(logView, "[gray]%s [white]%s\n", time.Now().Format("15:04:05"), msg)
-	}
+	tui.textView.SetBorder(true).SetTitle(" Orbit Node Dashboard ")
 
-	flex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(header, 1, 1, false).
-		AddItem(nodeInfo, 6, 1, false).
-		AddItem(tview.NewFlex().AddItem(chainView, 0, 2, false).AddItem(logView, 0, 1, false), 0, 3, false)
+	tui.layout = tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(tview.NewTextView().SetText("[::b]Orbit Node Console UI").SetTextAlign(tview.AlignCenter), 1, 0, false).
+		AddItem(tui.textView, 0, 1, true)
 
-	go func() {
-		for node.Running {
-			updateChainView()
-			time.Sleep(10 * time.Second)
-		}
-	}()
+	tui.app.SetRoot(tui.layout, true)
 
-	updateLog("UI started. Press Ctrl+C to exit.")
+	go tui.updateLoop()
 
-	if err := app.SetRoot(flex, true).EnableMouse(true).Run(); err != nil {
+	if err := tui.app.Run(); err != nil {
 		panic(err)
 	}
+}
+
+func (t *TUI) updateLoop() {
+	for t.node.Running {
+		t.app.QueueUpdateDraw(func() {
+			content := t.renderDashboard()
+			t.textView.SetText(content)
+		})
+		time.Sleep(5 * time.Second)
+	}
+}
+
+func (t *TUI) renderDashboard() string {
+	header := "[blue]================ Orbit Node Dashboard ================[-]"
+
+	summary := fmt.Sprintf(`
+[green]Node ID     :[-] %s
+[green]Orbit Address:[-] %s
+[green]Port        :[-] %d
+[green]Tunnel URL  :[-] %s
+[green]Chain Length:[-] %d
+[green]Block Height:[-] %d
+`,
+		t.node.NodeID,
+		t.node.Address,
+		t.node.Port,
+		t.node.TunnelURL,
+		len(t.node.Chain),
+		t.node.BlockHeight)
+
+	latestBlocks := "[yellow]Recent Blocks:[-]"
+	limit := 10
+	if len(t.node.Chain) < 10 {
+		limit = len(t.node.Chain)
+	}
+	for i := len(t.node.Chain) - 1; i >= len(t.node.Chain)-limit; i-- {
+		block := t.node.Chain[i]
+		timeStr := time.Unix(block.Timestamp, 0).Format("15:04:05")
+		latestBlocks += fmt.Sprintf("\n[#87cefa]#%d Hash:[-] %s [gray]Time:[-] %s", block.Index, block.Hash[:8], timeStr)
+	}
+
+	footer := fmt.Sprintf("\n[gray]%s UI started. Press Ctrl+C to exit.[-]", time.Now().Format("15:04:05"))
+
+	return fmt.Sprintf("%s\n%s\n%s\n%s", header, summary, latestBlocks, footer)
 }
