@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/rivo/tview"
