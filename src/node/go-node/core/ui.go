@@ -9,6 +9,7 @@ import (
 )
 
 func StartTUI(node *OrbitNode) {
+	tview.Clear()
 	app := tview.NewApplication()
 
 	header := tview.NewTextView().
