@@ -59,7 +59,7 @@ func StartTUI(node *OrbitNode) {
 		AddItem(chainView, 0, 3, false)
 
 	mainFlex := tview.NewFlex().
-		AddItem(left, 0, 3, true).
+		AddItem(left, 0, 3, true)
 	flex := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(header, 1, 1, false).
 		AddItem(mainFlex, 0, 1, true)
