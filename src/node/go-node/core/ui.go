@@ -18,8 +18,7 @@ func StartTUI(node *OrbitNode) {
 
 	nodeInfo := tview.NewTextView().SetDynamicColors(true).SetWrap(false)
 	chainView := tview.NewTextView().SetDynamicColors(true).SetWrap(false)
-	logView := tview.NewTextView().SetDynamicColors(true).SetWrap(false)
-	peerStats := tview.NewTextView().SetDynamicColors(true).SetWrap(false)
+
 
 	pages := tview.NewPages()
 	detailed := false
@@ -54,19 +53,9 @@ func StartTUI(node *OrbitNode) {
 		}
 	}
 
-	updatePeerStats := func() {
-		peerStats.Clear()
-		fmt.Fprintf(peerStats, "[cyan]Peers: %d\nTrust Score: %.2f\n", len(node.Peers), node.TrustScore)
-	}
-
-	updateLog := func(msg string) {
-		logView.Clear()
-		fmt.Fprintf(logView, "[gray]%s [white]%s\n", time.Now().Format("15:04:05"), msg)
-	}
 
 	left := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(nodeInfo, 0, 1, false).
-		AddItem(peerStats, 0, 1, false).
 		AddItem(chainView, 0, 3, false)
 
 	mainFlex := tview.NewFlex().
@@ -83,7 +72,6 @@ func StartTUI(node *OrbitNode) {
 		app.QueueUpdateDraw(func() {
 			updateNodeInfo()
 			updateChainView()
-			updatePeerStats()
 		})
 	}
 
