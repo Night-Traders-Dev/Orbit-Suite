@@ -46,7 +46,6 @@ func main() {
 	node.RegisterNode()
 
 	go network.StartHTTPServer(node)
-	go network.DisplayStats(node)
 	go network.RebroadcastIfNeeded(node)
 	go network.PollForNewBlocks(node)
 	go node.SendProofLoop()
