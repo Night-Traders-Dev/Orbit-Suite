@@ -70,15 +70,7 @@ func StartTUI(node *OrbitNode) {
 		}
 	}
 
-	// function to append a log line
-	updateLog := func(msg string) {
-		fmt.Fprintf(
-			logView,
-			"[gray]%s [white]%s\n",
-			time.Now().Format("15:04:05"),
-			msg,
-		)
-	}
+
 
 	// layout: header, nodeInfo, then a horizontal split of chainView | logView
 	flex := tview.NewFlex().
@@ -100,7 +92,6 @@ func StartTUI(node *OrbitNode) {
 		}
 	}()
 
-//	updateLog("UI started. Press Ctrl+C to exit.")
 
 	if err := app.
 		SetRoot(flex, true).
