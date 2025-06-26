@@ -38,7 +38,9 @@ func StartTUI(node *OrbitNode) {
 [blue]Orbit Address : [white]%s
 [blue]Port          : [white]%d
 [blue]Tunnel        : [white]%s
-[blue]Chain Length  : [white]%d`,
+[blue]Chain Length  : [white]%d
+
+`,
 			node.NodeID, node.Address, node.Port, node.TunnelURL, len(node.Chain),
 		)
 
