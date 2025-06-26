@@ -38,10 +38,10 @@ func StartTUI(node *OrbitNode) {
 	// initialize the nodeInfo text
 	nodeInfo.SetText(fmt.Sprintf(
 		`[blue]Node ID: [white]%s
-		[blue]Orbit Address: [white]%s
-		[blue]Port: [white]%d
-		[blue]Tunnel: [white]%s
-		[blue]Chain Length: [white]%d`,
+[blue]Orbit Address: [white]%s
+[blue]Port: [white]%d
+[blue]Tunnel: [white]%s
+[blue]Chain Length: [white]%d`,
 		node.NodeID,
 		node.Address,
 		node.Port,
