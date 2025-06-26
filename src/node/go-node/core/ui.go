@@ -14,7 +14,7 @@ func StartTUI(node *OrbitNode) {
 	// header banner
 	header := tview.NewTextView().
 		SetTextAlign(tview.AlignCenter).
-		SetText("🌐 Orbit Node Console UI")
+		SetText("\U0001F310 Orbit Node Console UI")
 
 	// node info: no wrap, horizontal scroll enabled
 	nodeInfo := tview.NewTextView().
@@ -35,19 +35,34 @@ func StartTUI(node *OrbitNode) {
 		SetScrollable(true).
 		SetChangedFunc(func() { app.Draw() })
 
-	// initialize the nodeInfo text
-	nodeInfo.SetText(fmt.Sprintf(
-		`[blue]Node ID: [white]%s
+	// layout: header, nodeInfo, then a horizontal split of chainView | logView
+	flex := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(header, 1, 1, false).
+		AddItem(nodeInfo, 6, 1, false).
+		AddItem(
+			tview.NewFlex().
+				AddItem(chainView, 0, 2, false).
+				AddItem(logView, 0, 1, false),
+			0, 3, false,
+		)
+
+	// function to update node info
+	updateNodeInfo := func() {
+		nodeInfo.Clear()
+		nodeInfo.SetText(fmt.Sprintf(
+			`[blue]Node ID: [white]%s
 [blue]Orbit Address: [white]%s
 [blue]Port: [white]%d
 [blue]Tunnel: [white]%s
 [blue]Chain Length: [white]%d`,
-		node.NodeID,
-		node.Address,
-		node.Port,
-		node.TunnelURL,
-		len(node.Chain),
-	))
+			node.NodeID,
+			node.Address,
+			node.Port,
+			node.TunnelURL,
+			len(node.Chain),
+		))
+	}
 
 	// function to update the chain view periodically
 	updateChainView := func() {
@@ -70,28 +85,23 @@ func StartTUI(node *OrbitNode) {
 		}
 	}
 
+	// function to log a message
+	updateLog := func(msg string) {
+		fmt.Fprintf(logView, "[gray]%s [white]%s\n", time.Now().Format("15:04:05"), msg)
+	}
 
-
-	// layout: header, nodeInfo, then a horizontal split of chainView | logView
-	flex := tview.NewFlex().
-		SetDirection(tview.FlexRow).
-		AddItem(header, 1, 1, false).
-		AddItem(nodeInfo, 6, 1, false).
-		AddItem(
-			tview.NewFlex().
-				AddItem(chainView, 0, 2, false).
-				AddItem(logView, 0, 1, false),
-			0, 3, false,
-		)
-
-	// background refresh loop for the chain view
+	// background refresh loop for the UI
 	go func() {
 		for node.Running {
-			updateChainView()
+			app.QueueUpdateDraw(func() {
+				updateNodeInfo()
+				updateChainView()
+			})
 			time.Sleep(10 * time.Second)
 		}
 	}()
 
+	updateLog("UI started. Press Ctrl+C to exit.")
 
 	if err := app.
 		SetRoot(flex, true).
