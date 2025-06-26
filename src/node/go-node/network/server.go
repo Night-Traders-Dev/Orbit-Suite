@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"orbit_node/core"
-        "time"
-        "strings"
 )
 
 func StartHTTPServer(n *core.OrbitNode) {
