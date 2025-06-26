@@ -69,6 +69,7 @@ func StartTUI(node *OrbitNode) {
 					i, hash[:8], timeStr,
 				),
 			)
+		println("\n\n")
 		}
 
 		// Join, set text, reset scroll
