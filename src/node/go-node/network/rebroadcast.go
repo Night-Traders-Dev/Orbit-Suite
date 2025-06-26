@@ -11,7 +11,7 @@ import (
 
 func RebroadcastIfNeeded(n *core.OrbitNode) {
 	for n.Running {
-		resp, err := http.Get("https://oliver-butler-oasis-builder.trycloudflare.com/active_nodes")
+		resp, err := http.Get("https://amateur-eric-receptors-casa.trycloudflare.com/active_nodes")
 		if err != nil {
 			time.Sleep(30 * time.Second)
 			continue

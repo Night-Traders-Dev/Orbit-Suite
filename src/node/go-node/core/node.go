@@ -158,7 +158,7 @@ func (n *OrbitNode) SendProofLoop() {
 			"proof_hash":  proofHash,
 		}
 		body, _ := json.Marshal(payload)
-		http.Post("https://oliver-butler-oasis-builder.trycloudflare.com/node_proof", "application/json", bytes.NewReader(body))
+		http.Post("https://amateur-eric-receptors-casa.trycloudflare.com/node_proof", "application/json", bytes.NewReader(body))
 
 		time.Sleep(30 * time.Second)
 	}
