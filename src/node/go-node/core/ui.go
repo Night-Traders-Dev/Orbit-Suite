@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/rivo/tview"
+	"github.com/gdamore/tcell/v2"
 )
 
-// StartTUI launches a terminal UI for the given OrbitNode.
 func StartTUI(node *OrbitNode) {
 	app := tview.NewApplication()
 
@@ -16,17 +16,13 @@ func StartTUI(node *OrbitNode) {
 		SetDynamicColors(true).
 		SetText("[::b]🌐 Orbit Node Console UI")
 
-	nodeInfo := tview.NewTextView().
-		SetDynamicColors(true).
-		SetWrap(false)
+	nodeInfo := tview.NewTextView().SetDynamicColors(true).SetWrap(false)
+	chainView := tview.NewTextView().SetDynamicColors(true).SetWrap(false)
+	logView := tview.NewTextView().SetDynamicColors(true).SetWrap(false)
+	peerStats := tview.NewTextView().SetDynamicColors(true).SetWrap(false)
 
-	chainView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetWrap(false)
-
-	logView := tview.NewTextView().
-		SetDynamicColors(true).
-		SetWrap(false)
+	pages := tview.NewPages()
+	detailed := false
 
 	updateNodeInfo := func() {
 		nodeInfo.Clear()
@@ -37,63 +33,77 @@ func StartTUI(node *OrbitNode) {
 [blue]Tunnel        : [white]%s
 [blue]Chain Length  : [white]%d
 `,
-			node.NodeID,
-			node.Address,
-			node.Port,
-			node.TunnelURL,
-			len(node.Chain),
-		)
+			node.NodeID, node.Address, node.Port, node.TunnelURL, len(node.Chain))
 	}
 
 	updateChainView := func() {
 		node.ChainMu.RLock()
 		defer node.ChainMu.RUnlock()
-
 		chainView.Clear()
 		fmt.Fprintf(chainView, "[green]Block Height: %d\n", len(node.Chain))
-		for i := len(node.Chain) - 1; i >= 0 && i > len(node.Chain)-6; i-- {
+		count := 5
+		if detailed {
+			count = 15
+		}
+		for i := len(node.Chain) - 1; i >= 0 && i > len(node.Chain)-1-count; i-- {
 			block := node.Chain[i]
 			hash, _ := block["hash"].(string)
 			timestamp, _ := block["timestamp"].(float64)
-			fmt.Fprintf(
-				chainView,
-				"[yellow]#%d [white]Hash: %s [blue]Time: %s\n",
-				i,
-				hash[:8],
-				time.Unix(int64(timestamp), 0).Format("15:04:05"),
-			)
+			fmt.Fprintf(chainView, "[yellow]#%d [white]Hash: %s [blue]Time: %s\n",
+				i, hash[:8], time.Unix(int64(timestamp), 0).Format("15:04:05"))
 		}
 	}
 
+	updatePeerStats := func() {
+		peerStats.Clear()
+		fmt.Fprintf(peerStats, "[cyan]Peers: %d\nTrust Score: %.2f\n", len(node.Peers), node.TrustScore)
+	}
+
 	updateLog := func(msg string) {
+		logView.Clear()
 		fmt.Fprintf(logView, "[gray]%s [white]%s\n", time.Now().Format("15:04:05"), msg)
 	}
 
-	mainFlex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(header, 1, 1, false).
+	left := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(nodeInfo, 0, 1, false).
-		AddItem(
-			tview.NewFlex().
-				AddItem(chainView, 0, 2, false).
-				AddItem(logView, 0, 1, false),
-			0, 3, true,
-		)
+		AddItem(peerStats, 0, 1, false).
+		AddItem(chainView, 0, 3, false)
 
-	// Wrap in Pages to ensure full screen resizing works
-	pages := tview.NewPages().
-		AddPage("main", mainFlex, true, true)
+	mainFlex := tview.NewFlex().
+		AddItem(left, 0, 3, true).
+		AddItem(logView, 0, 2, false)
+
+	flex := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(header, 1, 1, false).
+		AddItem(mainFlex, 0, 1, true)
+
+	pages.AddPage("main", flex, true, true)
+
+	updateAll := func() {
+		app.QueueUpdateDraw(func() {
+			updateNodeInfo()
+			updateChainView()
+			updatePeerStats()
+		})
+	}
 
 	go func() {
 		for node.Running {
-			app.QueueUpdateDraw(func() {
-				updateNodeInfo()
-				updateChainView()
-			})
+			updateAll()
 			time.Sleep(5 * time.Second)
 		}
 	}()
 
-	updateLog("UI started. Press Ctrl+C to exit.")
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Rune() {
+		case 'r':
+			updateAll()
+		case 'd':
+			detailed = !detailed
+			updateAll()
+		}
+		return event
+	})
 
 	if err := app.SetRoot(pages, true).EnableMouse(true).Run(); err != nil {
 		panic(err)
