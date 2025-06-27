@@ -584,9 +584,7 @@ def api_chain():
         if active_nodes:
             for node_id, data in active_nodes.items():
                 last_seen = data.get("last_seen", 0)
-                if time.time() - last_seen > 120:
-                    print(f"Node {node_id} has not been seen in over 2 minutes, removing from active nodes.")
-                    del active_nodes[node_id]
+                print(f"Node {node_id} last seen at {last_seen}")
     return jsonify(g.chain)
 
 
