@@ -57,6 +57,15 @@ func (n *OrbitNode) RegisterNode() {
     if host == "" {
         host = "127.0.0.1"
     }
+    // Fetch ORB balance and handle error
+    orbBal, err := GetORBBalance()
+    var nodeFeeBalance uint64
+    if err == nil && orbBal != nil {
+        nodeFeeBalance = orbBal.Available
+    } else {
+        nodeFeeBalance = 0
+    }
+
     n.Nodes[n.NodeID] = map[string]interface{}{
         "id":        n.NodeID,
         "address":   n.Address,
@@ -66,7 +75,7 @@ func (n *OrbitNode) RegisterNode() {
         "uptime":    1.0,
         "trust":     1.0,
         "last_seen": time.Now().Unix(),
-		"nodefeebalance": GetORBBalance(),
+        "nodefeebalance": nodeFeeBalance,
     }
     n.SaveNodes()
 
