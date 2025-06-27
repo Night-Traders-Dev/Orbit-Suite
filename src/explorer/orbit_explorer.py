@@ -39,6 +39,8 @@ CHAIN_PATH = orbit_db.blockchaindb
 PORT = 7000
 NodeRegistry = orbit_db.NodeRegistry
 node_validation_proofs = {}
+active_node_registry = {}
+
 
 @app.before_request
 def load_chain_once():
@@ -619,7 +621,6 @@ def api_summary():
 def ping():
     return "pong", 200
 
-active_node_registry = {}
 
 @app.route("/node_ping", methods=["POST"])
 def node_ping():
