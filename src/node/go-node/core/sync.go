@@ -16,6 +16,7 @@ func (n *OrbitNode) RegisterNode() {
 	n.Nodes[n.NodeID] = map[string]interface{}{
 		"id":        n.NodeID,
 		"address":   n.Address,
+		"user":      n.User,
 		"host":      host,
 		"port":      n.Port,
 		"uptime":    1.0,
