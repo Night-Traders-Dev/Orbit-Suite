@@ -2,7 +2,7 @@ import time
 from core.walletutil import load_balance
 from core.ioutil import get_address_from_label
 from blockchain.blockutil import add_block
-from config.configutil import OrbitDB, TXConfig, get_node_for_user
+from config.configutil import TXConfig, get_node_for_user
 from core.tx_util.tx_types import TXTypes
 
 MIN_TRANSFER_AMOUNT = 0.000001
