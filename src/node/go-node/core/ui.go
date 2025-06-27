@@ -35,7 +35,7 @@ func StartTUI(node *OrbitNode) {
 		// Build the full text in one go:
 		text := fmt.Sprintf(
 			`[blue]Node ID       : [white]%s
-[blue]User Address : [white]%s
+[blue]User Address  : [white]%s
 [blue]Orbit Address : [white]%s
 [blue]Port          : [white]%d
 [blue]Tunnel        : [white]%s
