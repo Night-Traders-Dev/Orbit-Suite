@@ -14,6 +14,8 @@ const (
     ApiURL      = "https://amateur-eric-receptors-casa.trycloudflare.com/"
     NodePing    = ApiURL + "node_ping"
     ApiChain    = ApiURL + "api/chain"
+	ApiBalance  = ApiURL + "api/balance/"
+	// NodeFeeCollector is the address of the ORB node fee collector.
     orbAddress  = "ORB.3C0738F00DE16991DDD5B506"
     timeoutSecs = 5 * time.Second
 )
@@ -27,7 +29,7 @@ type BalanceResponse struct {
 
 // GetBalance fetches and decodes balance for the given ORB address.
 func GetBalance(address string) (*BalanceResponse, error) {
-    endpoint := fmt.Sprintf("%sapi/balance/%s", ApiURL, address)
+    endpoint := ApiBalance + address
     client := &http.Client{Timeout: timeoutSecs}
     resp, err := client.Get(endpoint)
     if err != nil {
@@ -61,7 +63,7 @@ func (n *OrbitNode) RegisterNode() {
     orbBal, err := GetORBBalance()
     var nodeFeeBalance uint64
     if err == nil && orbBal != nil {
-        nodeFeeBalance = orbBal.Available
+        nodeFeeBalance = orbBal.total_balance
     } else {
         nodeFeeBalance = 0
     }
