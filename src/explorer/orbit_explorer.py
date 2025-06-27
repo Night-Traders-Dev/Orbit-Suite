@@ -574,7 +574,7 @@ def api_docs():
 
 @app.route("/api/chain")
 def api_chain():
-    nodefeebalance, _ = load_balance("ORB.3C0738F00DE16991DDD5B506")
+    nodefeebalance = api_balance("ORB.3C0738F00DE16991DDD5B506")
     if is_thousand_milestone(len(g.chain)):
         #Get active nodes
         active_nodes = active_node_registry
