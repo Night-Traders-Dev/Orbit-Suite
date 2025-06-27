@@ -2,8 +2,7 @@ import time, math
 from core.tx_util.tx_types import TXTypes
 from core.ioutil import load_users, save_users, fetch_chain, get_address_from_label
 from core.walletutil import load_balance
-from blockchain.blockutil import add_block
-from config.configutil import MiningConfig, TXConfig, get_node_for_user
+from config.configutil import MiningConfig
 from blockchain.tokenutil import send_orbit
 
 # Load configuration
@@ -34,7 +33,7 @@ def get_chain_summary():
     }
 
 def get_node_score(node_id):
-    nodes = load_nodes()
+    nodes = []
     for node in nodes:
         node = nodes.get(node_id, {})
         return node.get("trust_score", 1.0)
