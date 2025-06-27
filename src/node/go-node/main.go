@@ -36,11 +36,10 @@ func main() {
 
 	orbitAddr, err := utils.FetchOrbitAddress(explorerURL, node.UID)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\u2757 could not fetch orbit address: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Could not fetch orbit address: %v\n", err)
 		os.Exit(1)
 	}
 	node.Address = orbitAddr
-	fmt.Printf("\u2705 Orbit Address: %s\n", node.Address)
 
 	node.SyncWithExplorer()
 	node.RegisterNode()

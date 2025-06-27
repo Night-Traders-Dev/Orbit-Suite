@@ -48,7 +48,7 @@ func (n *OrbitNode) SyncWithExplorer() {
 	if len(remote) > len(n.Chain) {
 		n.Chain = remote
 		n.SaveChain()
-		log.Println("[SYNC] Chain updated from explorer.")
+		core.Notify("[SYNC] Chain updated from explorer.", 3*time.Second)
 	}
 }
 

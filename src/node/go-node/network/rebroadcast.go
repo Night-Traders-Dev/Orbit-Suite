@@ -20,7 +20,7 @@ func RebroadcastIfNeeded(n *core.OrbitNode) {
 		_ = json.NewDecoder(resp.Body).Decode(&active)
 		resp.Body.Close()
 		if _, exists := active[n.NodeID]; !exists {
-			log.Println("[REBROADCAST] Node not found in active_nodes. Re-registering...")
+			core.Notify("[REBROADCAST] Node not found in active_nodes. Re-registering...", 3*time.Second)
 			n.RegisterNode()
 		}
 		time.Sleep(30 * time.Second)
