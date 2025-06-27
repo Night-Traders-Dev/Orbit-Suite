@@ -582,7 +582,7 @@ def api_chain():
     else:
         active_nodes = active_node_registry
         if active_nodes:
-            print(f"Active nodes: {active_nodes.get('node').get('last_seen', 'N/A')}")
+            print(f"Active nodes: {active_nodes}")
     return jsonify(g.chain)
 
 
