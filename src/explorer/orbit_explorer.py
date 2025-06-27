@@ -584,7 +584,9 @@ def api_chain():
         if active_nodes:
             for node_id, data in active_nodes.items():
                 last_seen = data.get("last_seen", 0)
-                print(f"Node {node_id} last seen at {last_seen}")
+                address = data.get("node", {}).get("address", "Unknown")
+                user = data.get("node", {}).get("user", "Unknown")
+                print(f"Node {node_id} last seen at {last_seen}, address: {address}, user: {user}")
     return jsonify(g.chain)
 
 
