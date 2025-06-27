@@ -3,7 +3,6 @@ package network
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"orbit_node/core"
 	"time"
