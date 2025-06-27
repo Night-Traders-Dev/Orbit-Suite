@@ -22,7 +22,7 @@ func (n *OrbitNode) RegisterNode() {
 		"uptime":    1.0,
 		"trust":     1.0,
 		"last_seen": time.Now().Unix(),
-		"users":     []string{n.Address},
+		"users":     []string{n.User},
 	}
 	n.SaveNodes()
 
