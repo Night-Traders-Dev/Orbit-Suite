@@ -35,14 +35,14 @@ func (n *OrbitNode) RegisterNode() {
 func (n *OrbitNode) SyncWithExplorer() {
 	resp, err := http.Get("https://amateur-eric-receptors-casa.trycloudflare.com/api/chain")
 	if err != nil {
-		log.Println("[ERROR] Could not fetch chain:", err)
+		Notify("[ERROR] Could not fetch chain:", err)
 		return
 	}
 	defer resp.Body.Close()
 	var remote []Block
 	err = json.NewDecoder(resp.Body).Decode(&remote)
 	if err != nil {
-		log.Println("[ERROR] Invalid chain JSON:", err)
+		Notify("[ERROR] Invalid chain JSON:", err)
 		return
 	}
 	if len(remote) > len(n.Chain) {
