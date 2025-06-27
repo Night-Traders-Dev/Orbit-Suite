@@ -587,8 +587,8 @@ def api_chain():
                 address = data.get("node", {}).get("address", "Unknown")
                 user = data.get("node", {}).get("user", "Unknown")
                 print(f"Node {node_id} last seen at {last_seen}, address: {address}, user: {user}")
-#                nodefeebalance = load_balance("ORB.3C0738F00DE16991DDD5B506")
-#                print(f"Node Fee Balance: {nodefeebalance}")              
+                nodefeebalance, _ = load_balance("ORB.3C0738F00DE16991DDD5B506")
+                print(f"Node Fee Balance: {nodefeebalance}")              
     return jsonify(g.chain)
 
 
