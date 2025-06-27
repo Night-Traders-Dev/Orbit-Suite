@@ -34,17 +34,18 @@ class TXTypes:
             self.metadata = metadata or {}
             self.timestamp = timestamp or time.time()
 
-        def create_nft(self):
-            return {
-                "type": {
-                    "nft": {
-                        "id": self.nft_id,
-                        "owner": self.owner,
-                        "metadata": self.metadata,
-                        "timestamp": self.timestamp
-                    }
+    def create_nft(self):
+        return {
+            "type": {
+                "nft": {
+                    "id": self.nft_id,
+                    "owner": self.owner,
+                    "metadata": self.metadata,
+                    "timestamp": self.timestamp
                 }
             }
+        }
+
     def transfer_nft(self, new_owner):
         return {
             "type": {
@@ -56,6 +57,7 @@ class TXTypes:
                 }
             }
         }
+
     def update_nft_metadata(self, new_metadata):
         self.metadata.update(new_metadata)
         return {
@@ -68,6 +70,7 @@ class TXTypes:
                 }
             }
         }
+
     def get_nft_metadata(self):
         return {
             "type": {
@@ -79,6 +82,7 @@ class TXTypes:
                 }
             }
         }
+
     def delete_nft(self):
         return {
             "type": {
@@ -89,15 +93,18 @@ class TXTypes:
                 }
             }
         }
+
     def get_nft_id(self):
         return self.nft_id
+
     def get_nft_owner(self):
         return self.owner
+
     def get_nft_metadata(self):
         return self.metadata
+
     def get_nft_timestamp(self):
         return self.timestamp
-
 
 
     # --- Mining ---
