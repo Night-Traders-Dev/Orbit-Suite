@@ -55,6 +55,9 @@ def format_timestamp(value):
 def format_commas(value):
     return "{:,.0f}".format(value)
 
+def is_thousand_milestone(chain_length):
+    return chain_length % 1000 == 0 and chain_length != 0
+
 
 def human_readable_age(delta):
     days = delta.days
@@ -569,6 +572,15 @@ def api_docs():
 
 @app.route("/api/chain")
 def api_chain():
+    if is_thousand_milestone(len(g.chain)):
+        #Get active nodes
+        active_nodes = active_node_registry
+        if active_nodes:
+            print(f"Active nodes at {len(g.chain)}: {len(active_nodes)}")
+    else:
+        active_nodes = active_node_registry
+        if active_nodes:
+            print(f"Active nodes: {len(active_nodes)}")
     return jsonify(g.chain)
 
 
