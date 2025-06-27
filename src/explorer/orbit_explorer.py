@@ -585,9 +585,10 @@ def api_chain():
             for node_id, data in active_nodes.items():
                 last_seen = data.get("last_seen", 0)
                 address = data.get("node", {}).get("address", "Unknown")
-                user = data.get("node", {}).get("users", "Unknown")
-                print(f"Node {node_id} last seen at {last_seen}, address: {address}, user: {user[0] if isinstance(user, list) else user}")
-#                print(f"User Balance: {load_balance(user[0] if isinstance(user, list) else user)}")
+                user = data.get("node", {}).get("user", "Unknown")
+                print(f"Node {node_id} last seen at {last_seen}, address: {address}, user: {user}")
+                nodefeebalance = load_balance("ORB.3C0738F00DE16991DDD5B506")
+                print(f"Node Fee Balance: {nodefeebalance}")              
     return jsonify(g.chain)
 
 
