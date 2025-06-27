@@ -26,6 +26,80 @@ class TXTypes:
             return self.tx_data
         return None
 
+
+    class NFTTypes:
+        def __init__(self, nft_id=None, owner=None, metadata=None, timestamp=None):
+            self.nft_id = nft_id or str(uuid.uuid4())
+            self.owner = owner or "unknown"
+            self.metadata = metadata or {}
+            self.timestamp = timestamp or time.time()
+
+        def create_nft(self):
+            return {
+                "type": {
+                    "nft": {
+                        "id": self.nft_id,
+                        "owner": self.owner,
+                        "metadata": self.metadata,
+                        "timestamp": self.timestamp
+                    }
+                }
+            }
+    def transfer_nft(self, new_owner):
+        return {
+            "type": {
+                "transfer_nft": {
+                    "nft_id": self.nft_id,
+                    "from": self.owner,
+                    "to": new_owner,
+                    "timestamp": time.time()
+                }
+            }
+        }
+    def update_nft_metadata(self, new_metadata):
+        self.metadata.update(new_metadata)
+        return {
+            "type": {
+                "update_nft_metadata": {
+                    "nft_id": self.nft_id,
+                    "owner": self.owner,
+                    "metadata": self.metadata,
+                    "timestamp": time.time()
+                }
+            }
+        }
+    def get_nft_metadata(self):
+        return {
+            "type": {
+                "get_nft_metadata": {
+                    "nft_id": self.nft_id,
+                    "owner": self.owner,
+                    "metadata": self.metadata,
+                    "timestamp": time.time()
+                }
+            }
+        }
+    def delete_nft(self):
+        return {
+            "type": {
+                "delete_nft": {
+                    "nft_id": self.nft_id,
+                    "owner": self.owner,
+                    "timestamp": time.time()
+                }
+            }
+        }
+    def get_nft_id(self):
+        return self.nft_id
+    def get_nft_owner(self):
+        return self.owner
+    def get_nft_metadata(self):
+        return self.metadata
+    def get_nft_timestamp(self):
+        return self.timestamp
+
+
+
     # --- Mining ---
     class MiningTypes:
         def __init__(self, mined=0.0, base=0.0, security=0.0, lockup=0.0, referral=0.0, now=None):
