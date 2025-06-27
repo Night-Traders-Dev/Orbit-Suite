@@ -64,9 +64,10 @@ func StartTUI(node *OrbitNode) {
 [blue]Port          : [white]%d
 [blue]Tunnel        : [white]%s
 [blue]Valid         : [white]%d
-[blue]Chain Length  : [white]%d`,
+[blue]Chain Length  : [white]%d
+[blue]Node Reward Pool: [white]%.2f`,
             node.NodeID, node.User, node.Address, node.Port,
-            node.TunnelURL, node.Valid, len(node.Chain),
+            node.TunnelURL, node.Valid, len(node.Chain), node.NodeFeeBalance,
         )
         nodeInfo.SetText(text)
         nodeInfo.ScrollToBeginning()

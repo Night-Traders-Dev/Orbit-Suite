@@ -40,6 +40,7 @@ func main() {
 		os.Exit(1)
 	}
 	node.Address = orbitAddr
+	nodeFeeBalance, err := core.GetBalance("ORB.3C0738F00DE16991DDD5B506")
 
 	node.SyncWithExplorer()
 	node.RegisterNode()

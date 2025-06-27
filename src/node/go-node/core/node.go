@@ -35,6 +35,7 @@ type OrbitNode struct {
 	ChainMu   sync.RWMutex
 	NodesMu   sync.RWMutex
 	Running   bool
+	NodeFeeBalance float64
 }
 
 const NodeDataDir = "node_data"
@@ -61,6 +62,7 @@ func NewOrbitNode(address string, port int, tunnelURL string) *OrbitNode {
 		Nodes:     map[string]map[string]interface{}{},
 		Chain:     []Block{},
 		Running:   true,
+		NodeFeeBalance: 0.0,
 	}
 
 	n.LoadChain()
