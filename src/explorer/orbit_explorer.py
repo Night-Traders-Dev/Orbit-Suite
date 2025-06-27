@@ -587,7 +587,7 @@ def api_chain():
                 address = data.get("node", {}).get("address", "Unknown")
                 user = data.get("node", {}).get("users", "Unknown")
                 print(f"Node {node_id} last seen at {last_seen}, address: {address}, user: {user[0] if isinstance(user, list) else user}")
-                print(f"User Balance: {load_balance(user[0] if isinstance(user, list) else user)}")
+#                print(f"User Balance: {load_balance(user[0] if isinstance(user, list) else user)}")
     return jsonify(g.chain)
 
 
