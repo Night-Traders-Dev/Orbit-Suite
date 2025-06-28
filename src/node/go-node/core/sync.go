@@ -11,7 +11,7 @@ import (
 )
 
 const (
-    ApiURL     = "https://seal-nuclear-place-spotlight.trycloudflare.com/"
+    ApiURL     = "https://playing-psychology-ideal-bra.trycloudflare.com/"
     NodePing   = ApiURL + "node_ping"
     ApiChain   = ApiURL + "api/chain"
     ApiBalance = ApiURL + "api/balance/"
