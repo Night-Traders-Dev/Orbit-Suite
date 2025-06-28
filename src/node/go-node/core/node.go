@@ -36,6 +36,7 @@ type OrbitNode struct {
 	NodesMu   sync.RWMutex
 	Running   bool
 	NodeFeeBalance float64
+	nodeProof string
 }
 
 const NodeDataDir = "node_data"
