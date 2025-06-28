@@ -573,22 +573,7 @@ def api_docs():
     return render_template("api_docs.html")
 
 @app.route("/api/chain")
-def api_chain():
-    if is_thousand_milestone(len(g.chain)):
-        #Get active nodes
-        active_nodes = active_node_registry
-        if active_nodes:
-            print(f"Active nodes at {len(g.chain)}: {len(active_nodes)}")
-    else:
-        active_nodes = active_node_registry
-        if active_nodes:
-            for node_id, data in active_nodes.items():
-                last_seen = data.get("last_seen", 0)
-                address = data.get("node", {}).get("address", "Unknown")
-                user = data.get("node", {}).get("user", "Unknown")
-                nodefeebalance = data.get("node", {}).get("nodefeebalance", 0.0)
-                print(f"Node {node_id} last seen at {last_seen}, address: {address}, user: {user}")
-                print(f"Node Fee Balance: {nodefeebalance}")              
+def api_chain():           
     return jsonify(g.chain)
 
 
@@ -642,7 +627,21 @@ def node_ping():
         "node": node,
         "last_seen": last_seen
     }
-
+    if is_thousand_milestone(len(g.chain)):
+        #Get active nodes
+        active_nodes = active_node_registry
+        if active_nodes:
+            print(f"Active nodes at {len(g.chain)}: {len(active_nodes)}")
+    else:
+        active_nodes = active_node_registry
+        if active_nodes:
+            for node_id, data in active_nodes.items():
+                last_seen = data.get("last_seen", 0)
+                address = data.get("node", {}).get("address", "Unknown")
+                user = data.get("node", {}).get("user", "Unknown")
+                nodefeebalance = data.get("node", {}).get("nodefeebalance", 0.0)
+                print(f"Node {node_id} last seen at {last_seen}, address: {address}, user: {user}")
+                print(f"Node Fee Balance: {nodefeebalance}")   
     return jsonify({"status": "registered", "node": node}), 200
 
 
