@@ -11,8 +11,6 @@ import (
 	"orbit_node/utils"
 )
 
-const explorerURL = "https://amateur-eric-receptors-casa.trycloudflare.com"
-
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: orbit_node <your-address> [port] [tunnel_url]")
@@ -34,7 +32,7 @@ func main() {
 	node := core.NewOrbitNode(userAddr, port, tunnel)
 	node.UID = utils.GenerateUID(node.NodeID, node.User, node.Port, node.TunnelURL)
 
-	orbitAddr, err := utils.FetchOrbitAddress(explorerURL, node.UID)
+	orbitAddr, err := utils.FetchOrbitAddress(node.TunnelURL, node.UID)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Could not fetch orbit address: %v\n", err)
 		os.Exit(1)
