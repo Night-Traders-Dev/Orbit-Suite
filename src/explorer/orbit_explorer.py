@@ -631,7 +631,43 @@ def node_ping():
         #Get active nodes
         active_nodes = active_node_registry
         if active_nodes:
-            print(f"Active nodes at {len(g.chain)}: {len(active_nodes)}")
+            for node_id, data in active_nodes.items():
+                last_seen = data.get("last_seen", 0)
+                address = data.get("node", {}).get("address", "Unknown")
+                user = data.get("node", {}).get("user", "Unknown")
+                nodefeebalance = data.get("node", {}).get("nodefeebalance", 0.0)
+                nodefeecollector = "ORB.3C0738F00DE16991DDD5B506"
+                user_reward = (nodefeebalance * 0.9)
+                mining_reward = (nodefeebalance * 0.08)
+                burn_amount = (nodefeebalance * 0.02)
+                order = {
+                    "sender": nodefeecollector,
+                    "recipient": user,
+                    "amount": user_reward,
+                    "note": {
+                        "type": {
+                            "reward": {
+                                "user_reward": user_reward,
+                                "mining_reward": mining_reward,
+                                "burn_amount": burn_amount
+                            }
+                        }
+                    }
+                }
+                success, message = send_orbit(nodefeecollector, user, user_reward, order)
+                if success:
+                    success, message = send_orbit(nodefeecollector, "burn", burn_amount, order)
+                    if success:
+                        success, message = send_orbit(nodefeecollector, "mining", mining_reward, order)
+                        if success:
+                            print(f"Node fee distributed successfully: {user_reward} to {user}, {mining_reward} to mining, {burn_amount} burned")
+                        else:
+                            print(f"Failed to send mining reward: {message}")
+                    else:
+                        print(f"Failed to send burn amount: {message}")
+                else:
+                    print(f"Failed to send user reward: {message}")
+                    
     else:
         active_nodes = active_node_registry
         if active_nodes:
