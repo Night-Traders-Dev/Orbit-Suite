@@ -10,7 +10,7 @@ import (
 
 func RebroadcastIfNeeded(n *core.OrbitNode) {
 	for n.Running {
-		resp, err := http.Get("https://playing-psychology-ideal-bra.trycloudflare.com/active_nodes")
+		resp, err := http.Get("https://beginner-pop-temp-dennis.trycloudflare.com/active_nodes")
 		if err != nil {
 			time.Sleep(30 * time.Second)
 			continue

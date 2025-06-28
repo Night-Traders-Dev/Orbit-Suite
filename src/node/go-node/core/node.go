@@ -161,7 +161,7 @@ func (n *OrbitNode) SendProofLoop() {
 			"proof_hash":  proofHash,
 		}
 		body, _ := json.Marshal(payload)
-		http.Post("https://playing-psychology-ideal-bra.trycloudflare.com/node_proof", "application/json", bytes.NewReader(body))
+		http.Post("https://beginner-pop-temp-dennis.trycloudflare.com/node_proof", "application/json", bytes.NewReader(body))
 		n.nodeProof = "Sent proof for node " + n.NodeID + ": latest_hash=" + latestHash + ", proof_hash=" + proofHash
 		Notify(n.nodeProof, 5*time.Second)
 
