@@ -1,0 +1,89 @@
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from typing import Dict, Any
+import time
+
+from ..models import (
+    NodeProfileOut, NodePingIn, NodeProofIn, BlockProposal
+)
+from ..deps import (
+    get_chain, get_node_registry,
+    record_heartbeat, get_active_nodes
+)
+from ..tasks import maybe_distribute_fees
+from ..config import settings
+
+router = APIRouter(prefix="", tags=["node"])
+
+@router.get("/node/{node_id}", response_model=NodeProfileOut)
+def node_profile(
+    node_id: str,
+    chain=Depends(get_chain),
+    node_registry=Depends(get_node_registry)
+):
+    blocks = [b for b in chain if b.get("validator") == node_id]
+    if not blocks and node_id not in node_registry:
+        raise HTTPException(404, f"Node {node_id} not found")
+
+    info = node_registry.get(node_id) or NodeInfo(id=node_id)
+    total_blocks = len(blocks)
+
+    # compute total_orbit & avg_block_size
+    total_orbit = 0.0
+    for blk in blocks:
+        for tx in blk.get("transactions", []):
+            note = tx.get("note", {}).get("type", {})
+            total_orbit += note.get("gas", {}).get("fee", 0.0)
+            total_orbit += note.get("lockup", {}).get("amount", 0.0)
+            if tx.get("sender") == "mining":
+                total_orbit += tx.get("amount", 0.0)
+            if not note:
+                total_orbit += tx.get("amount", 0.0)
+
+    avg_block_size = (
+        sum(len(b.get("transactions", [])) for b in blocks) / total_blocks
+        if total_blocks else 0.0
+    )
+
+    return NodeProfileOut(
+        node_id=node_id,
+        trust=round(info.trust, 3),
+        uptime=round(info.uptime, 3),
+        total_blocks=total_blocks,
+        total_orbit=round(total_orbit, 6),
+        avg_block_size=round(avg_block_size, 2)
+    )
+
+@router.post("/node_ping")
+def node_ping(
+    payload: NodePingIn,
+    bg: BackgroundTasks
+):
+    """
+    Heartbeat + fee distribution on milestone.
+    """
+    record_heartbeat(payload.id, payload.dict())
+    bg.add_task(maybe_distribute_fees, bg)
+    return {"status": "registered", "node": payload}
+
+@router.get("/active_nodes")
+def active_nodes():
+    return get_active_nodes()
+
+@router.post("/node_proof")
+def node_proof(req: NodeProofIn):
+    from . import deps
+    deps.node_validation_proofs[req.node_id] = {
+        "timestamp": time.time(),
+        "latest_hash": req.latest_hash,
+        "proof_hash": req.proof_hash
+    }
+    return {"status": "success", "message": f"Proof received from {req.node_id}"}
+
+@router.post("/receive_block")
+def receive_block(block: BlockProposal):
+    """
+    Stub: validate & append your block.
+    """
+    # TODO: validation logic
+    print(f"Received block proposal: {block.index}")
+    return {"status": "ok"}
