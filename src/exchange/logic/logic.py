@@ -124,7 +124,7 @@ async def deposit(symbol, amount, receiver, sender):
     if success:
         return(True, {"Orbit Deposit": {"sender": sender, "receiver": receiver, "amount": amount}})
     else:
-        return(False, {"Orbit Deposit": {"sender": sender, "receiver": receiver, "amount": amount, "error": result.get("error", "Unknown error")}})
+        return(False, {"Orbit Deposit": {"sender": sender, "receiver": receiver, "amount": amount, "error": result}})
 
 async def withdrawal(amount, receiver, sender):
     import re
