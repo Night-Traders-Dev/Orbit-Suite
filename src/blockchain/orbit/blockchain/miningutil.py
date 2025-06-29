@@ -5,8 +5,9 @@ from core.tokenmeta import get_token_meta
 from core.walletutil import load_balance
 from config.configutil import MiningConfig
 from blockchain.tokenutil import send_orbit
+import asyncio
 
-fuel_meta = get_token_meta("FUEL")
+fuel_meta = asyncio.run(get_token_meta("FUEL"))
 fuel_price = fuel_meta.get("price", 0.0)
 
 
