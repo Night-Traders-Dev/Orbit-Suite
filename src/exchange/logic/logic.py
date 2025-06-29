@@ -121,7 +121,10 @@ async def create_token(name, symbol, supply, creator):
 
 async def deposit(symbol, amount, receiver, sender):
     result = await send_orbit_api(sender, receiver, amount, order={"Deposit": {"sender": sender, "receiver": receiver, "amount": amount}})
-    return(True, {"Orbit Deposit": {"sender": sender, "receiver": receiver, "amount": amount}})
+    if "success" in result:
+        return(True, {"Orbit Deposit": {"sender": sender, "receiver": receiver, "amount": amount}})
+    else:
+        return(False, {"Orbit Deposit": {"sender": sender, "receiver": receiver, "amount": amount, "error": result.get("error", "Unknown error")}})
 
 async def withdrawal(amount, receiver, sender):
     import re
