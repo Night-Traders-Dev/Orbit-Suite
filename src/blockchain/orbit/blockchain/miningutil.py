@@ -1,5 +1,5 @@
 import time, math
-from core.tx_util.tx_types import TXTypes
+from core.tx_util.tx_types import TXTypes, TXExchange
 from core.ioutil import load_users, save_users, fetch_chain, get_address_from_label
 from core.walletutil import load_balance
 from config.configutil import MiningConfig
@@ -135,7 +135,16 @@ def start_mining(address):
             time.time()
         )
         tx_order = TXTypes.MiningTypes.mining_metadata(node_fee, tx_metadata.rate_dict())
+        token_tx = TXExchange.create_token_transfer_tx(
+            sender="ORB.A6C19210F2B823246BA1DCA7",
+            receiver=address,
+            amount=user_payout,
+            token_symbol="FUEL",
+            note="Mining reward",
+        )
+        orbit_amount = 0.5
         send_orbit(mining_address, address, user_payout, order=tx_order)
+        send_orbit("ORB.A6C19210F2B823246BA1DCA7", address, orbit_amount, order=token_tx)
 
         return True, {
             "rate": rate,
