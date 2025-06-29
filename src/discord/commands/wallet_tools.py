@@ -74,11 +74,11 @@ async def wallet_info(uid):
     embed.add_field(name="Locked", value=f"{locked} Orbit", inline=True)
     embed.add_field(name="DeFi", value=f"{token_value:,.6f} Orbit", inline=True)
     embed.add_field(name="Total", value=f"{(total + token_value):,.6f} Orbit", inline=True)
-    embed.add_field(name="View on Explorer", value=f"[Explorer]( https://40af-173-187-247-149.ngrok-free.app/address/{address})", inline=False)
+    embed.add_field(name="View on Explorer", value=f"[Explorer]( https://beginner-pop-temp-dennis.trycloudflare.com/address/{address})", inline=False)
     status, mine_cooldown = await mine_check_api(address)
     if not mine_cooldown:
         mine_cooldown = "Now"
     embed.add_field(name="Next Mine", value=f"{mine_cooldown[1]}", inline=True)
     status, claim_cooldown = await claim_check_api(address)
-    embed.add_field(name="Next Claim", value=f"{claim_cooldown['message']}", inline=True)
+#    embed.add_field(name="Next Claim", value=f"{claim_cooldown['message']}", inline=True)
     return embed
