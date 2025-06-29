@@ -139,7 +139,7 @@ async def withdrawal(amount, receiver, sender):
                 quantity = float(quantity_str)
                 orbit_value = float(orbit_value_str)
                 current_price = (orbit_value / quantity)
-                transfer_amount = (current_price * amount)
+                transfer_amount = (amount / current_price)
     token_tx = TXExchange.create_token_transfer_tx(
     sender=sender,
     receiver=receiver,
@@ -149,8 +149,11 @@ async def withdrawal(amount, receiver, sender):
     )
     orbit_amount = 5
     txt = f"{symbol} Withdrawal"
-    result = await send_orbit_api(receiver, sender, orbit_amount, order=token_tx)
-    return(True, {txt: {"sender": sender, "receiver": receiver, "amount": transfer_amount}})
+    success, result = await send_orbit_api(receiver, sender, orbit_amount, order=token_tx)
+    if success:
+        return(True, {txt: {"sender": sender, "receiver": receiver, "amount": transfer_amount}})
+    else:
+        return(False, {txt: {"sender": sender, "receiver": receiver, "amount": transfer_amount, "error": result}})
 
 async def swap_token(from_token, to_token, amount, receiver, sender):
     user = receiver
