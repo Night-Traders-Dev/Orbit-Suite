@@ -7,9 +7,6 @@ from config.configutil import MiningConfig
 from blockchain.tokenutil import send_orbit
 import asyncio
 
-fuel_meta = asyncio.run(get_token_meta("FUEL"))
-fuel_price = fuel_meta.get("current_price", 0.0)
-fuel_price = round(fuel_price * 1.095, 6)  # Round to 6 decimal places
 
 # Load configuration
 mining_address = get_address_from_label("mining")
@@ -141,7 +138,9 @@ def start_mining(address):
             time.time()
         )
         tx_order = TXTypes.MiningTypes.mining_metadata(node_fee, tx_metadata.rate_dict())
-
+        fuel_meta = asyncio.run(get_token_meta("FUEL"))
+        fuel_price = fuel_meta.get("current_price", 0.0)
+        fuel_price = round(fuel_price * 1.095, 6)
         fuel_order_amount = round(1000 * fuel_price, 6)
 
         fuel_order = TXExchange.create_token_transfer_tx(
