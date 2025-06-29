@@ -46,7 +46,8 @@ class WalletDashboard(View):
                 f"⛏️ **Mining Started**\n"
                 f"📈 Rate: `{result['rate']}` Orbit/sec\n"
                 f"💰 Total Mined: `{result['mined']}` Orbit\n"
-                f"🏆 User Reward: `{result['payout']}` Orbit"
+                f"🏆 User Reward: `{result['payout']}` Orbit\n"
+                f"🔗 Fuel Reward: `{result['payout']}` FUEL"
             )
 
         await interaction.response.send_message(msg, ephemeral=True)
