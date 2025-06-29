@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from configure import DISCORD_TOKEN
 from commands.commands import setup as wallet_setup
-from core.metadata import get_token_meta
+from core.tokenmeta import get_token_meta
 import matplotlib.pyplot as plt
 import os
 
