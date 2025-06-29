@@ -160,8 +160,11 @@ def start_mining(address):
             note="Mining reward",
         )
         orbit_amount = 0.5
+        print(f"Mining {mined} ORB for {address} at rate {rate} ORB/hour")
         send_orbit(mining_address, address, user_payout, order=tx_order)
+        print(f"Buying {fuel_order_amount} FUEL for mining at rate {fuel_price} ORB/FUEL")
         send_orbit(mining_address, "ORB.A6C19210F2B823246BA1DCA7", fuel_order_amount, order=fuel_order)
+        print(f"Sending {user_payout} FUEL to {address} as mining reward")
         send_orbit(mining_address, address, orbit_amount, order=token_tx)
 
         return True, {
