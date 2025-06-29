@@ -174,7 +174,7 @@ async def swap_token(from_token, to_token, amount, receiver, sender):
                     print(f"Swapping {amount} ORBIT to {to_token}")
                     print(f"Current price of {to_token} is {current_price} Orbit")
                     print(f"Orbit value of {orbit_value} for {quantity} {to_token}")
-                    print(f"(orbit_value / current_price) = {orbit_value / current_price}")
+                    print(f"(orbit_value / current_price) = {amount / current_price}")
                 transfer_amount = (current_price * amount)
     token_tx = TXExchange.create_token_transfer_tx(
     sender=sender,
