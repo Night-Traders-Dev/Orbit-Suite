@@ -1,9 +1,14 @@
 import time, math
 from core.tx_util.tx_types import TXTypes, TXExchange
 from core.ioutil import load_users, save_users, fetch_chain, get_address_from_label
+from core.tokenmeta import get_token_meta
 from core.walletutil import load_balance
 from config.configutil import MiningConfig
 from blockchain.tokenutil import send_orbit
+
+fuel_meta = get_token_meta("FUEL")
+fuel_price = fuel_meta.get("price", 0.0)
+
 
 # Load configuration
 mining_address = get_address_from_label("mining")
@@ -135,8 +140,19 @@ def start_mining(address):
             time.time()
         )
         tx_order = TXTypes.MiningTypes.mining_metadata(node_fee, tx_metadata.rate_dict())
-        token_tx = TXExchange.create_token_transfer_tx(
+
+        fuel_order_amount = round(1000 * fuel_price, 6)
+
+        fuel_order = TXExchange.create_token_transfer_tx(
             sender="ORB.A6C19210F2B823246BA1DCA7",
+            receiver=mining_address,
+            amount=1000,
+            token_symbol="FUEL",
+            note="Token purchase from exchange",
+        )
+
+        token_tx = TXExchange.create_token_transfer_tx(
+            sender=mining_address,
             receiver=address,
             amount=user_payout,
             token_symbol="FUEL",
@@ -144,7 +160,8 @@ def start_mining(address):
         )
         orbit_amount = 0.5
         send_orbit(mining_address, address, user_payout, order=tx_order)
-        send_orbit("ORB.A6C19210F2B823246BA1DCA7", address, orbit_amount, order=token_tx)
+        send_orbit(mining_address, "ORB.A6C19210F2B823246BA1DCA7", fuel_order_amount, order=fuel_order)
+        send_orbit(mining_address, address, orbit_amount, order=token_tx)
 
         return True, {
             "rate": rate,
