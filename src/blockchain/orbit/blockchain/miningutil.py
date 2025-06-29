@@ -8,8 +8,8 @@ from blockchain.tokenutil import send_orbit
 import asyncio
 
 fuel_meta = asyncio.run(get_token_meta("FUEL"))
-fuel_price = fuel_meta.get("price", 0.0)
-
+fuel_price = fuel_meta.get("current_price", 0.0)
+fuel_price = round(fuel_price * 1.095, 6)  # Round to 6 decimal places
 
 # Load configuration
 mining_address = get_address_from_label("mining")
