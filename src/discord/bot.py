@@ -6,6 +6,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from configure import DISCORD_TOKEN
 from commands.commands import setup as wallet_setup
+from core.metadata import get_token_meta
 import matplotlib.pyplot as plt
 import os
 
@@ -224,9 +225,14 @@ async def periodic_report():
 
         avg_buy = buy_orb / buy_tok if buy_tok else 0.0
         avg_sell = sell_orb / sell_tok if sell_tok else 0.0
+        token_meta = await get_token_meta(s)
+        if token_meta:
+            token_price = token_meta.get("current_price", 0.0)
 
         lines.append(
             f"\n**{s}**\n"
+            f"💲 Price: {token_price:.6f} Orbit/{s}\n"
+            f"💲 Price: {(1 / token_price):,.6f} {s}/Orbit\n"
             f"🟢 Buy: {b:.6f} ({cb:+.2f}%)\n"
             f"🔴 Sell: {sll:.6f} ({cs:+.2f}%)\n"
             f"🔼 Buy: {buy_tok:,.2f} tokens, Orbit Spent: {buy_orb:,.2f} ORBIT\n"
@@ -267,9 +273,14 @@ async def report_interval(channel, label, snap, buy_map, sell_map):
             daily_history[s]["hour"].append(current_hour)
             daily_history[s]["buy"].append(avg_buy)
             daily_history[s]["sell"].append(avg_sell)
+        token_meta = await get_token_meta(s)
+        if token_meta:
+            token_price = token_meta.get("current_price", 0.0)
 
         lines.append(
             f"\n**{s}**\n"
+            f"💲 Price: {token_price:.6f} Orbit/{s}\n"
+            f"💲 Price: {(1 / token_price):,.6f} {s}/Orbit\n"
             f"🟢 Buy: {b:.6f} ({cb:+.2f}%)\n"
             f"🔴 Sell: {sll:.6f} ({cs:+.2f}%)\n"
             f"Vol: {total_vol:,.2f} tokens\n"
